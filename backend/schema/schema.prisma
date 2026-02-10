@@ -1,0 +1,214 @@
+// File: backend/persistence/schema.prisma
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+////////////////////////////////////////////////////////////
+// ENUMS
+////////////////////////////////////////////////////////////
+
+enum MarketStatus {
+  OPEN
+  LOCKED
+  RESOLVING
+  RESOLVED
+  CANCELLED
+}
+
+enum Outcome {
+  YES
+  NO
+}
+
+enum AgentStatus {
+  ACTIVE
+  PAUSED
+  SLASHED
+}
+
+enum OraclePhase {
+  COLLECTING
+  FINALIZING
+  RESOLVED
+}
+
+enum ProposalStatus {
+  ACTIVE
+  PASSED
+  REJECTED
+  EXECUTED
+}
+
+////////////////////////////////////////////////////////////
+// CORE ENTITIES
+////////////////////////////////////////////////////////////
+
+model Market {
+  id              String        @id
+  title           String
+  description     String?
+  status           MarketStatus
+  endTime         DateTime
+  resolvedOutcome Outcome?
+  createdAt       DateTime      @default(now())
+
+  liquidity       Float
+  yesOdds         Float
+  noOdds          Float
+
+  bets            Bet[]
+  oracleState     OracleState?
+}
+
+model Bet {
+  id        String   @id
+  marketId  String
+  bettor    String
+  outcome   Outcome
+  amount    Float
+  txHash    String
+  createdAt DateTime @default(now())
+
+  market    Market   @relation(fields: [marketId], references: [id])
+
+  @@index([marketId])
+  @@index([bettor])
+}
+
+////////////////////////////////////////////////////////////
+// AGENTS
+////////////////////////////////////////////////////////////
+
+model Agent {
+  id          String       @id
+  owner       String
+  status      AgentStatus
+  stake       Float
+  accuracy    Float
+  pnl         Float
+  createdAt   DateTime     @default(now())
+
+  scores      AgentScore[]
+}
+
+model AgentScore {
+  id        String   @id
+  agentId   String
+  marketId  String
+  correct   Boolean
+  confidence Float
+  createdAt DateTime @default(now())
+
+  agent     Agent @relation(fields: [agentId], references: [id])
+
+  @@index([agentId])
+  @@index([marketId])
+}
+
+////////////////////////////////////////////////////////////
+// ORACLES
+////////////////////////////////////////////////////////////
+
+model OracleState {
+  marketId        String      @id
+  phase           OraclePhase
+  confidence      Float
+  quorumReached   Boolean
+  resolvedAt      DateTime?
+
+  submissions     OracleSubmission[]
+
+  market          Market @relation(fields: [marketId], references: [id])
+}
+
+model OracleSubmission {
+  id        String   @id
+  marketId  String
+  oracleId  String
+  outcome   Outcome
+  weight    Float
+  txHash    String
+  createdAt DateTime @default(now())
+
+  oracleState OracleState @relation(fields: [marketId], references: [marketId])
+
+  @@index([marketId])
+  @@index([oracleId])
+}
+
+////////////////////////////////////////////////////////////
+// YIELD
+////////////////////////////////////////////////////////////
+
+model YieldVault {
+  id          String   @id
+  name        String
+  apy         Float
+  risk        Float
+  tvl         Float
+  createdAt   DateTime @default(now())
+}
+
+model PortfolioSnapshot {
+  id          String   @id
+  owner       String
+  totalValue  Float
+  risk        Float
+  createdAt   DateTime @default(now())
+
+  allocations PortfolioAllocation[]
+}
+
+model PortfolioAllocation {
+  id          String   @id
+  snapshotId  String
+  vaultId     String
+  weight      Float
+  expectedApy Float
+
+  snapshot    PortfolioSnapshot @relation(fields: [snapshotId], references: [id])
+}
+
+////////////////////////////////////////////////////////////
+// GOVERNANCE
+////////////////////////////////////////////////////////////
+
+model Proposal {
+  id          String          @id
+  title       String
+  description String?
+  status      ProposalStatus
+  startTime   DateTime
+  endTime     DateTime
+  forVotes    Float
+  againstVotes Float
+  createdAt   DateTime @default(now())
+}
+
+////////////////////////////////////////////////////////////
+// INDEXING / AUDIT LOGS (CRITICAL)
+////////////////////////////////////////////////////////////
+
+model ChainEvent {
+  id          String   @id
+  blockNumber Int
+  txHash      String
+  eventType   String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@index([blockNumber])
+  @@index([txHash])
+}
+
+model ReplayCursor {
+  id          String   @id
+  lastBlock   Int
+  updatedAt   DateTime @updatedAt
+}

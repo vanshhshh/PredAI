@@ -1,0 +1,66 @@
+# File: backend/pyproject.toml
+#
+# PURPOSE
+# -------
+# Build system and tooling configuration for the backend.
+#
+# DESIGN RULES
+# ------------
+# - Backend is a pure application package (not a library)
+# - Uses PEP 517/518 standards
+# - Explicit, minimal tooling
+# - Compatible with async + Rust FFI builds
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-crypto-prediction-backend"
+version = "0.1.0"
+description = "Backend services for the AI–Crypto Prediction Platform"
+readme = "../README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "AI Crypto Prediction Platform" }
+]
+
+dependencies = [
+  "fastapi==0.110.0",
+  "uvicorn[standard]==0.29.0",
+  "SQLAlchemy==2.0.29",
+  "asyncpg==0.29.0",
+  "kafka-python==2.0.2",
+  "pydantic==2.6.4",
+  "python-dotenv==1.0.1",
+  "httpx==0.27.0",
+  "numpy==1.26.4",
+  "cryptography==42.0.5",
+]
+
+[tool.setuptools]
+packages = ["backend"]
+
+[tool.setuptools.package-dir]
+backend = "backend"
+
+# -------------------------------
+# Formatting / linting (optional, off by default)
+# -------------------------------
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+
+# -------------------------------
+# Type checking (optional)
+# -------------------------------
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true

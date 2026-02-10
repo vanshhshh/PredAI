@@ -1,0 +1,21 @@
+# File: infra/monitoring/prometheus.yaml
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "backend"
+    static_configs:
+      - targets:
+          - backend:8000
+
+  - job_name: "ai"
+    static_configs:
+      - targets:
+          - ai:9000
+
+  - job_name: "frontend"
+    static_configs:
+      - targets:
+          - frontend:3000

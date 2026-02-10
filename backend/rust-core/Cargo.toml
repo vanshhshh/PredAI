@@ -1,0 +1,58 @@
+# File: backend/rust-core/Cargo.toml
+#
+# PURPOSE
+# -------
+# Rust core crate for high-performance, safety-critical logic.
+#
+# This crate is used for:
+# - oracle consensus calculations
+# - risk engine math
+# - agent scoring
+#
+# It is called from Python via FFI (pyo3 / maturin) or as a sidecar service.
+#
+# DESIGN RULES (from docs)
+# ------------------------
+# - Deterministic execution
+# - No network access
+# - No global mutable state
+# - Panic-free in production paths
+# - Explicit error handling
+
+[package]
+name = "rust_core"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI Crypto Prediction Platform"]
+description = "High-performance core logic for oracle consensus, risk, and scoring"
+license = "Apache-2.0"
+
+[lib]
+name = "rust_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Numerical computation
+ndarray = "0.15"
+statrs = "0.16"
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+
+
+# Error handling
+thiserror = "1.0"
+
+# Python bindings (optional but expected)
+pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
+
+[features]
+default = []
+python-bindings = ["pyo3"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,186 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleConsensus.sol": {
+      "lastModificationDate": 1770655460201,
+      "contentHash": "334fe104754ca81271368872a284c050",
+      "sourceName": "oracles/OracleConsensus.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./OracleRegistry.sol",
+        "./OracleStaking.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleConsensus"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleRegistry.sol": {
+      "lastModificationDate": 1770655463544,
+      "contentHash": "eb190865085994137e5a6383188ba86a",
+      "sourceName": "oracles/OracleRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleRegistry"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleStaking.sol": {
+      "lastModificationDate": 1770655473664,
+      "contentHash": "64666c2bc4a6ecd394ac9c97400d6780",
+      "sourceName": "oracles/OracleStaking.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./OracleRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleStaking"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleSlashing.sol": {
+      "lastModificationDate": 1770655470163,
+      "contentHash": "4c6b0b5ed2d71d8023a6e64754e2b5dd",
+      "sourceName": "oracles/OracleSlashing.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./OracleConsensus.sol",
+        "./OracleStaking.sol",
+        "./OracleRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleSlashing"
+      ]
+    }
+  }
+}
