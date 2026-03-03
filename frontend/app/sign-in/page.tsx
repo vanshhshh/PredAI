@@ -48,6 +48,14 @@ type Eip1193Provider = {
   providers?: Eip1193Provider[];
 };
 
+const walletConnectProjectIdRaw =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() ||
+  process.env.NEXT_PUBLIC_REOWN_PROJECT_ID?.trim() ||
+  "";
+const walletConnectProjectId = /^[a-f0-9]{32}$/i.test(walletConnectProjectIdRaw)
+  ? walletConnectProjectIdRaw
+  : "";
+
 function parseApiError(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const maybeError = payload as { error?: unknown; detail?: unknown };
@@ -77,6 +85,14 @@ function getInjectedEthereumProviders(): Eip1193Provider[] {
     return ethereum.providers;
   }
   return [ethereum];
+}
+
+function getMetaMaskProvider(): Eip1193Provider | null {
+  const providers = getInjectedEthereumProviders();
+  return (
+    providers.find((provider) => Boolean(provider.isMetaMask) && !Boolean(provider.isPhantom)) ??
+    null
+  );
 }
 
 function getPhantomProvider(): Eip1193Provider | null {
@@ -164,12 +180,19 @@ export default function SignInPage() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [metamaskInstalled, setMetamaskInstalled] = useState(false);
+  const [phantomInstalled, setPhantomInstalled] = useState(false);
 
   useEffect(() => {
     if (isConnected && storedUsername) {
       router.replace("/dashboard");
     }
   }, [isConnected, router, storedUsername]);
+
+  useEffect(() => {
+    setMetamaskInstalled(Boolean(getMetaMaskProvider()));
+    setPhantomInstalled(Boolean(getPhantomProvider()));
+  }, []);
 
   const isBusy = activeProvider !== null || isAuthenticating;
 
@@ -295,10 +318,43 @@ export default function SignInPage() {
   );
 
   const connectMetaMask = useCallback(async () => {
-    await connectWithConnector("metamask", "metamask");
-  }, [connectWithConnector]);
+    setActiveProvider("metamask");
+    setConnectionError(null);
+    setIsAuthenticating(true);
+
+    try {
+      const provider = getMetaMaskProvider();
+      if (!provider) {
+        throw new Error("MetaMask extension not found");
+      }
+
+      const accounts = await provider.request({ method: "eth_requestAccounts" });
+      const address = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
+      if (!address) {
+        throw new Error("MetaMask did not return an account");
+      }
+
+      const chainId = parseChainId(await provider.request({ method: "eth_chainId" }));
+      await authenticateWallet({
+        address,
+        chainId,
+        walletProvider: "metamask",
+        signMessage: (message) => signMessageWithProvider(provider, message, address),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "MetaMask connection failed";
+      setConnectionError(message);
+    } finally {
+      setIsAuthenticating(false);
+      setActiveProvider(null);
+    }
+  }, [authenticateWallet]);
 
   const connectWalletConnect = useCallback(async () => {
+    if (!walletConnectProjectId) {
+      setConnectionError("WalletConnect is not configured. Set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID.");
+      return;
+    }
     await connectWithConnector("walletconnect", "walletconnect");
   }, [connectWithConnector]);
 
@@ -490,25 +546,25 @@ export default function SignInPage() {
           <div className="mt-8 grid gap-3">
             <WalletButton
               label="Connect MetaMask"
-              hint="EVM wallet"
+              hint={metamaskInstalled ? "EVM wallet" : "Install MetaMask extension"}
               onClick={() => void connectMetaMask()}
-              disabled={isBusy}
+              disabled={isBusy || !metamaskInstalled}
               active={activeProvider === "metamask"}
               icon={<WalletGlyph label="MM" />}
             />
             <WalletButton
               label="Connect Phantom"
-              hint="Phantom EVM"
+              hint={phantomInstalled ? "Phantom EVM" : "Install Phantom extension"}
               onClick={() => void connectPhantom()}
-              disabled={isBusy}
+              disabled={isBusy || !phantomInstalled}
               active={activeProvider === "phantom"}
               icon={<WalletGlyph label="PH" />}
             />
             <WalletButton
               label="Connect WalletConnect"
-              hint="Mobile + desktop"
+              hint={walletConnectProjectId ? "Mobile + desktop" : "Set WalletConnect project ID"}
               onClick={() => void connectWalletConnect()}
-              disabled={isBusy}
+              disabled={isBusy || !walletConnectProjectId}
               active={activeProvider === "walletconnect"}
               icon={<WalletGlyph label="WC" />}
             />

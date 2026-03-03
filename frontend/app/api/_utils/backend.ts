@@ -2,14 +2,36 @@ import { NextRequest } from "next/server";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
-export function getBackendBaseUrl(): string {
+function isLocalBackendUrl(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
   return (
+    normalized.includes("localhost") ||
+    normalized.includes("127.0.0.1") ||
+    normalized.includes("http://backend:8000")
+  );
+}
+
+export function getBackendBaseUrl(): string {
+  const candidate =
     process.env.BACKEND_BASE_URL ||
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
-    process.env.BASE_URL ||
-    "http://backend:8000"
-  );
+    process.env.BASE_URL;
+
+  const isVercelRuntime = Boolean(process.env.VERCEL);
+
+  if (candidate?.trim()) {
+    if (isVercelRuntime && isLocalBackendUrl(candidate)) {
+      return "https://predai-backend.onrender.com";
+    }
+    return candidate;
+  }
+
+  if (isVercelRuntime || process.env.NODE_ENV === "production") {
+    return "https://predai-backend.onrender.com";
+  }
+
+  return "http://backend:8000";
 }
 
 export function forwardAuthHeaders(req: NextRequest): Record<string, string> {
