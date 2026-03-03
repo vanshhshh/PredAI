@@ -19,6 +19,7 @@ DEFAULT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "100"))
 UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL", "").rstrip("/")
 UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
 UPSTASH_TIMEOUT_SECONDS = float(os.getenv("RATE_LIMIT_REDIS_TIMEOUT_SECONDS", "2.5"))
+RATE_LIMIT_FAIL_OPEN = os.getenv("RATE_LIMIT_FAIL_OPEN", "true").lower() == "true"
 
 
 def _current_window() -> int:
@@ -31,6 +32,8 @@ def _safe_key(value: str) -> str:
 
 async def _upstash_command(path: str):
     if not UPSTASH_REDIS_REST_URL or not UPSTASH_REDIS_REST_TOKEN:
+        if RATE_LIMIT_FAIL_OPEN:
+            return None
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="RATE_LIMIT_BACKEND_NOT_CONFIGURED",
@@ -48,6 +51,8 @@ async def _upstash_command(path: str):
     except HTTPException:
         raise
     except Exception as exc:
+        if RATE_LIMIT_FAIL_OPEN:
+            return None
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="RATE_LIMIT_BACKEND_UNAVAILABLE",
@@ -63,6 +68,8 @@ async def check_rate_limit(
     redis_key = f"ratelimit:{_safe_key(key)}:{window}"
 
     count_raw = await _upstash_command(f"incr/{redis_key}")
+    if count_raw is None:
+        return
     count = int(count_raw or 0)
 
     if count == 1:
