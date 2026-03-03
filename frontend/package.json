@@ -10,7 +10,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.95.0",
     "@walletconnect/modal": "^2.7.0",
     "autoprefixer": "^10.4.20",
     "ethers": "^6.13.2",

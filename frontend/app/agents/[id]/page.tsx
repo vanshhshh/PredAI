@@ -9,7 +9,9 @@ import { StakingControls } from "../../../components/Agent/StakingControls";
 import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
 import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useAgents } from "../../../hooks/useAgents";
+import { useResolvedUsernames } from "../../../hooks/useResolvedUsernames";
 import { useWallet } from "../../../hooks/useWallet";
+import { shortenAddress } from "../../../lib/identity";
 
 export default function AgentPage() {
   return (
@@ -33,6 +35,7 @@ function AgentContent() {
     isMutating,
     error: mutationError,
   } = useAgents();
+  const usernames = useResolvedUsernames(agents.map((item) => item.owner));
 
   if (!agentId) {
     return (
@@ -60,6 +63,8 @@ function AgentContent() {
   }
 
   const isOwner = isConnected && address?.toLowerCase() === agent.owner.toLowerCase();
+  const ownerDisplay =
+    usernames[agent.owner.toLowerCase()] ?? shortenAddress(agent.owner);
 
   return (
     <main className="page-container space-y-6 py-8">
@@ -72,7 +77,7 @@ function AgentContent() {
             </h1>
             <div className="mt-2 flex items-center gap-2 text-sm text-slate-300">
               <StatusBadge active={agent.active} />
-              <span>Owner {shorten(agent.owner)}</span>
+              <span>Owner {ownerDisplay}</span>
             </div>
           </div>
           <div className="ui-card-soft p-2">
@@ -140,10 +145,6 @@ function StatusBadge({ active }: { active: boolean }) {
       {active ? "Active" : "Inactive"}
     </span>
   );
-}
-
-function shorten(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 function CenteredError({ title, message }: { title: string; message: string }) {

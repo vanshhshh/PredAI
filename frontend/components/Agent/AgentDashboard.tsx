@@ -3,6 +3,9 @@
 import Link from "next/link";
 import React from "react";
 
+import { shortenAddress } from "@/lib/identity";
+import { useResolvedUsernames } from "@/hooks/useResolvedUsernames";
+
 interface Agent {
   agentId: string;
   owner: string;
@@ -27,6 +30,8 @@ export function AgentDashboard({
   walletAddress,
   isConnected = false,
 }: AgentDashboardProps) {
+  const usernames = useResolvedUsernames(agents.map((agent) => agent.owner));
+
   if (!agents?.length) {
     return (
       <div className="ui-card-soft rounded-xl p-4 text-sm text-slate-300">
@@ -40,6 +45,8 @@ export function AgentDashboard({
       {agents.map((agent) => {
         const isOwner =
           walletAddress && walletAddress.toLowerCase() === agent.owner.toLowerCase();
+        const ownerDisplay =
+          usernames[agent.owner.toLowerCase()] ?? shortenAddress(agent.owner);
 
         const accuracyPercent = (agent.accuracy * 100).toFixed(1);
         const pnlColor =
@@ -58,7 +65,7 @@ export function AgentDashboard({
                 >
                   Agent {agent.agentId.slice(0, 8)}...
                 </Link>
-                <p className="text-xs text-slate-400">Owner: {agent.owner}</p>
+                <p className="text-xs text-slate-400">Owner: {ownerDisplay}</p>
                 <StatusBadge active={agent.active} />
               </div>
 

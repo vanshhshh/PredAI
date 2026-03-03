@@ -4,11 +4,48 @@ User service (wallet identity + profile updates).
 
 from __future__ import annotations
 
+import re
+
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
 
+USERNAME_MIN_LENGTH = 3
+USERNAME_MAX_LENGTH = 20
+USERNAME_PATTERN = re.compile(r"^[a-z0-9_-]+$")
+
 
 class UserService:
+    @staticmethod
+    def _normalize_username(username: str) -> str:
+        return username.strip().lower()
+
+    @staticmethod
+    def _validate_username(username: str) -> str:
+        normalized = UserService._normalize_username(username)
+        if len(normalized) < USERNAME_MIN_LENGTH:
+            raise InvariantViolation("USERNAME_TOO_SHORT")
+        if len(normalized) > USERNAME_MAX_LENGTH:
+            raise InvariantViolation("USERNAME_TOO_LONG")
+        if not USERNAME_PATTERN.fullmatch(normalized):
+            raise InvariantViolation("USERNAME_INVALID_FORMAT")
+        return normalized
+
+    @staticmethod
+    async def is_username_available(
+        *,
+        username: str,
+        exclude_address: str | None = None,
+    ) -> bool:
+        normalized = UserService._validate_username(username)
+        return await UserRepository.is_username_available(
+            username=normalized,
+            exclude_address=exclude_address,
+        )
+
+    @staticmethod
+    async def resolve_usernames(addresses: list[str]) -> dict[str, str]:
+        return await UserRepository.get_usernames_by_addresses(addresses)
+
     @staticmethod
     async def get_user_profile(address: str):
         user = await UserRepository.get_by_address(address)
@@ -31,10 +68,7 @@ class UserService:
         username: str | None,
     ):
         if username is not None:
-            normalized = username.strip()
-            if len(normalized) > 64:
-                raise InvariantViolation("USERNAME_TOO_LONG")
-            username = normalized or None
+            username = UserService._validate_username(username)
 
         await UserRepository.ensure_exists(address)
         updated = await UserRepository.update_profile(

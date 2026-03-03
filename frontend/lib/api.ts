@@ -22,7 +22,6 @@
 "use client";
 
 import { ApiError } from "./errors";
-import { getSupabaseClient } from "./supabase";
 
 export interface ApiRequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE";
@@ -35,26 +34,6 @@ export interface ApiRequestOptions {
 const DEFAULT_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
 };
-
-async function getAuthHeader(): Promise<
-  Record<string, string>
-> {
-  try {
-    const supabase = getSupabaseClient();
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-
-    if (token) {
-      return {
-        Authorization: `Bearer ${token}`,
-      };
-    }
-  } catch {
-    // Ignore auth header resolution errors and continue unauthenticated.
-  }
-
-  return {};
-}
 
 /**
  * Core request primitive
@@ -76,10 +55,8 @@ export async function apiRequest<T>(
     ...headers,
   };
 
-  if (auth) {
-    const authHeader = await getAuthHeader();
-    Object.assign(finalHeaders, authHeader);
-  }
+  // Wallet authentication is cookie-based. Keep optional auth flag for API compatibility.
+  void auth;
 
   let response: Response;
 

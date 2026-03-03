@@ -1,47 +1,63 @@
-// File: frontend/hooks/useWallet.ts
-
-/**
- * PURPOSE
- * -------
- * Wallet connection & session hook.
- *
- * This hook:
- * - manages EVM wallet connection lifecycle
- * - exposes address, connection state, and errors
- * - abstracts wagmi / viem specifics from UI
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Single source of truth for wallet state
- * - No UI logic
- * - Safe defaults when wallet is unavailable
- * - Easily swappable backend (EVM → Solana later)
- */
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 
-export interface WalletState {
-  isConnected: boolean;
-  address?: string;
-}
+import { WalletProvider, normalizeAddress } from "@/lib/identity";
+import {
+  clearIdentitySession,
+  readIdentitySession,
+  writeIdentitySession,
+} from "@/lib/session";
+import { useAppStore } from "@/state/store";
 
 export function useWallet() {
-  const [isConnected, setIsConnected] =
-    useState<boolean>(false);
-  const [address, setAddress] = useState<string | undefined>(
-    undefined
-  );
-  const [isConnecting, setIsConnecting] =
-    useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(
-    null
+  const address = useAppStore((state) => state.address);
+  const username = useAppStore((state) => state.username);
+  const walletProvider = useAppStore((state) => state.walletProvider);
+  const isConnected = useAppStore((state) => state.isConnected);
+  const setWallet = useAppStore((state) => state.setWallet);
+  const setUsernameInStore = useAppStore((state) => state.setUsername);
+  const resetUser = useAppStore((state) => state.resetUser);
+
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const persistSession = useCallback(
+    (nextAddress: string, nextProvider: WalletProvider, nextUsername?: string) => {
+      writeIdentitySession({
+        address: normalizeAddress(nextAddress),
+        walletProvider: nextProvider,
+        username: nextUsername?.trim() ? nextUsername.trim() : undefined,
+      });
+    },
+    []
   );
 
-  // ------------------------------------------------------------------
-  // CONNECT
-  // ------------------------------------------------------------------
+  const setExternalWallet = useCallback(
+    (nextAddress: string, nextProvider: WalletProvider) => {
+      const normalized = normalizeAddress(nextAddress);
+      setWallet(normalized, nextProvider);
+      persistSession(normalized, nextProvider, username);
+      setError(null);
+    },
+    [persistSession, setWallet, username]
+  );
+
+  const setUsername = useCallback(
+    (nextUsername?: string) => {
+      const normalizedUsername = nextUsername?.trim() ? nextUsername.trim() : undefined;
+      setUsernameInStore(normalizedUsername);
+
+      const existing = readIdentitySession();
+      if (existing) {
+        writeIdentitySession({
+          ...existing,
+          username: normalizedUsername,
+        });
+      }
+    },
+    [setUsernameInStore]
+  );
 
   const connect = useCallback(async () => {
     setIsConnecting(true);
@@ -52,9 +68,7 @@ export function useWallet() {
         throw new Error("No wallet detected");
       }
 
-      const accounts = await (
-        window as any
-      ).ethereum.request({
+      const accounts = await (window as any).ethereum.request({
         method: "eth_requestAccounts",
       });
 
@@ -62,66 +76,42 @@ export function useWallet() {
         throw new Error("No accounts returned");
       }
 
-      setAddress(accounts[0]);
-      setIsConnected(true);
+      setExternalWallet(accounts[0], "metamask");
     } catch (err) {
       setError(err as Error);
-      setIsConnected(false);
-      setAddress(undefined);
     } finally {
       setIsConnecting(false);
     }
-  }, []);
+  }, [setExternalWallet]);
 
-  // ------------------------------------------------------------------
-  // DISCONNECT
-  // ------------------------------------------------------------------
-
-  const disconnect = useCallback(() => {
-    // EVM wallets don't truly disconnect;
-    // this clears local session state.
-    setIsConnected(false);
-    setAddress(undefined);
-  }, []);
-
-  // ------------------------------------------------------------------
-  // AUTO-RECONNECT
-  // ------------------------------------------------------------------
+  const disconnect = useCallback(async () => {
+    resetUser();
+    clearIdentitySession();
+    setError(null);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // no-op
+    }
+  }, [resetUser]);
 
   useEffect(() => {
-    async function autoConnect() {
-      try {
-        if (!(window as any).ethereum) return;
-
-        const accounts = await (
-          window as any
-        ).ethereum.request({
-          method: "eth_accounts",
-        });
-
-        if (accounts && accounts.length > 0) {
-          setAddress(accounts[0]);
-          setIsConnected(true);
-        }
-      } catch {
-        // silent
-      }
-    }
-
-    autoConnect();
-  }, []);
-
-  // ------------------------------------------------------------------
-  // PUBLIC API
-  // ------------------------------------------------------------------
+    const existing = readIdentitySession();
+    if (!existing) return;
+    setWallet(existing.address, existing.walletProvider);
+    setUsernameInStore(existing.username);
+  }, [setUsernameInStore, setWallet]);
 
   return {
     isConnected,
     address,
+    username,
+    walletProvider,
     isConnecting,
     error,
-
     connect,
     disconnect,
+    setExternalWallet,
+    setUsername,
   };
 }

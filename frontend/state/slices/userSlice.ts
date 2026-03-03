@@ -18,6 +18,8 @@
 
 import { StateCreator } from "zustand";
 
+import { WalletProvider } from "@/lib/identity";
+
 export interface UserPreferences {
   theme?: "light" | "dark" | "system";
   currency?: string;
@@ -25,10 +27,13 @@ export interface UserPreferences {
 
 export interface UserSlice {
   address?: string;
+  username?: string;
+  walletProvider?: WalletProvider;
   isConnected: boolean;
   preferences: UserPreferences;
 
-  setWallet: (address?: string) => void;
+  setWallet: (address?: string, walletProvider?: WalletProvider) => void;
+  setUsername: (username?: string) => void;
   setPreferences: (prefs: Partial<UserPreferences>) => void;
   resetUser: () => void;
 }
@@ -40,13 +45,22 @@ export const createUserSlice: StateCreator<
   UserSlice
 > = (set) => ({
   address: undefined,
+  username: undefined,
+  walletProvider: undefined,
   isConnected: false,
   preferences: {},
 
-  setWallet: (address) => {
+  setWallet: (address, walletProvider) => {
     set({
       address,
+      walletProvider,
       isConnected: Boolean(address),
+    });
+  },
+
+  setUsername: (username) => {
+    set({
+      username: username?.trim() ? username.trim() : undefined,
     });
   },
 
@@ -62,6 +76,8 @@ export const createUserSlice: StateCreator<
   resetUser: () => {
     set({
       address: undefined,
+      username: undefined,
+      walletProvider: undefined,
       isConnected: false,
       preferences: {},
     });

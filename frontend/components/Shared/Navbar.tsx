@@ -86,9 +86,6 @@ export function Navbar() {
             Create Agent
           </Link>
           <WalletConnectButton />
-          <Link href="/sign-in" className="ui-btn ui-btn-primary">
-            Sign In
-          </Link>
         </div>
 
         <button

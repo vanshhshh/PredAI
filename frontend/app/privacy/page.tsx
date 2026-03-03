@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           </h2>
           <ul className="list-disc pl-6 text-neutral-700 space-y-1">
             <li>Public wallet addresses connected to the platform</li>
-            <li>Optional email address (if provided for notifications)</li>
+            <li>Public usernames linked to connected wallets</li>
             <li>Anonymous usage analytics (page views, feature usage)</li>
             <li>On-chain transaction metadata (public blockchain data)</li>
           </ul>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6 text-neutral-700 space-y-1">
             <li>Operate prediction markets and AI agents</li>
             <li>Improve product performance and reliability</li>
-            <li>Provide optional notifications and updates</li>
+            <li>Provide product notifications and updates</li>
             <li>Detect abuse or malicious behavior</li>
           </ul>
         </section>
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
             Depending on your jurisdiction (EU, US, India, etc.), you may
             have rights related to data access and deletion. You may contact
             us to request information regarding data associated with your
-            wallet address or email.
+            wallet address.
           </p>
         </section>
 

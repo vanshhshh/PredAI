@@ -53,7 +53,6 @@ class Settings(BaseSettings):
     # -------------------------------------------------
     # PAYMENTS
     # -------------------------------------------------
-    STRIPE_SECRET_KEY: str
     TRANSAK_API_KEY: str
     TRANSAK_API_SECRET: str
 
@@ -115,8 +114,6 @@ def _validate_production_settings(cfg: Settings) -> None:
         errors.append("RPC_URL_LOCALHOST_DISALLOWED")
     if _is_local_url(cfg.RUST_CORE_URL):
         errors.append("RUST_CORE_URL_LOCALHOST_DISALLOWED")
-    if cfg.STRIPE_SECRET_KEY.startswith("sk_test_"):
-        errors.append("STRIPE_TEST_KEY_DISALLOWED")
     if not cfg.JWT_SECRET or len(cfg.JWT_SECRET.strip()) < 32:
         errors.append("JWT_SECRET_WEAK_OR_MISSING")
 

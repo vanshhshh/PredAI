@@ -1,23 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 
+import { formatIdentity } from "@/lib/identity";
 import { useWallet } from "../../hooks/useWallet";
-import { LoadingSpinner } from "./LoadingSpinner";
 
 export function WalletConnectButton() {
-  const { isConnected, address, isConnecting, connect, disconnect, error } =
+  const { isConnected, address, username, disconnect } =
     useWallet();
 
-  if (isConnecting) {
-    return (
-      <div className="ui-card-soft px-3 py-2">
-        <LoadingSpinner label="Connecting wallet..." size="sm" />
-      </div>
-    );
-  }
-
   if (isConnected && address) {
+    const identity = formatIdentity(address, username);
     return (
       <div className="ui-card-soft flex items-center gap-2 px-2 py-1.5">
         <span
@@ -26,9 +20,9 @@ export function WalletConnectButton() {
         />
         <span
           className="text-xs font-medium text-slate-100"
-          aria-label={`Connected wallet ${address}`}
+          aria-label={`Connected wallet ${identity}`}
         >
-          {truncate(address)}
+          {identity}
         </span>
         <button
           type="button"
@@ -43,20 +37,10 @@ export function WalletConnectButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <button
-        type="button"
-        onClick={connect}
-        className="ui-btn ui-btn-primary"
-        aria-label="Connect wallet"
-      >
+    <div className="flex items-end">
+      <Link href="/sign-in" className="ui-btn ui-btn-primary" aria-label="Connect wallet">
         Connect Wallet
-      </button>
-      {error && <span className="text-[11px] text-rose-300">{error.message}</span>}
+      </Link>
     </div>
   );
-}
-
-function truncate(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

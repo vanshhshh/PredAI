@@ -7,6 +7,7 @@ import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
 import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useAgents } from "../../../hooks/useAgents";
 import { useWallet } from "../../../hooks/useWallet";
+import { formatIdentity } from "../../../lib/identity";
 
 export default function MyAgentsPage() {
   return (
@@ -17,7 +18,7 @@ export default function MyAgentsPage() {
 }
 
 function MyAgentsContent() {
-  const { address, isConnected } = useWallet();
+  const { address, username, isConnected } = useWallet();
   const { myAgents, isLoading, error } = useAgents();
   const safeAgents = useMemo(() => myAgents ?? [], [myAgents]);
 
@@ -83,13 +84,15 @@ function MyAgentsContent() {
     );
   }
 
+  const identityLabel = formatIdentity(address, username);
+
   return (
     <main className="page-container space-y-6 py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Agent Portfolio</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">My AI Agents</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Connected wallet: {address?.slice(0, 6)}...{address?.slice(-4)}
+          Connected account: {identityLabel}
         </p>
       </header>
 

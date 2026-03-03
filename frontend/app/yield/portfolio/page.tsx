@@ -8,6 +8,7 @@ import { PortfolioOptimizer } from "../../../components/Yield/PortfolioOptimizer
 import { RiskGauge } from "../../../components/Yield/RiskGauge";
 import { useWallet } from "../../../hooks/useWallet";
 import { useYield } from "../../../hooks/useYield";
+import { formatIdentity } from "../../../lib/identity";
 
 export default function YieldPortfolioPage() {
   return (
@@ -18,7 +19,7 @@ export default function YieldPortfolioPage() {
 }
 
 function YieldPortfolioContent() {
-  const { address, isConnected } = useWallet();
+  const { address, username, isConnected } = useWallet();
   const { portfolio, isLoading, error, rebalance, isRebalancing } = useYield();
 
   if (!isConnected) {
@@ -68,6 +69,7 @@ function YieldPortfolioContent() {
     recommendedWeight: allocation.recommendedWeight,
     expectedApy: allocation.expectedApy,
   }));
+  const identityLabel = formatIdentity(address, username);
 
   return (
     <main className="page-container space-y-6 py-8">
@@ -75,7 +77,7 @@ function YieldPortfolioContent() {
         <p className="ui-kicker">Yield Portfolio</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Allocator Dashboard</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Connected wallet: {address}
+          Connected account: {identityLabel}
         </p>
       </header>
 
