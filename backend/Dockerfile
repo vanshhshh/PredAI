@@ -22,6 +22,6 @@ USER appuser
 
 EXPOSE 8000
 
-# Migration-first startup, then API workers.
 # Render injects PORT at runtime, so bind dynamically.
-CMD ["sh", "-c", "alembic -c /app/backend/alembic.ini upgrade head && uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}"]
+# Migrations are handled by application startup policy (DB_AUTO_MIGRATE).
+CMD ["sh", "-c", "uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}"]

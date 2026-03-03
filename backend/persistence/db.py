@@ -100,18 +100,26 @@ async def init_db() -> None:
     Schema management is migration-driven (Alembic). Optional automatic
     migration can be enabled with DB_AUTO_MIGRATE=true.
     """
-    async with engine.begin() as conn:
-        # Multiple uvicorn workers run startup hooks in parallel.
-        # Use a Postgres advisory transaction lock to serialize startup probes.
-        if conn.dialect.name == "postgresql":
-            await conn.execute(text("SELECT pg_advisory_xact_lock(:lock_id)"), {"lock_id": 424242})
+    strict_startup = os.getenv("DB_STRICT_STARTUP", "false").lower() == "true"
 
-        await conn.execute(text("SELECT 1"))
+    try:
+        async with engine.begin() as conn:
+            # Multiple uvicorn workers run startup hooks in parallel.
+            # Use a Postgres advisory transaction lock to serialize startup probes.
+            if conn.dialect.name == "postgresql":
+                await conn.execute(text("SELECT pg_advisory_xact_lock(:lock_id)"), {"lock_id": 424242})
 
-    if os.getenv("DB_AUTO_MIGRATE", "false").lower() == "true":
-        from backend.persistence.migrations import run_migrations_to_head
+            await conn.execute(text("SELECT 1"))
 
-        await run_migrations_to_head()
+        if os.getenv("DB_AUTO_MIGRATE", "false").lower() == "true":
+            from backend.persistence.migrations import run_migrations_to_head
+
+            await run_migrations_to_head()
+    except Exception:
+        if strict_startup:
+            raise
+        # Keep service booting in degraded mode; /health reports DB down.
+        return
 
 
 async def close_db() -> None:

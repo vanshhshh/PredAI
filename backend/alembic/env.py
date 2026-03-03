@@ -13,7 +13,9 @@ import backend.persistence.repositories.models  # noqa: F401
 
 
 config = context.config
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# Alembic uses ConfigParser interpolation, so '%' in URL-encoded passwords
+# must be escaped before setting sqlalchemy.url.
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
