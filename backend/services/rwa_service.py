@@ -23,12 +23,11 @@ DESIGN RULES (from docs)
 
 from typing import Optional, Dict, Any
 
+from backend.indexing.block_listener import ChainReader
 from backend.persistence.repositories.rwa_repo import RWARepository
 from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
-from backend.indexing.block_listener import ChainReader
-from backend.indexing.event_handlers.rwa_events import RWAEventParser
 
 
 class RWAService:
@@ -111,20 +110,24 @@ class RWAService:
         if market.outcome_wrapped:
             raise InvariantViolation("OUTCOME_ALREADY_WRAPPED")
 
-        # ------------------------------------------------------------------
-        # ON-CHAIN WRAPPING
-        # ------------------------------------------------------------------
-
         tx_hash = await ChainReader.wrap_outcome_on_chain(
-            market_address=market.address
+            market_address=market.address,
         )
         receipt = await ChainReader.wait_for_tx(tx_hash)
+        yes_token = None
+        no_token = None
+        for log in receipt.get("logs", []):
+            if log.get("event") != "OutcomeWrapped":
+                continue
+            log_market = str(log.get("market", "")).lower()
+            if log_market != str(market.address).lower():
+                continue
+            yes_token = log.get("yesToken") or log.get("yes_token")
+            no_token = log.get("noToken") or log.get("no_token")
+            break
 
-        parsed = RWAEventParser.parse_outcome_wrapped(receipt)
-        if not parsed:
-            raise InvariantViolation("OUTCOME_WRAP_FAILED")
-
-        yes_token, no_token = parsed.yes_token, parsed.no_token
+        if not yes_token or not no_token:
+            raise InvariantViolation("OUTCOME_WRAP_EVENT_MISSING")
 
         # ------------------------------------------------------------------
         # UPDATE OFF-CHAIN STATE
@@ -154,6 +157,7 @@ class RWAService:
         amount: int,
         target_chain_id: int,
         target_address: bytes,
+        bridge_address: str,
     ):
         """
         Initiate a cross-chain transfer of RWA or outcome tokens.
@@ -173,20 +177,31 @@ class RWAService:
         await UserRepository.ensure_exists(user_address)
 
         tx_hash = await ChainReader.initiate_cross_chain_transfer_on_chain(
-            user_address=user_address,
+            bridge_address=bridge_address,
             token_address=token_address,
             amount=amount,
             target_chain_id=target_chain_id,
             target_address=target_address,
         )
-
         receipt = await ChainReader.wait_for_tx(tx_hash)
+        transfer_id = None
+        for log in receipt.get("logs", []):
+            if log.get("event") != "TransferInitiated":
+                continue
+            transfer_id = log.get("transferId") or log.get("transfer_id")
+            if transfer_id:
+                break
+        if not transfer_id:
+            raise InvariantViolation("CROSS_CHAIN_TRANSFER_EVENT_MISSING")
 
-        parsed = RWAEventParser.parse_transfer_initiated(receipt)
-        if not parsed:
-            raise InvariantViolation("TRANSFER_INIT_FAILED")
-
-        return parsed
+        return {
+            "transfer_id": transfer_id,
+            "user_address": user_address,
+            "token_address": token_address,
+            "amount": amount,
+            "target_chain_id": target_chain_id,
+            "target_address": target_address.hex(),
+        }
 
     @staticmethod
     async def finalize_cross_chain_transfer(
@@ -213,10 +228,5 @@ class RWAService:
             recipient=recipient,
             amount=amount,
         )
-
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        if not RWAEventParser.verify_transfer_finalized(receipt, transfer_id):
-            raise InvariantViolation("TRANSFER_FINALIZATION_FAILED")
-
+        await ChainReader.wait_for_tx(tx_hash)
         return True

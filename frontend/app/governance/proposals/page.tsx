@@ -1,33 +1,12 @@
-// File: frontend/app/governance/proposals/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Governance proposals index page.
- *
- * This page:
- * - lists all active and past DAO proposals
- * - shows status, quorum, and voting windows
- * - links to proposal detail / voting flows
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Read-heavy, governance-safe UI
- * - Clear status signaling (active, passed, failed)
- * - Defensive UX (loading, error, empty)
- */
-
 "use client";
 
 import React from "react";
-
-import { useGovernance } from "../../../hooks/useGovernance";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import Link from "next/link";
 
 import { ProposalCard } from "../../../components/Governance/ProposalCard";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
+import { useGovernance } from "../../../hooks/useGovernance";
 
 export default function GovernanceProposalsPage() {
   return (
@@ -38,71 +17,118 @@ export default function GovernanceProposalsPage() {
 }
 
 function ProposalsContent() {
-  const {
-    proposals,
-    isLoading,
-    error,
-  } = useGovernance();
-
-  // ------------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------------
+  const { proposals, isLoading, error } = useGovernance();
 
   if (isLoading) {
-    return <LoadingSpinner label="Loading proposals…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading governance proposals..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------------
-  // ERROR
-  // ------------------------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 border rounded-md bg-red-50">
-        <h3 className="font-semibold text-red-700">
-          Failed to load proposals
-        </h3>
-        <p className="text-sm text-red-600 mt-2">{error.message}</p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard title="Governance unavailable" message={error.message} tone="error" />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // EMPTY
-  // ------------------------------------------------------------------
-
-  if (!proposals || proposals.length === 0) {
+  if (!proposals?.length) {
     return (
-      <div className="p-6 border rounded-md bg-gray-50">
-        <h3 className="font-semibold">No proposals</h3>
-        <p className="text-sm text-gray-600 mt-2">
-          There are currently no governance proposals.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="No active proposals"
+          message="Governance proposals will appear here when submitted."
+          tone="neutral"
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // MAIN
-  // ------------------------------------------------------------------
+  const active = proposals.filter((proposal) => proposal.status === "ACTIVE");
+  const completed = proposals.filter((proposal) => proposal.status !== "ACTIVE");
 
   return (
-    <main className="px-6 py-8 space-y-8 max-w-5xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold">Governance Proposals</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Participate in protocol governance and parameter updates.
-        </p>
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="ui-kicker">DAO Control Plane</p>
+            <h1 className="mt-1 text-3xl font-semibold text-white">Protocol Governance</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Review active motions, inspect voting progress, and participate in
+              protocol evolution.
+            </p>
+          </div>
+          <Link href="/governance/create" className="ui-btn ui-btn-primary">
+            Submit Proposal
+          </Link>
+        </div>
       </header>
 
-      <div className="space-y-4">
-        {proposals.map((proposal) => (
-          <ProposalCard
-            key={proposal.proposalId}
-            proposal={proposal}
-          />
-        ))}
-      </div>
+      <section className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Active" value={active.length.toString()} />
+        <StatCard label="Completed" value={completed.length.toString()} />
+        <StatCard label="Total" value={proposals.length.toString()} />
+      </section>
+
+      {active.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">Active Proposals</h2>
+          <div className="space-y-3">
+            {active.map((proposal) => (
+              <ProposalCard key={proposal.proposalId} proposal={proposal} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {completed.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">Completed Proposals</h2>
+          <div className="space-y-3">
+            {completed.map((proposal) => (
+              <ProposalCard key={proposal.proposalId} proposal={proposal} showOutcome />
+            ))}
+          </div>
+        </section>
+      )}
     </main>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
+
+function MessageCard({
+  title,
+  message,
+  tone,
+}: {
+  title: string;
+  message: string;
+  tone: "neutral" | "error";
+}) {
+  return (
+    <article className="ui-card max-w-2xl p-6">
+      <h2
+        className={`text-lg font-semibold ${
+          tone === "error" ? "text-rose-200" : "text-slate-100"
+        }`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-2 text-sm ${tone === "error" ? "text-rose-100" : "text-slate-300"}`}>
+        {message}
+      </p>
+    </article>
   );
 }

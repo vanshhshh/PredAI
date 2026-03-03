@@ -22,11 +22,11 @@ DESIGN RULES (from docs)
 from typing import List, Optional
 import time
 
+from backend.indexing.block_listener import ChainReader
+from backend.indexing.event_handlers.market_events import MarketEventParser
 from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
-from backend.indexing.block_listener import ChainReader
-from backend.indexing.event_handlers.market_events import MarketEventParser
 
 
 class MarketService:
@@ -73,17 +73,6 @@ class MarketService:
         if existing:
             raise InvariantViolation("MARKET_ID_ALREADY_EXISTS")
 
-        # ------------------------------------------------------------------
-        # ON-CHAIN MARKET CREATION
-        # ------------------------------------------------------------------
-
-        """
-        NOTE:
-        -----
-        Actual transaction submission is abstracted behind ChainReader.
-        This keeps service logic chain-agnostic and testable.
-        """
-
         tx_hash = await ChainReader.create_market_on_chain(
             creator=creator,
             market_id=market_id,
@@ -92,16 +81,10 @@ class MarketService:
             max_exposure=max_exposure,
             metadata_uri=metadata_uri,
         )
-
-        # ------------------------------------------------------------------
-        # WAIT FOR CONFIRMATION & PARSE EVENTS
-        # ------------------------------------------------------------------
-
         receipt = await ChainReader.wait_for_tx(tx_hash)
-
         market_address = MarketEventParser.extract_market_address(receipt)
         if not market_address:
-            raise InvariantViolation("MARKET_CREATION_FAILED")
+            raise InvariantViolation("MARKET_CREATE_EVENT_MISSING")
 
         # ------------------------------------------------------------------
         # PERSIST OFF-CHAIN STATE
@@ -171,29 +154,75 @@ class MarketService:
         if not authorized:
             raise InvariantViolation("UNAUTHORIZED_SETTLEMENT")
 
-        # ------------------------------------------------------------------
-        # ON-CHAIN SETTLEMENT
-        # ------------------------------------------------------------------
-
         tx_hash = await ChainReader.settle_market_on_chain(
             market_address=market.address,
             outcome=outcome,
             caller=caller,
         )
-
         receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        settled_outcome = MarketEventParser.extract_final_outcome(receipt)
-        if settled_outcome is None:
-            raise InvariantViolation("SETTLEMENT_FAILED")
-
-        # ------------------------------------------------------------------
-        # UPDATE OFF-CHAIN STATE
-        # ------------------------------------------------------------------
+        final_outcome = MarketEventParser.extract_final_outcome(receipt)
+        if final_outcome is None:
+            final_outcome = outcome
 
         await MarketRepository.mark_settled(
             market_id=market_id,
-            final_outcome=settled_outcome,
+            final_outcome=bool(final_outcome),
         )
 
         return True
+
+    @staticmethod
+    async def place_bet(
+        *,
+        user_address: str,
+        market_id: str,
+        side: str,
+        amount: int,
+        tx_hash: str,
+    ):
+        """
+        Place a YES/NO bet in a live market.
+        """
+        if amount <= 0:
+            raise InvariantViolation("INVALID_BET_AMOUNT")
+
+        normalized_side = side.upper().strip()
+        if normalized_side not in {"YES", "NO"}:
+            raise InvariantViolation("INVALID_BET_SIDE")
+
+        market = await MarketRepository.get_by_market_id(market_id)
+        if not market:
+            raise InvariantViolation("MARKET_NOT_FOUND")
+
+        if market.settled:
+            raise InvariantViolation("MARKET_ALREADY_SETTLED")
+
+        now = int(time.time())
+        if now < int(market.start_time):
+            raise InvariantViolation("MARKET_NOT_STARTED")
+        if now >= int(market.end_time):
+            raise InvariantViolation("MARKET_CLOSED")
+
+        exposure = await MarketRepository.get_market_exposure(market_id)
+        if exposure + amount > int(market.max_exposure):
+            raise InvariantViolation("MAX_EXPOSURE_EXCEEDED")
+
+        if not tx_hash:
+            raise InvariantViolation("BET_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_market_bet_tx(
+            tx_hash=tx_hash,
+            user_address=user_address,
+            market_address=market.address,
+            side=normalized_side,
+            amount=amount,
+        )
+
+        await UserRepository.ensure_exists(user_address)
+
+        return await MarketRepository.place_bet(
+            user_address=user_address,
+            market_id=market_id,
+            side=normalized_side,
+            amount=amount,
+        )

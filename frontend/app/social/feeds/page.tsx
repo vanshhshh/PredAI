@@ -1,35 +1,13 @@
-// File: frontend/app/social/feeds/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Social feeds monitoring & market auto-spawn page.
- *
- * This page:
- * - monitors social feeds (e.g. X / Web3 social graphs)
- * - displays real-time posts/events being tracked by agents
- * - allows users to spawn markets from social prompts
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Streaming-first UI
- * - AI-assisted but user-controlled actions
- * - Defensive UX (loading, error, empty)
- */
-
 "use client";
 
 import React from "react";
 
-import { useSocialFeeds } from "../../../hooks/useSocialFeeds";
-import { useWallet } from "../../../hooks/useWallet";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
-
 import { FeedMonitor } from "../../../components/Social/FeedMonitor";
 import { PromptCompiler } from "../../../components/Social/PromptCompiler";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
+import { useSocialFeeds } from "../../../hooks/useSocialFeeds";
+import { useWallet } from "../../../hooks/useWallet";
 
 export default function SocialFeedsPage() {
   return (
@@ -41,78 +19,110 @@ export default function SocialFeedsPage() {
 
 function SocialFeedsContent() {
   const { isConnected } = useWallet();
-  const {
-    feeds,
-    isLoading,
-    error,
-    spawnMarketFromFeed,
-  } = useSocialFeeds();
-
-  // ------------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------------
+  const { feeds, isLoading, error, spawnMarketFromFeed } = useSocialFeeds();
 
   if (isLoading) {
-    return <LoadingSpinner label="Loading social feeds…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Initializing signal monitoring..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------------
-  // ERROR
-  // ------------------------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 border rounded-md bg-red-50">
-        <h3 className="font-semibold text-red-700">
-          Failed to load social feeds
-        </h3>
-        <p className="text-sm text-red-600 mt-2">{error.message}</p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard title="Social stream unavailable" message={error.message} tone="error" />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // EMPTY
-  // ------------------------------------------------------------------
-
-  if (!feeds || feeds.length === 0) {
+  if (!feeds?.length) {
     return (
-      <div className="p-6 border rounded-md bg-gray-50">
-        <h3 className="font-semibold">No social activity</h3>
-        <p className="text-sm text-gray-600 mt-2">
-          No monitored social feeds are active right now.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="No active social signals"
+          message="Agents are online but no trending events are being tracked."
+          tone="neutral"
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // MAIN
-  // ------------------------------------------------------------------
+  const marketOpportunities = feeds.filter(
+    (feed) => typeof feed.signalScore === "number" && feed.signalScore > 0
+  ).length;
 
   return (
-    <main className="px-6 py-8 space-y-10 max-w-6xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold">Social Feeds</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Live social signals monitored by AI agents.
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Social Intelligence</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">Signal Monitor</h1>
+        <p className="mt-2 max-w-3xl text-sm text-slate-300">
+          Track live social events, inspect AI confidence, and spawn markets from
+          high-signal narratives.
         </p>
       </header>
 
-      {/* Feed Stream */}
-      <section>
-        <FeedMonitor
-          feeds={feeds}
-          onSpawnMarket={
-            isConnected ? spawnMarketFromFeed : undefined
-          }
-        />
+      <section className="grid gap-3 md:grid-cols-3">
+        <StatCard label="Active Feeds" value={feeds.length.toString()} />
+        <StatCard label="Market Opportunities" value={marketOpportunities.toString()} />
+        <StatCard label="Wallet Connected" value={isConnected ? "Yes" : "No"} />
       </section>
 
-      {/* Prompt Compiler */}
-      <section>
-        <PromptCompiler />
+      <section className="ui-card p-5">
+        <h2 className="text-lg font-semibold text-white">Live Feed Stream</h2>
+        <p className="mt-1 text-sm text-slate-300">
+          Feed events update continuously with confidence and eligibility status.
+        </p>
+        <div className="mt-4">
+          <FeedMonitor feeds={feeds} onSpawnMarket={isConnected ? spawnMarketFromFeed : undefined} />
+        </div>
+      </section>
+
+      <section className="ui-card p-5">
+        <h2 className="text-lg font-semibold text-white">Prompt to Market Compiler</h2>
+        <p className="mt-1 text-sm text-slate-300">
+          Compile social context into structured market specs before launch.
+        </p>
+        <div className="mt-4">
+          <PromptCompiler />
+        </div>
       </section>
     </main>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
+
+function MessageCard({
+  title,
+  message,
+  tone,
+}: {
+  title: string;
+  message: string;
+  tone: "error" | "neutral";
+}) {
+  return (
+    <article className="ui-card max-w-2xl p-6">
+      <h2
+        className={`text-lg font-semibold ${
+          tone === "error" ? "text-rose-200" : "text-slate-100"
+        }`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-2 text-sm ${tone === "error" ? "text-rose-100" : "text-slate-300"}`}>
+        {message}
+      </p>
+    </article>
   );
 }

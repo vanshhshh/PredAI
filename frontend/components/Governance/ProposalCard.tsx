@@ -1,27 +1,7 @@
-// File: frontend/components/Governance/ProposalCard.tsx
-
-/**
- * PURPOSE
- * -------
- * Summary card for a governance proposal.
- *
- * This component:
- * - displays proposal metadata (title, status, voting window)
- * - shows vote counts and quorum progress
- * - links to proposal detail / voting flows
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Read-only
- * - Deterministic rendering
- * - Governance-safe (no side effects)
- * - Clear status signaling
- */
-
 "use client";
 
-import React from "react";
 import Link from "next/link";
+import React from "react";
 
 interface Proposal {
   proposalId: string;
@@ -39,80 +19,86 @@ interface ProposalCardProps {
   showOutcome?: boolean;
 }
 
-export function ProposalCard({
-  proposal,
-  showOutcome = false,
-}: ProposalCardProps) {
-  const totalVotes =
-    proposal.forVotes + proposal.againstVotes;
-
+export function ProposalCard({ proposal, showOutcome = false }: ProposalCardProps) {
+  const totalVotes = proposal.forVotes + proposal.againstVotes;
   const quorumPercent =
-    proposal.quorum > 0
-      ? Math.min(
-          100,
-          (totalVotes / proposal.quorum) * 100
-        )
-      : 0;
+    proposal.quorum > 0 ? Math.min(100, (totalVotes / proposal.quorum) * 100) : 0;
 
   return (
     <Link
       href={`/governance/proposals/${proposal.proposalId}`}
-      className="block border rounded-md p-4 hover:shadow-sm transition"
+      className="ui-card fade-in-up block p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/45"
+      aria-label={`Open proposal ${proposal.title}`}
     >
-      <div className="space-y-2">
-        {/* Title */}
-        <h3 className="font-semibold text-sm">
-          {proposal.title}
-        </h3>
+      <div className="space-y-4">
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold text-white">{proposal.title}</h3>
+            <p className="mt-1 text-xs text-slate-400">
+              {new Date(proposal.startTime).toLocaleDateString()} to{" "}
+              {new Date(proposal.endTime).toLocaleDateString()}
+            </p>
+          </div>
+          <StatusBadge status={proposal.status} />
+        </header>
 
-        {/* Status */}
-        <div className="flex items-center justify-between text-xs">
-          <span
-            className={`font-medium ${
-              proposal.status === "ACTIVE"
-                ? "text-green-600"
-                : proposal.status === "PASSED"
-                ? "text-blue-600"
-                : proposal.status === "REJECTED"
-                ? "text-red-600"
-                : "text-gray-600"
-            }`}
-          >
-            {proposal.status}
-          </span>
-
-          <span className="text-gray-500">
-            {new Date(proposal.startTime).toLocaleDateString()} –{" "}
-            {new Date(proposal.endTime).toLocaleDateString()}
-          </span>
+        <div className="grid grid-cols-2 gap-3">
+          <VoteMetric label="For" value={proposal.forVotes} tone="positive" />
+          <VoteMetric label="Against" value={proposal.againstVotes} tone="negative" />
         </div>
 
-        {/* Votes */}
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span>For</span>
-            <span>{proposal.forVotes}</span>
+        <section className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-300">
+            <span>Quorum Progress</span>
+            <span className="font-medium">{quorumPercent.toFixed(1)}%</span>
           </div>
-          <div className="flex justify-between">
-            <span>Against</span>
-            <span>{proposal.againstVotes}</span>
-          </div>
-
-          {/* Quorum */}
-          <div className="w-full h-2 bg-gray-200 rounded">
+          <div className="h-2 overflow-hidden rounded-full bg-slate-950/45">
             <div
-              className="h-2 bg-black rounded"
+              className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300"
               style={{ width: `${quorumPercent}%` }}
             />
           </div>
-
           {showOutcome && (
-            <div className="text-[11px] text-gray-600">
-              Quorum: {proposal.quorum}
-            </div>
+            <p className="text-[11px] text-slate-400">
+              Required quorum: {proposal.quorum.toLocaleString()}
+            </p>
           )}
-        </div>
+        </section>
       </div>
     </Link>
   );
+}
+
+function VoteMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "positive" | "negative";
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-slate-950/35 p-3 text-sm">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p
+        className={`mt-1 text-base font-semibold ${
+          tone === "positive" ? "text-emerald-200" : "text-rose-200"
+        }`}
+      >
+        {value.toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: Proposal["status"] }) {
+  const styles: Record<Proposal["status"], string> = {
+    ACTIVE: "border-cyan-300/30 bg-cyan-400/15 text-cyan-100",
+    PASSED: "border-emerald-300/30 bg-emerald-400/15 text-emerald-100",
+    REJECTED: "border-rose-300/30 bg-rose-400/15 text-rose-100",
+    EXECUTED: "border-violet-300/30 bg-violet-400/15 text-violet-100",
+  };
+
+  return <span className={`ui-badge ${styles[status]}`}>{status}</span>;
 }

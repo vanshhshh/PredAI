@@ -1,38 +1,15 @@
-// File: frontend/app/markets/[id]/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Single market detail page.
- *
- * This page:
- * - renders real-time market state (odds, liquidity, time)
- * - allows authenticated users to place bets
- * - shows oracle consensus & resolution status
- * - visualizes liquidity and agent participation
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - All data via hooks
- * - Defensive UI (loading / error / empty)
- * - No business logic in JSX
- */
-
 "use client";
 
 import React from "react";
 import { useParams } from "next/navigation";
 
+import { BetForm } from "../../../components/Market/BetForm";
+import { LiquidityChart } from "../../../components/Market/LiquidityChart";
+import { ResolutionViewer } from "../../../components/Market/ResolutionViewer";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useMarkets } from "../../../hooks/useMarkets";
 import { useOracleStatus } from "../../../hooks/useOracleStatus";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
-
-import { BetForm } from "../../../components/Market/BetForm";
-import { ResolutionViewer } from "../../../components/Market/ResolutionViewer";
-import { LiquidityChart } from "../../../components/Market/LiquidityChart";
 
 export default function MarketPage() {
   return (
@@ -53,142 +30,166 @@ function MarketContent() {
   } = useMarkets();
 
   const {
-  status: oracleStatus,
-  isLoading: oracleLoading,
-  error: oracleError,
-} = useOracleStatus(marketId!);
-
-
-  // ------------------------------------------------------------
-  // VALIDATION
-  // ------------------------------------------------------------
+    status: oracleStatus,
+    isLoading: oracleLoading,
+    error: oracleError,
+  } = useOracleStatus(marketId ?? "");
 
   if (!marketId) {
     return (
-      <ErrorState
-        title="Invalid market"
-        message="Market identifier is missing or invalid."
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Invalid market" message="Missing market identifier." />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------
-
   if (marketsLoading || oracleLoading) {
-    return <LoadingSpinner label="Loading market…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading market..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------
-  // ERRORS
-  // ------------------------------------------------------------
 
   if (marketsError) {
     return (
-      <ErrorState
-        title="Market unavailable"
-        message={marketsError.message}
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Market unavailable" message={marketsError.message} />
+      </section>
     );
   }
 
   if (oracleError) {
     return (
-      <ErrorState
-        title="Oracle status unavailable"
-        message={oracleError.message}
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Oracle unavailable" message={oracleError.message} />
+      </section>
     );
   }
 
-  const market = markets.find(
-    (m) => m.marketId === marketId
-  );
-
+  const market = markets.find((item) => item.marketId === marketId);
   if (!market) {
     return (
-      <ErrorState
-        title="Market not found"
-        message="This market does not exist or has been removed."
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Market not found" message="The requested market does not exist." />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // MAIN VIEW
-  // ------------------------------------------------------------
+  const yesPercent = market.yesOdds === null ? null : Math.round(market.yesOdds * 100);
+  const noPercent = market.noOdds === null ? null : Math.round(market.noOdds * 100);
+  const timeRemaining = getTimeRemaining(market.endTime);
 
   return (
-    <main className="px-6 py-8 space-y-8">
-      {/* Header */}
-      <section>
-        <h1 className="text-2xl font-semibold">
-          {market.title}
-        </h1>
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Market Detail</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">{market.title}</h1>
         {market.description && (
-          <p className="text-sm text-gray-600 mt-1">
-            {market.description}
-          </p>
+          <p className="mt-2 max-w-3xl text-sm text-slate-300">{market.description}</p>
         )}
-      </section>
 
-      {/* Odds & Liquidity */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <LiquidityChart
-          marketId={market.marketId}
-          liquidity={{
-            current: market.liquidity,
-            history: [],
-          }}
-        />
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <MetaItem label="Liquidity" value={`$${market.liquidity.toLocaleString()}`} />
+          <MetaItem label="Time Remaining" value={timeRemaining} />
+          <MetaItem label="Status" value={market.settled ? "Settled" : "Active"} />
+        </div>
+      </header>
 
-        <BetForm
-          marketId={market.marketId}
-          yesOdds={market.yesOdds}
-          noOdds={market.noOdds}
-          isSettled={market.settled}
-        />
-      </section>
+      <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <OddsCard label="YES" value={yesPercent} tone="positive" />
+            <OddsCard label="NO" value={noPercent} tone="negative" />
+          </div>
 
-      {/* Oracle Resolution */}
-      <section>
-        {oracleStatus ? (
-  <ResolutionViewer
-    marketId={market.marketId}
-    oracleStatus={oracleStatus}
-    settled={market.settled}
-  />
-) : (
-  <div className="text-sm text-gray-500">
-    Oracle consensus not available yet.
-  </div>
-)}
+          <LiquidityChart
+            marketId={market.marketId}
+            liquidity={{
+              current: market.liquidity,
+              history: [],
+            }}
+          />
 
+          <section className="ui-card p-5">
+            {oracleStatus ? (
+              <ResolutionViewer
+                marketId={market.marketId}
+                oracleStatus={oracleStatus}
+                settled={market.settled}
+                finalOutcome={oracleStatus.finalOutcome}
+              />
+            ) : (
+              <p className="text-sm text-slate-300">Oracle status is not available yet.</p>
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-4">
+          <BetForm
+            marketId={market.marketId}
+            yesOdds={market.yesOdds}
+            noOdds={market.noOdds}
+            isSettled={market.settled}
+          />
+        </aside>
       </section>
     </main>
   );
 }
 
-/* ------------------------------------------------------------ */
-/* Local UI helpers                                             */
-/* ------------------------------------------------------------ */
-
-function ErrorState({
-  title,
-  message,
+function OddsCard({
+  label,
+  value,
+  tone,
 }: {
-  title: string;
-  message: string;
+  label: "YES" | "NO";
+  value: number | null;
+  tone: "positive" | "negative";
 }) {
   return (
-    <div className="p-6 border rounded-md bg-red-50">
-      <h3 className="font-semibold text-red-700">
-        {title}
-      </h3>
-      <p className="text-sm text-red-600 mt-2">
-        {message}
-      </p>
+    <article
+      className={`ui-card p-5 ${
+        tone === "positive"
+          ? "border-emerald-300/30 bg-emerald-400/15"
+          : "border-rose-300/30 bg-rose-400/15"
+      }`}
+    >
+      <p className="ui-kicker !text-current">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-white">{value === null ? "N/A" : `${value}%`}</p>
+    </article>
+  );
+}
+
+function MetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
+
+function ErrorState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="ui-card max-w-2xl p-6">
+      <h2 className="text-lg font-semibold text-rose-200">{title}</h2>
+      <p className="mt-2 text-sm text-rose-100">{message}</p>
     </div>
   );
+}
+
+function getTimeRemaining(endTime?: number): string {
+  if (!endTime) return "Unknown";
+
+  const endMs = endTime < 1_000_000_000_000 ? endTime * 1000 : endTime;
+  const diff = endMs - Date.now();
+  if (diff <= 0) return "Expired";
+
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}d`;
+  if (hours > 0) return `${hours}h`;
+  return "<1h";
 }

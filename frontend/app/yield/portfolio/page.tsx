@@ -1,48 +1,13 @@
-// File: frontend/app/yield/portfolio/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Personalized yield portfolio dashboard.
- *
- * This page:
- * - shows the user’s current yield allocations
- * - visualizes risk / return characteristics
- * - integrates AI-driven optimization suggestions
- * - allows rebalancing via backend + on-chain execution
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Portfolio is read-only unless wallet is connected
- * - Heavy emphasis on risk visibility
- * - Production-grade defensive UX
- */
-
-// File: frontend/app/yield/portfolio/page.tsx
-
 "use client";
-
-/**
- * PURPOSE
- * -------
- * Personalized yield portfolio dashboard.
- *
- * - Displays current portfolio allocations
- * - Shows risk and optimization suggestions
- * - Allows rebalance via backend
- */
 
 import React from "react";
 
-import { useYield } from "../../../hooks/useYield";
-import { useWallet } from "../../../hooks/useWallet";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
-
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { PortfolioOptimizer } from "../../../components/Yield/PortfolioOptimizer";
 import { RiskGauge } from "../../../components/Yield/RiskGauge";
+import { useWallet } from "../../../hooks/useWallet";
+import { useYield } from "../../../hooks/useYield";
 
 export default function YieldPortfolioPage() {
   return (
@@ -54,115 +19,122 @@ export default function YieldPortfolioPage() {
 
 function YieldPortfolioContent() {
   const { address, isConnected } = useWallet();
-  const {
-    portfolio,
-    isLoading,
-    error,
-    rebalance,
-    isRebalancing,
-  } = useYield();
-
-  // ------------------------------------------------------------
-  // GUARD
-  // ------------------------------------------------------------
+  const { portfolio, isLoading, error, rebalance, isRebalancing } = useYield();
 
   if (!isConnected) {
     return (
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">Connect your wallet</h2>
-        <p className="text-sm text-gray-600 mt-2">
-          Connect a wallet to view your yield portfolio.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="Connect your wallet"
+          message="Wallet connection is required to view and rebalance your portfolio."
+          tone="neutral"
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------
-
   if (isLoading) {
-    return <LoadingSpinner label="Loading yield portfolio…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading yield portfolio..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------
-  // ERROR
-  // ------------------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 border rounded-md bg-red-50">
-        <h3 className="font-semibold text-red-700">
-          Failed to load portfolio
-        </h3>
-        <p className="text-sm text-red-600 mt-2">{error.message}</p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard title="Portfolio unavailable" message={error.message} tone="error" />
+      </section>
     );
   }
 
   if (!portfolio) {
     return (
-      <div className="p-6 border rounded-md bg-gray-50">
-        <h3 className="font-semibold">No portfolio data</h3>
-        <p className="text-sm text-gray-600 mt-2">
-          Portfolio data is not available yet.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="No portfolio data"
+          message="Yield optimization has not been initialized yet."
+          tone="neutral"
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // DOMAIN → UI ADAPTER
-  // ------------------------------------------------------------
-
-  // DOMAIN → UI ADAPTER
-const allocationsForUI: {
-  vaultId: string;
-  name: string;
-  currentWeight: number;
-  recommendedWeight: number;
-  expectedApy: number;
-}[] = portfolio.allocations.map((alloc) => ({
-  vaultId: alloc.vaultId,
-  name: alloc.vaultId,
-  currentWeight: alloc.currentWeight,
-  recommendedWeight: alloc.recommendedWeight,
-  expectedApy: alloc.expectedApy,
-}));
-
-
-  // ------------------------------------------------------------
-  // MAIN
-  // ------------------------------------------------------------
+  const allocationsForUI = portfolio.allocations.map((allocation) => ({
+    vaultId: allocation.vaultId,
+    name: allocation.vaultId,
+    currentWeight: allocation.currentWeight,
+    recommendedWeight: allocation.recommendedWeight,
+    expectedApy: allocation.expectedApy,
+  }));
 
   return (
-    <main className="px-6 py-8 space-y-10 max-w-6xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold">Yield Portfolio</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Optimized allocations for {address}
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Yield Portfolio</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">Allocator Dashboard</h1>
+        <p className="mt-2 text-sm text-slate-300">
+          Connected wallet: {address}
         </p>
       </header>
 
-      {/* Risk + Optimizer */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <RiskGauge risk={portfolio.risk} />
-        <PortfolioOptimizer
-  allocations={allocationsForUI}
-  portfolioRisk={portfolio.risk}
-/>
+      <section className="grid gap-4 lg:grid-cols-[0.42fr_0.58fr]">
+        <article className="ui-card space-y-4 p-5">
+          <h2 className="text-lg font-semibold text-white">Risk Profile</h2>
+          <RiskGauge risk={portfolio.risk} />
+          <p className="text-xs text-slate-400">
+            Risk score combines volatility, concentration, and strategy
+            correlation across active vaults.
+          </p>
+        </article>
+
+        <PortfolioOptimizer allocations={allocationsForUI} portfolioRisk={portfolio.risk} />
       </section>
 
-      {/* Rebalance */}
-      <section>
+      <section className="ui-card flex flex-col items-start justify-between gap-4 p-5 md:flex-row md:items-center">
+        <div>
+          <p className="ui-kicker">Execution</p>
+          <h2 className="mt-1 text-lg font-semibold text-white">AI Suggested Rebalance</h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Rebalance applies optimizer recommendations on-chain for the current
+            allocation state.
+          </p>
+        </div>
         <button
+          type="button"
           onClick={rebalance}
           disabled={isRebalancing}
-          className="px-4 py-2 bg-black text-white rounded-md"
+          className="ui-btn ui-btn-primary"
         >
-          {isRebalancing ? "Rebalancing…" : "Rebalance Portfolio"}
+          {isRebalancing ? "Rebalancing..." : "Rebalance Portfolio"}
         </button>
       </section>
     </main>
+  );
+}
+
+function MessageCard({
+  title,
+  message,
+  tone,
+}: {
+  title: string;
+  message: string;
+  tone: "neutral" | "error";
+}) {
+  return (
+    <article className="ui-card max-w-2xl p-6">
+      <h2
+        className={`text-lg font-semibold ${
+          tone === "error" ? "text-rose-200" : "text-slate-100"
+        }`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-2 text-sm ${tone === "error" ? "text-rose-100" : "text-slate-300"}`}>
+        {message}
+      </p>
+    </article>
   );
 }

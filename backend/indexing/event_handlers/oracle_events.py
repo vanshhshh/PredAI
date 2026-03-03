@@ -33,9 +33,11 @@ class OracleEventParser:
     @staticmethod
     def verify_registration(receipt: Dict[str, Any], oracle_id: str) -> bool:
         for log in receipt.get("logs", []):
+            logged_id = log.get("oracle_id") or log.get("oracleId")
             if (
                 log.get("event") == "OracleRegistered"
-                and log.get("oracle_id") == oracle_id
+                and logged_id is not None
+                and str(logged_id).lower() == str(oracle_id).lower()
             ):
                 return True
         return False
@@ -43,18 +45,20 @@ class OracleEventParser:
     @staticmethod
     def parse_stake(receipt: Dict[str, Any]) -> Dict[str, Any] | None:
         for log in receipt.get("logs", []):
-            if log.get("event") == "OracleStaked":
+            if log.get("event") in {"OracleStaked", "StakeDeposited"}:
                 return {
-                    "stake": log.get("stake"),
+                    "stake": log.get("stake") or log.get("amount"),
                 }
         return None
 
     @staticmethod
     def verify_submission(receipt: Dict[str, Any], market_id: str) -> bool:
         for log in receipt.get("logs", []):
+            submitted_market = log.get("market_id") or log.get("marketId") or log.get("market")
             if (
                 log.get("event") == "OracleSubmitted"
-                and log.get("market_id") == market_id
+                and submitted_market is not None
+                and str(submitted_market).lower() == str(market_id).lower()
             ):
                 return True
         return False

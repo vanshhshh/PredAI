@@ -1,107 +1,63 @@
-// File: contracts/deploy/deploy_agents.ts
-// PURPOSE:
-// --------
-// Canonical deployment script for AGENT-related protocol contracts.
-// This script deploys and wires:
-// - AgentRegistry
-// - AgentStaking
-// - AgentScoring
-// - AgentNFT
-//
-// DESIGN RULES (from docs):
-// -------------------------
-// - Governance address must be Timelock in production
-// - No business logic in deploy scripts
-// - Explicit wiring, no hidden dependencies
-// - Deterministic, auditable output
-//
-// Tooling: Hardhat + ethers v6
-
-// File: contracts/deploy/deploy_agents.ts
-// Tooling: Hardhat + ethers v5 (CORRECT)
-
 import { ethers } from "hardhat";
+
+function requiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name}_NOT_CONFIGURED`);
+  }
+  return value;
+}
 
 async function main() {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying agent contracts with account:", deployer.address);
-  console.log(
-    "Account balance:",
-    (await deployer.getBalance()).toString()
+  console.log("Account balance:", (await deployer.getBalance()).toString());
+
+  const governanceRaw = requiredEnv("GOVERNANCE_ADDRESS");
+  if (!ethers.utils.isAddress(governanceRaw)) {
+    throw new Error("GOVERNANCE_ADDRESS_INVALID");
+  }
+  const governance = ethers.utils.getAddress(governanceRaw);
+
+  const minAgentStake = ethers.utils.parseEther(
+    process.env.MIN_AGENT_STAKE_ETH?.trim() || "1"
   );
-
-  /*//////////////////////////////////////////////////////////////
-                        GOVERNANCE
-  //////////////////////////////////////////////////////////////*/
-
-  const GOVERNANCE = deployer.address;
-
-  /*//////////////////////////////////////////////////////////////
-                        CONFIGURATION
-  //////////////////////////////////////////////////////////////*/
-
-  const MIN_AGENT_STAKE = ethers.utils.parseEther("1"); // ✅ v5
-  const SCORE_DECAY_BPS = 500;
-  const SCORE_EPOCH_SECONDS = 60 * 60 * 24;
-
-  /*//////////////////////////////////////////////////////////////
-                        AGENT REGISTRY
-  //////////////////////////////////////////////////////////////*/
+  const scoreDecayBps = Number(process.env.SCORE_DECAY_BPS?.trim() || "500");
+  const scoreEpochSeconds = Number(
+    process.env.SCORE_EPOCH_SECONDS?.trim() || `${60 * 60 * 24}`
+  );
+  if (!Number.isFinite(scoreDecayBps) || scoreDecayBps < 0) {
+    throw new Error("SCORE_DECAY_BPS_INVALID");
+  }
+  if (!Number.isFinite(scoreEpochSeconds) || scoreEpochSeconds <= 0) {
+    throw new Error("SCORE_EPOCH_SECONDS_INVALID");
+  }
 
   const AgentRegistry = await ethers.getContractFactory("AgentRegistry");
-  const agentRegistry = await AgentRegistry.deploy(
-    GOVERNANCE,
-    MIN_AGENT_STAKE
-  );
-  await agentRegistry.deployed(); // ✅ v5
-
+  const agentRegistry = await AgentRegistry.deploy(governance, minAgentStake);
+  await agentRegistry.deployed();
   console.log("AgentRegistry deployed at:", agentRegistry.address);
 
-  /*//////////////////////////////////////////////////////////////
-                        AGENT STAKING
-  //////////////////////////////////////////////////////////////*/
-
   const AgentStaking = await ethers.getContractFactory("AgentStaking");
-  const agentStaking = await AgentStaking.deploy(
-    GOVERNANCE,
-    agentRegistry.address
-  );
+  const agentStaking = await AgentStaking.deploy(governance, agentRegistry.address);
   await agentStaking.deployed();
-
   console.log("AgentStaking deployed at:", agentStaking.address);
-
-  /*//////////////////////////////////////////////////////////////
-                        AGENT SCORING
-  //////////////////////////////////////////////////////////////*/
 
   const AgentScoring = await ethers.getContractFactory("AgentScoring");
   const agentScoring = await AgentScoring.deploy(
-    GOVERNANCE,
+    governance,
     agentRegistry.address,
-    SCORE_DECAY_BPS,
-    SCORE_EPOCH_SECONDS
+    scoreDecayBps,
+    scoreEpochSeconds
   );
   await agentScoring.deployed();
-
   console.log("AgentScoring deployed at:", agentScoring.address);
 
-  /*//////////////////////////////////////////////////////////////
-                        AGENT NFT
-  //////////////////////////////////////////////////////////////*/
-
   const AgentNFT = await ethers.getContractFactory("AgentNFT");
-  const agentNFT = await AgentNFT.deploy(
-    GOVERNANCE,
-    agentRegistry.address
-  );
+  const agentNFT = await AgentNFT.deploy(governance, agentRegistry.address);
   await agentNFT.deployed();
-
   console.log("AgentNFT deployed at:", agentNFT.address);
-
-  /*//////////////////////////////////////////////////////////////
-                        SUMMARY
-  //////////////////////////////////////////////////////////////*/
 
   console.log("=======================================");
   console.log(" AGENT DEPLOYMENT COMPLETE");
@@ -110,7 +66,7 @@ async function main() {
   console.log("AgentStaking  :", agentStaking.address);
   console.log("AgentScoring  :", agentScoring.address);
   console.log("AgentNFT      :", agentNFT.address);
-  console.log("Governance    :", GOVERNANCE);
+  console.log("Governance    :", governance);
   console.log("=======================================");
 }
 
@@ -118,3 +74,4 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+

@@ -20,7 +20,7 @@ DESIGN RULES (from docs)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from backend.services.market_service import MarketService
 from backend.security.auth import get_current_user
@@ -45,11 +45,26 @@ class MarketCreateRequest(BaseModel):
 class MarketResponse(BaseModel):
     market_id: str
     address: str
+    creator: str
     start_time: int
     end_time: int
     max_exposure: int
+    metadata_uri: str
     settled: bool
     final_outcome: Optional[bool]
+
+
+class MarketBetRequest(BaseModel):
+    side: Literal["YES", "NO"]
+    amount: int = Field(..., gt=0, description="Bet size in wei")
+    tx_hash: str = Field(..., description="On-chain user tx hash for bet")
+
+
+class MarketBetResponse(BaseModel):
+    market_id: str
+    side: str
+    amount: int
+    status: str
 
 
 # -------------------------------------------------------------------
@@ -145,6 +160,40 @@ async def settle_market(
             caller=user.address,
         )
         return {"status": "settled"}
+    except InvariantViolation as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message,
+        )
+
+
+@router.post(
+    "/{market_id}/bet",
+    response_model=MarketBetResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def place_bet(
+    market_id: str,
+    req: MarketBetRequest,
+    user=Depends(get_current_user),
+):
+    """
+    Place a YES/NO bet in a live market.
+    """
+    try:
+        bet = await MarketService.place_bet(
+            user_address=user.address,
+            market_id=market_id,
+            side=req.side,
+            amount=req.amount,
+            tx_hash=req.tx_hash,
+        )
+        return {
+            "market_id": bet.market_id,
+            "side": bet.side,
+            "amount": int(bet.amount),
+            "status": "accepted",
+        }
     except InvariantViolation as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

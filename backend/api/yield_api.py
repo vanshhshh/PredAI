@@ -112,3 +112,37 @@ async def rebalance_portfolio(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=e.message,
         )
+
+
+@router.get("/arbitrage")
+async def list_arbitrage():
+    """
+    Surface current yield arbitrage opportunities derived from live vault data.
+    """
+    vaults = await YieldService.list_vaults()
+    if len(vaults) < 2:
+        return []
+
+    ranked = sorted(vaults, key=lambda v: int(v.apy_bps), reverse=True)
+    opportunities = []
+    now_ms = int(__import__("time").time() * 1000)
+
+    for i in range(min(5, len(ranked) - 1)):
+        high = ranked[i]
+        low = ranked[-(i + 1)]
+        spread_bps = int(high.apy_bps) - int(low.apy_bps)
+        if spread_bps <= 0:
+            continue
+
+        opportunities.append(
+            {
+                "opportunityId": f"{high.vault_id}:{low.vault_id}",
+                "route": [low.vault_id, high.vault_id],
+                "spread": round(spread_bps / 100, 4),
+                "confidence": round(min(0.95, 0.55 + spread_bps / 10_000), 4),
+                "status": "ACTIVE",
+                "detectedAt": now_ms,
+            }
+        )
+
+    return opportunities

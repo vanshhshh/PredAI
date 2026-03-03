@@ -1,38 +1,15 @@
-// File: frontend/app/agents/[id]/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Individual AI Agent profile page.
- *
- * This page:
- * - displays agent identity, ownership, and lifecycle state
- * - shows historical performance and scoring
- * - exposes staking / activation controls (when authorized)
- * - visualizes agent strategy metadata (read-only)
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - All data via hooks
- * - Authorization-aware UI
- * - Defensive UX (loading / error / empty)
- */
-
 "use client";
 
 import React from "react";
 import { useParams } from "next/navigation";
 
+import { AgentDashboard } from "../../../components/Agent/AgentDashboard";
+import { NFTViewer } from "../../../components/Agent/NFTViewer";
+import { StakingControls } from "../../../components/Agent/StakingControls";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useAgents } from "../../../hooks/useAgents";
 import { useWallet } from "../../../hooks/useWallet";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
-
-import { AgentDashboard } from "../../../components/Agent/AgentDashboard";
-import { StakingControls } from "../../../components/Agent/StakingControls";
-import { NFTViewer } from "../../../components/Agent/NFTViewer";
 
 export default function AgentPage() {
   return (
@@ -47,7 +24,6 @@ function AgentContent() {
   const agentId = params?.id as string | undefined;
 
   const { address, isConnected } = useWallet();
-
   const {
     agents,
     stakeAgent,
@@ -58,137 +34,123 @@ function AgentContent() {
     error: mutationError,
   } = useAgents();
 
-  // ------------------------------------------------------------
-  // VALIDATION
-  // ------------------------------------------------------------
-
   if (!agentId) {
     return (
-      <ErrorState
-        title="Invalid agent"
-        message="Agent identifier is missing or invalid."
-      />
+      <section className="page-container py-14">
+        <CenteredError title="Invalid agent" message="Agent identifier is missing." />
+      </section>
     );
   }
-
-  // ------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------
 
   if (isLoading) {
-    return <LoadingSpinner label="Loading agent…" />;
-  }
-
-  // ------------------------------------------------------------
-  // FIND AGENT
-  // ------------------------------------------------------------
-
-  const agent = agents.find(
-    (a) => a.agentId === agentId
-  );
-
-  if (!agent) {
     return (
-      <ErrorState
-        title="Agent not found"
-        message="This agent does not exist or has been removed."
-      />
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading agent..." />
+      </section>
     );
   }
 
-  const isOwner =
-    isConnected &&
-    address?.toLowerCase() === agent.owner.toLowerCase();
+  const agent = agents.find((item) => item.agentId === agentId);
+  if (!agent) {
+    return (
+      <section className="page-container py-14">
+        <CenteredError title="Agent not found" message="The requested agent does not exist." />
+      </section>
+    );
+  }
 
-  // ------------------------------------------------------------
-  // MAIN VIEW
-  // ------------------------------------------------------------
+  const isOwner = isConnected && address?.toLowerCase() === agent.owner.toLowerCase();
 
   return (
-    <main className="px-6 py-8 space-y-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <section className="flex items-start justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold">
-            Agent {agent.agentId.slice(0, 8)}…
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Owner: {agent.owner}
-          </p>
-        </div>
-
-        <NFTViewer
-          tokenId={agent.nftTokenId}
-          metadataUri={agent.metadataUri}
-        />
-      </section>
-
-      {/* Performance */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4">
-          Performance
-        </h2>
-        <AgentDashboard agents={[agent]} />
-      </section>
-
-      {/* Controls */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4">
-          Controls
-        </h2>
-
-        {isOwner ? (
-          <StakingControls
-            agentId={agent.agentId}
-            active={agent.active}
-            currentStake={agent.stake}
-            onStake={(amount) =>
-              stakeAgent({
-                agentId: agent.agentId,
-                amount,
-              })
-            }
-            onUnstake={(amount) =>
-              unstakeAgent({
-                agentId: agent.agentId,
-                amount,
-              })
-            }
-            onToggleActive={() =>
-              toggleAgentActive(agent.agentId)
-            }
-            isPending={isMutating}
-            error={mutationError}
-          />
-        ) : (
-          <div className="text-sm text-gray-500">
-            You are not the owner of this agent.
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="ui-kicker">Agent Profile</p>
+            <h1 className="mt-1 text-3xl font-semibold text-white">
+              Agent {agent.agentId.slice(0, 8)}...
+            </h1>
+            <div className="mt-2 flex items-center gap-2 text-sm text-slate-300">
+              <StatusBadge active={agent.active} />
+              <span>Owner {shorten(agent.owner)}</span>
+            </div>
           </div>
-        )}
+          <div className="ui-card-soft p-2">
+            <NFTViewer tokenId={agent.nftTokenId} metadataUri={agent.metadataUri} />
+          </div>
+        </div>
+      </header>
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <MetricCard label="Current Stake" value={agent.stake.toString()} />
+        <MetricCard label="Status" value={agent.active ? "Active" : "Inactive"} />
+        <MetricCard label="Agent ID" value={agent.agentId.slice(0, 12)} />
+      </section>
+
+      <section className="ui-card p-5">
+        <h2 className="text-lg font-semibold text-white">Performance</h2>
+        <div className="mt-4">
+          <AgentDashboard agents={[agent]} />
+        </div>
+      </section>
+
+      <section className="ui-card p-5">
+        <h2 className="text-lg font-semibold text-white">Owner Controls</h2>
+        <div className="mt-4">
+          {isOwner ? (
+            <StakingControls
+              agentId={agent.agentId}
+              active={agent.active}
+              currentStake={agent.stake}
+              onStake={(amount) => stakeAgent({ agentId: agent.agentId, amount })}
+              onUnstake={(amount) => unstakeAgent({ agentId: agent.agentId, amount })}
+              onDeactivate={() => toggleAgentActive(agent.agentId)}
+              isPending={isMutating}
+              error={mutationError}
+            />
+          ) : (
+            <p className="text-sm text-slate-300">
+              You are not the owner of this agent, so staking controls are read-only.
+            </p>
+          )}
+        </div>
       </section>
     </main>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Local UI helpers                                                    */
-/* ------------------------------------------------------------------ */
-
-function ErrorState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-6 border rounded-md bg-red-50">
-      <h3 className="font-semibold text-red-700">
-        {title}
-      </h3>
-      <p className="text-sm text-red-600 mt-2">
-        {message}
-      </p>
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
+
+function StatusBadge({ active }: { active: boolean }) {
+  return (
+    <span
+      className={`ui-badge ${
+        active
+          ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
+          : "border-slate-300/30 bg-slate-400/15 text-slate-200"
+      }`}
+    >
+      {active ? "Active" : "Inactive"}
+    </span>
+  );
+}
+
+function shorten(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function CenteredError({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="ui-card mx-auto max-w-md p-8 text-center">
+      <h2 className="text-xl font-semibold text-rose-200">{title}</h2>
+      <p className="mt-2 text-sm text-rose-100">{message}</p>
     </div>
   );
 }

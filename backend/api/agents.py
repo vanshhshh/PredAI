@@ -38,6 +38,7 @@ router = APIRouter()
 class AgentRegisterRequest(BaseModel):
     agent_id: str = Field(..., description="Deterministic agent identifier")
     metadata_uri: str = Field(..., description="IPFS / Arweave metadata URI")
+    tx_hash: str = Field(..., description="User on-chain register tx hash")
 
 
 class AgentResponse(BaseModel):
@@ -51,6 +52,7 @@ class AgentResponse(BaseModel):
 
 class AgentStakeRequest(BaseModel):
     amount: int = Field(..., description="Stake amount in wei")
+    tx_hash: str = Field(..., description="User on-chain tx hash")
 
 
 # -------------------------------------------------------------------
@@ -79,6 +81,7 @@ async def register_agent(
             owner_address=user.address,
             agent_id=req.agent_id,
             metadata_uri=req.metadata_uri,
+            tx_hash=req.tx_hash,
         )
     except InvariantViolation as e:
         raise HTTPException(
@@ -109,6 +112,7 @@ async def stake_and_activate_agent(
             owner_address=user.address,
             agent_id=agent_id,
             amount=req.amount,
+            tx_hash=req.tx_hash,
         )
     except InvariantViolation as e:
         raise HTTPException(
@@ -123,6 +127,7 @@ async def stake_and_activate_agent(
 )
 async def deactivate_agent(
     agent_id: str,
+    tx_hash: str,
     user=Depends(get_current_user),
 ):
     """
@@ -137,6 +142,33 @@ async def deactivate_agent(
         return await AgentService.deactivate_agent(
             owner_address=user.address,
             agent_id=agent_id,
+            tx_hash=tx_hash,
+        )
+    except InvariantViolation as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message,
+        )
+
+
+@router.post(
+    "/{agent_id}/unstake",
+    response_model=AgentResponse,
+)
+async def unstake_agent(
+    agent_id: str,
+    req: AgentStakeRequest,
+    user=Depends(get_current_user),
+):
+    """
+    Unstake capital from an agent.
+    """
+    try:
+        return await AgentService.unstake_agent(
+            owner_address=user.address,
+            agent_id=agent_id,
+            amount=req.amount,
+            tx_hash=req.tx_hash,
         )
     except InvariantViolation as e:
         raise HTTPException(

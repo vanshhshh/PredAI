@@ -370,7 +370,7 @@
     "zksync-ethers": "^5.11.1"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "hardhat test"
   },
   "keywords": [],
   "author": "",

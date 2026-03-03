@@ -1,115 +1,100 @@
-# File: backend/security/rate_limits.py
 """
-PURPOSE
--------
-Centralized rate-limiting utilities for the backend API.
-
-This module:
-- defines reusable rate-limit dependencies
-- protects critical endpoints from abuse
-- is compatible with async FastAPI usage
-- keeps policy explicit and configurable
-
-DESIGN RULES (from docs)
-------------------------
-- Rate limits are defensive, not business logic
-- No user funds or state changes here
-- Fail closed when limits are exceeded
-- Configuration via environment variables
+Centralized rate limiting using Upstash Redis REST counters.
 """
 
-import time
+from __future__ import annotations
+
 import os
-from typing import Dict
+import time
+from urllib.parse import quote
 
-from fastapi import HTTPException, status
-from fastapi import Request
+import httpx
+from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-# -------------------------------------------------------------------
-# CONFIG
-# -------------------------------------------------------------------
 
-DEFAULT_WINDOW_SECONDS = int(
-    os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60")
-)
+DEFAULT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+DEFAULT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "100"))
+UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL", "").rstrip("/")
+UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+UPSTASH_TIMEOUT_SECONDS = float(os.getenv("RATE_LIMIT_REDIS_TIMEOUT_SECONDS", "2.5"))
 
-DEFAULT_MAX_REQUESTS = int(
-    os.getenv("RATE_LIMIT_MAX_REQUESTS", "100")
-)
-
-
-# -------------------------------------------------------------------
-# IN-MEMORY STORE (PLACEHOLDER)
-# -------------------------------------------------------------------
-# NOTE:
-# In production, replace this with Redis or another shared store.
-
-_request_counters: Dict[str, Dict[str, int]] = {}
-
-
-# -------------------------------------------------------------------
-# RATE LIMIT LOGIC
-# -------------------------------------------------------------------
 
 def _current_window() -> int:
     return int(time.time() // DEFAULT_WINDOW_SECONDS)
 
 
-def check_rate_limit(
+def _safe_key(value: str) -> str:
+    return quote(value.strip().lower(), safe=":_-")
+
+
+async def _upstash_command(path: str):
+    if not UPSTASH_REDIS_REST_URL or not UPSTASH_REDIS_REST_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RATE_LIMIT_BACKEND_NOT_CONFIGURED",
+        )
+
+    headers = {"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}
+    url = f"{UPSTASH_REDIS_REST_URL}/{path}"
+
+    try:
+        async with httpx.AsyncClient(timeout=UPSTASH_TIMEOUT_SECONDS) as client:
+            response = await client.post(url, headers=headers)
+            response.raise_for_status()
+            payload = response.json()
+            return payload.get("result")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RATE_LIMIT_BACKEND_UNAVAILABLE",
+        ) from exc
+
+
+async def check_rate_limit(
     *,
     key: str,
     max_requests: int = DEFAULT_MAX_REQUESTS,
-):
-    """
-    Check and enforce rate limit for a given key.
-
-    Args:
-        key: unique identifier (e.g., user address or IP)
-        max_requests: maximum allowed requests per window
-    """
+) -> None:
     window = _current_window()
+    redis_key = f"ratelimit:{_safe_key(key)}:{window}"
 
-    if key not in _request_counters:
-        _request_counters[key] = {"window": window, "count": 0}
+    count_raw = await _upstash_command(f"incr/{redis_key}")
+    count = int(count_raw or 0)
 
-    entry = _request_counters[key]
+    if count == 1:
+        await _upstash_command(f"expire/{redis_key}/{DEFAULT_WINDOW_SECONDS + 1}")
 
-    if entry["window"] != window:
-        entry["window"] = window
-        entry["count"] = 0
-
-    entry["count"] += 1
-
-    if entry["count"] > max_requests:
+    if count > max_requests:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="RATE_LIMIT_EXCEEDED",
         )
 
 
-# -------------------------------------------------------------------
-# FASTAPI DEPENDENCY
-# -------------------------------------------------------------------
-
 def rate_limiter(
     *,
-    key: str,
+    key: str | None = None,
     max_requests: int = DEFAULT_MAX_REQUESTS,
 ):
-    """
-    FastAPI dependency wrapper for rate limiting.
-    """
-    def _limiter():
-        check_rate_limit(key=key, max_requests=max_requests)
+    async def _limiter(request: Request):
+        derived_key = key or (request.client.host if request.client else "unknown")
+        await check_rate_limit(key=derived_key, max_requests=max_requests)
+
     return _limiter
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        if request.url.path in {"/health", "/docs", "/openapi.json", "/redoc"}:
+            return await call_next(request)
+
         try:
             key = request.client.host if request.client else "unknown"
-            check_rate_limit(key=key)
+            await check_rate_limit(key=key)
             return await call_next(request)
         except HTTPException as exc:
             return JSONResponse(

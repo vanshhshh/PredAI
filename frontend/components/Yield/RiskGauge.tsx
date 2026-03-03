@@ -1,55 +1,49 @@
-// File: frontend/components/Yield/RiskGauge.tsx
-
-/**
- * PURPOSE
- * -------
- * Compact risk indicator for yield strategies and portfolios.
- *
- * This component:
- * - visualizes normalized risk (0..1)
- * - provides intuitive color + label mapping
- * - is used across vaults, portfolios, and agent UIs
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Purely presentational
- * - Deterministic mapping
- * - Accessible (color + text)
- * - Lightweight (no deps)
- */
-
 "use client";
 
 import React from "react";
 
 interface RiskGaugeProps {
-  risk: number; // 0..1
+  risk: number;
 }
 
 export function RiskGauge({ risk }: RiskGaugeProps) {
-  const clamped = Math.min(1, Math.max(0, risk));
+  const clamped = Math.max(0, Math.min(1, risk));
   const percent = Math.round(clamped * 100);
 
   let label = "Low";
-  let color = "bg-green-500";
+  let color = "#34d399";
+  let textColor = "text-emerald-200";
 
-  if (percent >= 66) {
+  if (percent >= 67) {
     label = "High";
-    color = "bg-red-500";
-  } else if (percent >= 33) {
+    color = "#fb7185";
+    textColor = "text-rose-200";
+  } else if (percent >= 34) {
     label = "Medium";
-    color = "bg-yellow-400";
+    color = "#fbbf24";
+    textColor = "text-amber-200";
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <div className="w-12 h-2 bg-gray-200 rounded">
-        <div
-          className={`h-2 rounded ${color}`}
-          style={{ width: `${percent}%` }}
-        />
+    <div className="flex items-center gap-3">
+      <div
+        className="grid h-14 w-14 place-items-center rounded-full border border-white/10 bg-slate-950/35"
+        role="progressbar"
+        aria-label="Portfolio risk score"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        style={{
+          background: `radial-gradient(circle at center, rgba(2, 6, 23, 0.86) 58%, transparent 59%), conic-gradient(${color} ${percent}%, rgba(148, 163, 184, 0.25) 0)`,
+        }}
+      >
+        <span className="text-xs font-semibold text-slate-100">{percent}%</span>
       </div>
-      <span className="text-gray-700">{label}</span>
+
+      <div className="text-xs">
+        <p className="ui-kicker">Risk</p>
+        <p className={`mt-1 font-semibold ${textColor}`}>{label}</p>
+      </div>
     </div>
   );
 }

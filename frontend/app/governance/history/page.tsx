@@ -1,33 +1,11 @@
-// File: frontend/app/governance/history/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Governance proposal history page.
- *
- * This page:
- * - shows finalized governance proposals
- * - exposes voting outcomes and execution status
- * - acts as an immutable governance audit trail
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Read-only, audit-focused UI
- * - Clear status + outcome visibility
- * - Defensive UX (loading, error, empty)
- */
-
 "use client";
 
 import React from "react";
 
-import { useGovernance } from "../../../hooks/useGovernance";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
-
 import { ProposalCard } from "../../../components/Governance/ProposalCard";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
+import { useGovernance } from "../../../hooks/useGovernance";
 
 export default function GovernanceHistoryPage() {
   return (
@@ -38,72 +16,76 @@ export default function GovernanceHistoryPage() {
 }
 
 function HistoryContent() {
-  const {
-    historicalProposals,
-    isLoading,
-    error,
-  } = useGovernance();
-
-  // ------------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------------
+  const { historicalProposals, isLoading, error } = useGovernance();
 
   if (isLoading) {
-    return <LoadingSpinner label="Loading governance history…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading governance ledger..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------------
-  // ERROR
-  // ------------------------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 border rounded-md bg-red-50">
-        <h3 className="font-semibold text-red-700">
-          Failed to load governance history
-        </h3>
-        <p className="text-sm text-red-600 mt-2">{error.message}</p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard title="Ledger unavailable" message={error.message} tone="error" />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // EMPTY
-  // ------------------------------------------------------------------
-
-  if (!historicalProposals || historicalProposals.length === 0) {
+  if (!historicalProposals?.length) {
     return (
-      <div className="p-6 border rounded-md bg-gray-50">
-        <h3 className="font-semibold">No historical proposals</h3>
-        <p className="text-sm text-gray-600 mt-2">
-          No governance proposals have been finalized yet.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="No finalized proposals"
+          message="Proposal history will appear once outcomes are executed."
+          tone="neutral"
+        />
+      </section>
     );
   }
-
-  // ------------------------------------------------------------------
-  // MAIN
-  // ------------------------------------------------------------------
 
   return (
-    <main className="px-6 py-8 space-y-8 max-w-5xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold">Governance History</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Completed governance proposals and outcomes.
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Governance Ledger</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">Proposal History</h1>
+        <p className="mt-2 text-sm text-slate-300">
+          Immutable archive of finalized proposals and voting outcomes.
         </p>
       </header>
 
-      <div className="space-y-4">
+      <section className="space-y-3">
         {historicalProposals.map((proposal) => (
-          <ProposalCard
-            key={proposal.proposalId}
-            proposal={proposal}
-            showOutcome
-          />
+          <ProposalCard key={proposal.proposalId} proposal={proposal} showOutcome />
         ))}
-      </div>
+      </section>
     </main>
+  );
+}
+
+function MessageCard({
+  title,
+  message,
+  tone,
+}: {
+  title: string;
+  message: string;
+  tone: "neutral" | "error";
+}) {
+  return (
+    <article className="ui-card max-w-2xl p-6">
+      <h2
+        className={`text-lg font-semibold ${
+          tone === "error" ? "text-rose-200" : "text-slate-100"
+        }`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-2 text-sm ${tone === "error" ? "text-rose-100" : "text-slate-300"}`}>
+        {message}
+      </p>
+    </article>
   );
 }

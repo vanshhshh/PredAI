@@ -1,29 +1,12 @@
-// File: frontend/app/agents/my-agents/page.tsx
-
-/**
- * PURPOSE
- * -------
- * “My Agents” dashboard for the connected user.
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Backend is source of truth
- * - Wallet-gated view
- * - No mock or inferred data
- * - Defensive UX
- */
-
 "use client";
 
-import React from "react";
-
-import { useAgents } from "../../../hooks/useAgents";
-import { useWallet } from "../../../hooks/useWallet";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import React, { useMemo } from "react";
 
 import { AgentDashboard } from "../../../components/Agent/AgentDashboard";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
+import { useAgents } from "../../../hooks/useAgents";
+import { useWallet } from "../../../hooks/useWallet";
 
 export default function MyAgentsPage() {
   return (
@@ -35,94 +18,132 @@ export default function MyAgentsPage() {
 
 function MyAgentsContent() {
   const { address, isConnected } = useWallet();
-  const {
-    myAgents,
-    isLoading,
-    error,
-  } = useAgents();
+  const { myAgents, isLoading, error } = useAgents();
+  const safeAgents = useMemo(() => myAgents ?? [], [myAgents]);
 
-  // ------------------------------------------------------------
-  // GUARD
-  // ------------------------------------------------------------
+  const totalStake = useMemo(
+    () => safeAgents.reduce((sum, agent: any) => sum + (agent.stake || 0), 0),
+    [safeAgents]
+  );
+
+  const totalPnL = useMemo(
+    () =>
+      safeAgents.reduce(
+        (sum, agent: any) => sum + (typeof agent.pnl === "number" ? agent.pnl : 0),
+        0
+      ),
+    [safeAgents]
+  );
+
+  const hasPnLData = useMemo(
+    () => safeAgents.some((agent: any) => typeof agent.pnl === "number"),
+    [safeAgents]
+  );
+
+  const activeAgents = useMemo(
+    () => safeAgents.filter((agent: any) => agent.active).length,
+    [safeAgents]
+  );
 
   if (!isConnected) {
     return (
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">
-          Connect your wallet
-        </h2>
-        <p className="text-sm text-gray-600 mt-2">
-          Connect a wallet to view your agents.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <CenteredState
+          title="Connect your wallet"
+          message="Wallet connection is required to load your agent portfolio."
+        />
+      </section>
     );
   }
-
-  // ------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------
 
   if (isLoading) {
     return (
-      <LoadingSpinner label="Loading your agents…" />
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading your agents..." />
+      </section>
     );
   }
-
-  // ------------------------------------------------------------
-  // ERROR
-  // ------------------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 border rounded-md bg-red-50">
-        <h3 className="font-semibold text-red-700">
-          Failed to load agents
-        </h3>
-        <p className="text-sm text-red-600 mt-2">
-          {error.message}
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <CenteredState title="Failed to load agents" message={error.message} />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // EMPTY
-  // ------------------------------------------------------------
-
-  if (!myAgents || myAgents.length === 0) {
+  if (!myAgents?.length) {
     return (
-      <div className="p-6 border rounded-md bg-gray-50">
-        <h3 className="font-semibold">
-          No agents found
-        </h3>
-        <p className="text-sm text-gray-600 mt-2">
-          You do not own any agents yet.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <CenteredState
+          title="No agents yet"
+          message="You have not created or acquired any autonomous agents."
+        />
+      </section>
     );
   }
-
-  // ------------------------------------------------------------
-  // MAIN
-  // ------------------------------------------------------------
 
   return (
-    <main className="px-6 py-8 space-y-10 max-w-6xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold">
-          My Agents
-        </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Agents owned by {address}
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Agent Portfolio</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">My AI Agents</h1>
+        <p className="mt-2 text-sm text-slate-300">
+          Connected wallet: {address?.slice(0, 6)}...{address?.slice(-4)}
         </p>
       </header>
 
-      <section>
-        <h2 className="text-xl font-semibold mb-4">
-          Owned Agents
-        </h2>
+      <section className="grid gap-3 md:grid-cols-4">
+        <StatCard label="Agents Owned" value={myAgents.length.toString()} />
+        <StatCard label="Active Agents" value={activeAgents.toString()} />
+        <StatCard label="Total Stake" value={`$${totalStake.toLocaleString()}`} />
+        <StatCard
+          label="Total PnL"
+          value={hasPnLData ? `$${totalPnL.toLocaleString()}` : "N/A"}
+          positive={totalPnL >= 0}
+        />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-white">Portfolio Breakdown</h2>
         <AgentDashboard agents={myAgents} />
       </section>
     </main>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  positive,
+}: {
+  label: string;
+  value: string;
+  positive?: boolean;
+}) {
+  return (
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p
+        className={`mt-1 text-2xl font-semibold ${
+          positive === undefined
+            ? "text-slate-100"
+            : positive
+            ? "text-emerald-200"
+            : "text-rose-200"
+        }`}
+      >
+        {value}
+      </p>
+    </article>
+  );
+}
+
+function CenteredState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="ui-card mx-auto max-w-md p-8 text-center">
+      <h2 className="text-xl font-semibold text-white">{title}</h2>
+      <p className="mt-2 text-sm text-slate-300">{message}</p>
+    </div>
   );
 }

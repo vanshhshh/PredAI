@@ -1,25 +1,51 @@
-# backend/services/user_service.py
+"""
+User service (wallet identity + profile updates).
+"""
 
-from typing import Optional
+from __future__ import annotations
+
 from backend.persistence.repositories.user_repo import UserRepository
+from backend.security.invariants import InvariantViolation
 
 
 class UserService:
-    """
-    Handles user-related business logic.
-    """
+    @staticmethod
+    async def get_user_profile(address: str):
+        user = await UserRepository.get_by_address(address)
+        if not user:
+            return None
 
-    def __init__(self, user_repo: Optional[UserRepository] = None):
-        self.user_repo = user_repo or UserRepository()
+        created_ts = int(user.created_at.timestamp()) if user.created_at else 0
+        return {
+            "address": user.address,
+            "username": user.username,
+            "created_at": created_ts,
+            "reputation_score": int(user.reputation_score),
+            "is_governance": bool(user.is_governance),
+        }
 
-    def get_user_by_id(self, user_id: str):
-        return self.user_repo.get_by_id(user_id)
+    @staticmethod
+    async def update_user_profile(
+        *,
+        address: str,
+        username: str | None,
+    ):
+        if username is not None:
+            normalized = username.strip()
+            if len(normalized) > 64:
+                raise InvariantViolation("USERNAME_TOO_LONG")
+            username = normalized or None
 
-    def get_user_by_wallet(self, wallet_address: str):
-        return self.user_repo.get_by_wallet(wallet_address)
-
-    def create_user(self, user_data: dict):
-        return self.user_repo.create(user_data)
-
-    def deactivate_user(self, user_id: str):
-        return self.user_repo.deactivate(user_id)
+        await UserRepository.ensure_exists(address)
+        updated = await UserRepository.update_profile(
+            address=address,
+            username=username,
+        )
+        created_ts = int(updated.created_at.timestamp()) if updated.created_at else 0
+        return {
+            "address": updated.address,
+            "username": updated.username,
+            "created_at": created_ts,
+            "reputation_score": int(updated.reputation_score),
+            "is_governance": bool(updated.is_governance),
+        }

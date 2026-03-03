@@ -1,77 +1,43 @@
-// File: frontend/components/Market/BetForm.tsx
-
-/**
- * PURPOSE
- * -------
- * Betting interface for a single prediction market.
- *
- * This component:
- * - allows users to place YES / NO bets
- * - validates inputs client-side
- * - delegates execution to backend / on-chain handlers
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - No direct blockchain calls
- * - Wallet-aware but not wallet-owning
- * - Defensive UX (pending, error, disabled states)
- */
-
 "use client";
 
 import React, { useState } from "react";
 
-import { useWallet } from "../../hooks/useWallet";
 import { useMarkets } from "../../hooks/useMarkets";
-
+import { useWallet } from "../../hooks/useWallet";
 import { LoadingSpinner } from "../Shared/LoadingSpinner";
 
 interface BetFormProps {
   marketId: string;
-  yesOdds: number;
-  noOdds: number;
+  yesOdds: number | null;
+  noOdds: number | null;
   isSettled: boolean;
 }
 
-export function BetForm({
-  marketId,
-  yesOdds,
-  noOdds,
-  isSettled,
-}: BetFormProps) {
+export function BetForm({ marketId, yesOdds, noOdds, isSettled }: BetFormProps) {
   const { isConnected } = useWallet();
   const { placeBet, isBetting, error } = useMarkets();
 
   const [side, setSide] = useState<"YES" | "NO">("YES");
   const [amount, setAmount] = useState<number>(0);
 
-  // ------------------------------------------------------------------
-  // GUARDS
-  // ------------------------------------------------------------------
-
   if (isSettled) {
     return (
-      <div className="p-4 border rounded-md bg-gray-50 text-sm">
-        This market has been settled.
+      <div className="ui-card-soft rounded-xl p-4 text-sm text-slate-300">
+        This market has already settled and no longer accepts new positions.
       </div>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className="p-4 border rounded-md bg-gray-50 text-sm">
-        Connect your wallet to place a bet.
+      <div className="ui-card-soft rounded-xl p-4 text-sm text-slate-300">
+        Connect your wallet to place a trade on this market.
       </div>
     );
   }
 
-  // ------------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------------
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     if (amount <= 0) return;
 
     await placeBet({
@@ -81,89 +47,126 @@ export function BetForm({
     });
   }
 
-  const odds = side === "YES" ? yesOdds : noOdds;
-
-  // ------------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------------
+  const selectedOdds = side === "YES" ? yesOdds : noOdds;
+  const payout = amount > 0 && selectedOdds !== null ? amount * selectedOdds : null;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="border rounded-md p-4 space-y-4"
-    >
-      <h3 className="font-semibold text-sm">Place Bet</h3>
+    <form onSubmit={handleSubmit} className="ui-card space-y-5 p-5">
+      <header>
+        <p className="ui-kicker">Trade Ticket</p>
+        <h3 className="mt-1 text-base font-semibold text-white">Place Position</h3>
+      </header>
 
-      {/* Side */}
-      <div className="flex gap-2">
-        <button
-          type="button"
+      <div className="grid grid-cols-2 gap-2">
+        <OutcomeButton
+          active={side === "YES"}
+          label="YES"
+          probability={yesOdds}
+          color="emerald"
           onClick={() => setSide("YES")}
-          className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-            side === "YES"
-              ? "bg-black text-white"
-              : "bg-white"
-          }`}
-        >
-          YES ({(yesOdds * 100).toFixed(1)}%)
-        </button>
-        <button
-          type="button"
+        />
+        <OutcomeButton
+          active={side === "NO"}
+          label="NO"
+          probability={noOdds}
+          color="rose"
           onClick={() => setSide("NO")}
-          className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-            side === "NO"
-              ? "bg-black text-white"
-              : "bg-white"
-          }`}
-        >
-          NO ({(noOdds * 100).toFixed(1)}%)
-        </button>
+        />
       </div>
 
-      {/* Amount */}
       <div>
-        <label className="block text-sm font-medium">
-          Amount
+        <label htmlFor={`bet-amount-${marketId}`} className="ui-label">
+          Position Size
         </label>
         <input
+          id={`bet-amount-${marketId}`}
           type="number"
           min={0}
           step="any"
           value={amount}
-          onChange={(e) =>
-            setAmount(Number(e.target.value))
-          }
-          className="mt-1 w-full border rounded-md p-2 text-sm"
+          onChange={(event) => setAmount(Number(event.target.value))}
+          className="ui-input"
+          placeholder="0.00"
+          aria-label="Bet amount"
         />
       </div>
 
-      {/* Expected Payout */}
-      <div className="text-xs text-gray-600">
-        Expected payout:{" "}
-        <strong>
-          {(amount * odds).toFixed(4)}
-        </strong>
+      <div className="flex flex-wrap gap-2">
+        {[25, 100, 250].map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => setAmount(preset)}
+            className="ui-btn ui-btn-secondary px-3 py-1.5 text-xs"
+          >
+            +{preset}
+          </button>
+        ))}
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="text-xs text-red-600">
-          {error.message}
+      <div className="rounded-xl border border-white/10 bg-slate-950/35 p-3 text-sm">
+        <div className="flex items-center justify-between text-slate-300">
+          <span>Selected Side</span>
+          <span className="font-semibold text-white">{side}</span>
         </div>
-      )}
+        <div className="mt-2 flex items-center justify-between text-slate-300">
+          <span>Odds</span>
+          <span>{selectedOdds === null ? "N/A" : `${(selectedOdds * 100).toFixed(2)}%`}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between font-semibold text-cyan-100">
+          <span>Estimated Payout</span>
+          <span>{payout === null ? "N/A" : payout.toFixed(4)}</span>
+        </div>
+      </div>
 
-      {/* Submit */}
+      {error && <p className="text-sm text-rose-300">{error.message}</p>}
+
       <button
         type="submit"
         disabled={isBetting || amount <= 0}
-        className="w-full px-4 py-2 bg-black text-white rounded-md text-sm"
+        className="ui-btn ui-btn-primary w-full"
       >
-        {isBetting ? "Placing bet…" : "Place Bet"}
+        {isBetting ? "Submitting trade..." : "Place Bet"}
       </button>
 
-      {isBetting && (
-        <LoadingSpinner label="Submitting bet…" />
-      )}
+      {isBetting && <LoadingSpinner label="Broadcasting order..." size="sm" />}
     </form>
+  );
+}
+
+function OutcomeButton({
+  active,
+  label,
+  probability,
+  color,
+  onClick,
+}: {
+  active: boolean;
+  label: "YES" | "NO";
+  probability: number | null;
+  color: "emerald" | "rose";
+  onClick: () => void;
+}) {
+  const activeStyles =
+    color === "emerald"
+      ? "border-emerald-300/50 bg-emerald-400/15 text-emerald-100"
+      : "border-rose-300/50 bg-rose-400/15 text-rose-100";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border px-3 py-2 text-sm transition ${
+        active
+          ? activeStyles
+          : "border-white/15 bg-slate-950/25 text-slate-200 hover:border-white/30"
+      }`}
+      aria-pressed={active}
+    >
+      <p className="font-semibold">{label}</p>
+      <p className="mt-1 text-xs">
+        {probability === null ? "N/A" : `${(probability * 100).toFixed(1)}%`}
+      </p>
+    </button>
   );
 }

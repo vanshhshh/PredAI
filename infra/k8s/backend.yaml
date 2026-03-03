@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ai-crypto-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/moltmarket/backend@sha256:REPLACE_WITH_BACKEND_DIGEST
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           envFrom:

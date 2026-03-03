@@ -16,9 +16,9 @@ const config: HardhatUserConfig = {
     },
   },
 
-  // ✅ THIS IS THE FIX
+  // compile all protocol contract directories
   paths: {
-    sources: "./oracles",            // 👈 scan ALL contract folders
+    sources: "./contracts",
     tests: "./tests",
     cache: "./cache",
     artifacts: "./artifacts",

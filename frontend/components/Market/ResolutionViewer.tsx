@@ -1,29 +1,9 @@
-// File: frontend/components/Market/ResolutionViewer.tsx
-
-/**
- * PURPOSE
- * -------
- * Oracle resolution & settlement viewer for a prediction market.
- *
- * This component:
- * - displays current oracle consensus state
- * - shows confidence / quorum / submissions
- * - renders final settlement outcome once resolved
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Purely presentational (no fetching)
- * - Deterministic rendering
- * - Handles partial / evolving oracle state
- * - Safe for real-time updates
- */
-
 "use client";
 
 import React from "react";
 
-import { ConsensusMeter } from "../Oracle/ConsensusMeter";
 import { AuditLog } from "../Oracle/AuditLog";
+import { ConsensusMeter } from "../Oracle/ConsensusMeter";
 
 interface ResolutionViewerProps {
   marketId: string;
@@ -49,62 +29,77 @@ export function ResolutionViewer({
   oracleStatus,
 }: ResolutionViewerProps) {
   return (
-    <div className="border rounded-md p-4 space-y-4">
+    <section className="ui-card space-y-5 p-5">
       <header className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Oracle Resolution</h3>
-        <StatusBadge
-          phase={oracleStatus.phase}
-          settled={settled}
-        />
+        <div>
+          <p className="ui-kicker">Oracle Layer</p>
+          <h3 className="text-base font-semibold text-white">Resolution State</h3>
+        </div>
+        <StatusBadge phase={oracleStatus.phase} settled={settled} />
       </header>
 
-      {/* Consensus */}
       <ConsensusMeter
         confidence={oracleStatus.confidence}
         quorumReached={oracleStatus.quorumReached}
       />
 
-      {/* Outcome */}
       {settled && (
-        <div className="p-3 border rounded-md bg-green-50 text-sm">
-          <span className="font-medium">Final outcome:</span>{" "}
-          <strong>{finalOutcome}</strong>
+        <div
+          className={`rounded-xl border p-4 text-sm ${
+            finalOutcome === "YES"
+              ? "border-emerald-300/40 bg-emerald-400/15 text-emerald-100"
+              : finalOutcome === "NO"
+              ? "border-rose-300/40 bg-rose-400/15 text-rose-100"
+              : "border-slate-300/25 bg-slate-900/35 text-slate-200"
+          }`}
+        >
+          <p className="ui-kicker !text-current">Final Outcome</p>
+          <p className="mt-1 text-lg font-semibold">{finalOutcome ?? "Pending"}</p>
+          {oracleStatus.resolvedAt && (
+            <p className="mt-1 text-xs opacity-80">
+              Resolved at {new Date(oracleStatus.resolvedAt).toLocaleString()}
+            </p>
+          )}
         </div>
       )}
 
-      {/* Submissions */}
-      <AuditLog
-        marketId={marketId}
-        submissions={oracleStatus.submissions}
-        resolvedAt={oracleStatus.resolvedAt}
-      />
-    </div>
+      <div className="rounded-xl border border-white/10 bg-slate-950/35 p-4">
+        <AuditLog
+          marketId={marketId}
+          submissions={oracleStatus.submissions}
+          resolvedAt={oracleStatus.resolvedAt}
+        />
+      </div>
+    </section>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* Local helpers                                                       */
-/* ------------------------------------------------------------------ */
 
 function StatusBadge({
   phase,
   settled,
 }: {
-  phase: string;
+  phase: "COLLECTING" | "FINALIZING" | "RESOLVED";
   settled: boolean;
 }) {
-  let label = phase;
-  let className =
-    "px-2 py-1 rounded text-xs border text-gray-600";
-
-  if (settled) {
-    label = "RESOLVED";
-    className =
-      "px-2 py-1 rounded text-xs bg-green-100 text-green-700";
-  } else if (phase === "FINALIZING") {
-    className =
-      "px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-700";
+  if (settled || phase === "RESOLVED") {
+    return (
+      <span className="ui-badge border-emerald-300/30 bg-emerald-400/15 text-emerald-100">
+        Resolved
+      </span>
+    );
   }
 
-  return <span className={className}>{label}</span>;
+  if (phase === "FINALIZING") {
+    return (
+      <span className="ui-badge border-amber-300/30 bg-amber-300/15 text-amber-100">
+        Finalizing
+      </span>
+    );
+  }
+
+  return (
+    <span className="ui-badge border-cyan-300/30 bg-cyan-400/15 text-cyan-100">
+      Collecting
+    </span>
+  );
 }

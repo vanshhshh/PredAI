@@ -1,38 +1,16 @@
-// File: frontend/app/dashboard/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Primary application dashboard.
- *
- * This page:
- * - aggregates markets, agents, yield, and governance signals
- * - is the first authenticated landing surface
- * - is designed to scale with real data volumes
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - All data flows through hooks (even if infra wired later)
- * - Defensive UI: loading, error, empty, retry
- * - Zero business logic in JSX
- */
-
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
-import { useMarkets } from "@/hooks/useMarkets";
-import { useAgents } from "@/hooks/useAgents";
-import { useYield } from "@/hooks/useYield";
-
-import { LoadingSpinner } from "@/components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "@/components/Shared/ErrorBoundary";
-
-import { MarketCard } from "@/components/Market/MarketCard";
 import { AgentDashboard } from "@/components/Agent/AgentDashboard";
+import { MarketCard } from "@/components/Market/MarketCard";
+import { ErrorBoundary } from "@/components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "@/components/Shared/LoadingSpinner";
 import { PortfolioOptimizer } from "@/components/Yield/PortfolioOptimizer";
-
+import { useAgents } from "@/hooks/useAgents";
+import { useMarkets } from "@/hooks/useMarkets";
+import { useYield } from "@/hooks/useYield";
 
 export default function DashboardPage() {
   return (
@@ -50,123 +28,149 @@ function DashboardContent() {
     refetch: refetchMarkets,
   } = useMarkets();
 
-  const {
-    agents,
-    isLoading: agentsLoading,
-    error: agentsError,
-  } = useAgents();
+  const { agents, isLoading: agentsLoading, error: agentsError } = useAgents();
 
-  const {
-    portfolio,
-    isLoading: yieldLoading,
-    error: yieldError,
-  } = useYield();
-
-  // ------------------------------------------------------------------
-  // GLOBAL LOADING
-  // ------------------------------------------------------------------
+  const { portfolio, isLoading: yieldLoading, error: yieldError } = useYield();
 
   if (marketsLoading || agentsLoading || yieldLoading) {
-    return <LoadingSpinner label="Loading dashboard…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Loading dashboard..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------------
-  // ERROR STATES
-  // ------------------------------------------------------------------
 
   if (marketsError) {
     return (
-      <ErrorState
-        title="Markets unavailable"
-        message={marketsError.message}
-        onRetry={refetchMarkets}
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Markets unavailable" message={marketsError.message} onRetry={refetchMarkets} />
+      </section>
     );
   }
 
   if (agentsError) {
     return (
-      <ErrorState
-        title="Agents unavailable"
-        message={agentsError.message}
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Agents unavailable" message={agentsError.message} />
+      </section>
     );
   }
 
   if (yieldError) {
     return (
-      <ErrorState
-        title="Yield data unavailable"
-        message={yieldError.message}
-      />
+      <section className="page-container py-14">
+        <ErrorState title="Yield data unavailable" message={yieldError.message} />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // EMPTY STATES
-  // ------------------------------------------------------------------
-
-  if (!markets || markets.length === 0) {
-    return (
-      <EmptyState
-        title="No markets yet"
-        message="Markets will appear here as soon as they are created."
-      />
-    );
-  }
-
-  // ------------------------------------------------------------------
-  // MAIN DASHBOARD
-  // ------------------------------------------------------------------
+  const totalMarkets = markets?.length ?? 0;
+  const totalAgents = agents?.length ?? 0;
+  const portfolioRisk = portfolio?.risk ?? 0;
+  const portfolioValue = portfolio?.totalValue ?? 0;
 
   return (
-    <main className="space-y-10 px-6 py-8">
-      {/* Markets */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4">Active Markets</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {markets.map((market) => (
-            <MarketCard key={market.marketId} market={market} />
-          ))}
+    <main className="page-container space-y-8 py-8">
+      <header className="ui-card fade-in-up p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="ui-kicker">Command Center</p>
+            <h1 className="mt-1 text-3xl font-semibold text-white">Portfolio Overview</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Track active markets, agent performance, and yield optimizer output
+              from one unified control surface.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/markets/create" className="ui-btn ui-btn-secondary">
+              Create Market
+            </Link>
+            <Link href="/agents/create" className="ui-btn ui-btn-secondary">
+              Launch Agent
+            </Link>
+          </div>
         </div>
+      </header>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Active Markets" value={totalMarkets.toString()} />
+        <StatCard label="Your Agents" value={totalAgents.toString()} />
+        <StatCard label="Portfolio Risk" value={portfolioRisk.toFixed(2)} />
+        <StatCard label="Portfolio Value" value={`$${portfolioValue.toLocaleString()}`} />
       </section>
 
-      {/* Agents */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4">Your Agents</h2>
-        <AgentDashboard agents={agents} />
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Active Markets</h2>
+          <Link href="/markets/list" className="ui-btn ui-btn-ghost">
+            View all
+          </Link>
+        </div>
+        {markets?.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {markets.map((market) => (
+              <MarketCard key={market.marketId} market={market} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No markets yet" message="Create your first market to start trading." />
+        )}
       </section>
 
-      {/* Yield */}
-      {/* Yield */}
-<section>
-  <h2 className="text-xl font-semibold mb-4">Yield Portfolio</h2>
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Agent Network</h2>
+          <Link href="/agents/my-agents" className="ui-btn ui-btn-ghost">
+            Manage agents
+          </Link>
+        </div>
+        {agents?.length ? (
+          <AgentDashboard agents={agents} />
+        ) : (
+          <EmptyState
+            title="No agents deployed"
+            message="Launch an autonomous agent to automate strategy execution."
+          />
+        )}
+      </section>
 
-  {portfolio ? (
-    <PortfolioOptimizer
-      allocations={portfolio.allocations.map((alloc) => ({
-        vaultId: alloc.vaultId,
-        name: alloc.vaultId, // placeholder until backend provides name
-        currentWeight: alloc.currentWeight,
-        recommendedWeight: alloc.recommendedWeight,
-        expectedApy: alloc.expectedApy,
-      }))}
-      portfolioRisk={portfolio.risk}
-    />
-  ) : (
-    <p className="text-sm text-gray-500">
-      No portfolio data available.
-    </p>
-  )}
-</section>
-
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Yield Allocation</h2>
+          <Link href="/yield/portfolio" className="ui-btn ui-btn-ghost">
+            Open portfolio
+          </Link>
+        </div>
+        {portfolio ? (
+          <PortfolioOptimizer
+            allocations={portfolio.allocations.map((allocation) => ({
+              vaultId: allocation.vaultId,
+              name: allocation.vaultId,
+              currentWeight: allocation.currentWeight,
+              recommendedWeight: allocation.recommendedWeight,
+              expectedApy: allocation.expectedApy,
+            }))}
+            portfolioRisk={portfolio.risk}
+          />
+        ) : (
+          <EmptyState
+            title="No yield data"
+            message="Deposit funds into vaults to activate optimizer recommendations."
+          />
+        )}
+      </section>
     </main>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Local UI helpers (pure presentational)                              */
-/* ------------------------------------------------------------------ */
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
 
 function ErrorState({
   title,
@@ -178,32 +182,23 @@ function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="p-6 border rounded-md bg-red-50">
-      <h3 className="font-semibold text-red-700">{title}</h3>
-      <p className="text-sm text-red-600 mt-2">{message}</p>
+    <article className="ui-card max-w-2xl p-6">
+      <h3 className="text-lg font-semibold text-rose-200">{title}</h3>
+      <p className="mt-2 text-sm text-rose-100">{message}</p>
       {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-4 text-sm underline text-red-700"
-        >
+        <button type="button" onClick={onRetry} className="ui-btn ui-btn-secondary mt-4">
           Retry
         </button>
       )}
-    </div>
+    </article>
   );
 }
 
-function EmptyState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+function EmptyState({ title, message }: { title: string; message: string }) {
   return (
-    <div className="p-6 border rounded-md bg-gray-50">
-      <h3 className="font-semibold">{title}</h3>
-      <p className="text-sm text-gray-600 mt-2">{message}</p>
-    </div>
+    <article className="ui-card p-5">
+      <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+      <p className="mt-1 text-sm text-slate-300">{message}</p>
+    </article>
   );
 }

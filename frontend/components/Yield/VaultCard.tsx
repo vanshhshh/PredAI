@@ -1,27 +1,7 @@
-// File: frontend/components/Yield/VaultCard.tsx
-
-/**
- * PURPOSE
- * -------
- * Summary card for a yield vault.
- *
- * This component:
- * - displays vault strategy, APY, TVL, and risk
- * - is used in vault discovery and portfolio views
- * - links to detailed vault inspection
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Purely presentational
- * - No data fetching
- * - Clear financial signaling
- * - Safe for reuse across contexts
- */
-
 "use client";
 
-import React from "react";
 import Link from "next/link";
+import React from "react";
 
 import { RiskGauge } from "./RiskGauge";
 
@@ -30,48 +10,57 @@ interface VaultCardProps {
     vaultId: string;
     name: string;
     description?: string;
-    apy: number; // %
+    apy: number;
     tvl: number;
-    risk: number; // 0..1
+    risk: number;
   };
 }
 
 export function VaultCard({ vault }: VaultCardProps) {
+  const highlightedApy = vault.apy >= 15;
+
   return (
     <Link
       href={`/yield/vaults/${vault.vaultId}`}
-      className="block border rounded-md p-4 hover:shadow-sm transition"
+      aria-label={`Open vault ${vault.name}`}
+      className="ui-card fade-in-up block p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/45"
     >
-      <div className="space-y-2">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">
-            {vault.name}
-          </h3>
+      <div className="space-y-4">
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-white">{vault.name}</h3>
+            {vault.description && (
+              <p className="mt-1 line-clamp-2 text-sm text-slate-300">{vault.description}</p>
+            )}
+          </div>
           <RiskGauge risk={vault.risk} />
-        </div>
+        </header>
 
-        {/* Description */}
-        {vault.description && (
-          <p className="text-xs text-gray-600 line-clamp-2">
-            {vault.description}
-          </p>
-        )}
+        <div className="grid grid-cols-2 gap-3 border-t border-white/10 pt-3">
+          <div className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">APY</p>
+            <p
+              className={`mt-1 text-lg font-semibold ${
+                highlightedApy ? "text-emerald-200" : "text-slate-100"
+              }`}
+            >
+              {vault.apy.toFixed(2)}%
+            </p>
+          </div>
 
-        {/* Metrics */}
-        <div className="flex justify-between text-xs text-gray-700">
-          <span>
-            APY:{" "}
-            <strong>{vault.apy.toFixed(2)}%</strong>
-          </span>
-          <span>
-            TVL:{" "}
-            <strong>
-              {vault.tvl.toLocaleString()}
-            </strong>
-          </span>
+          <div className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">TVL</p>
+            <p className="mt-1 text-lg font-semibold text-slate-100">{formatTVL(vault.tvl)}</p>
+          </div>
         </div>
       </div>
     </Link>
   );
+}
+
+function formatTVL(value: number): string {
+  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
 }

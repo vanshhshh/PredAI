@@ -1,33 +1,11 @@
-// File: frontend/app/governance/create/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Governance proposal creation page.
- *
- * This page:
- * - allows eligible users to submit new DAO proposals
- * - supports parameter changes, upgrades, and text proposals
- * - performs client-side validation only
- * - submits proposals to governance backend / contracts
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Wallet-gated access
- * - Explicit proposal structure
- * - Defensive UX (loading, error, confirm)
- */
-
 "use client";
 
 import React, { useState } from "react";
 
+import { Modal } from "../../../components/Shared/Modal";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useGovernance } from "../../../hooks/useGovernance";
 import { useWallet } from "../../../hooks/useWallet";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { Modal } from "../../../components/Shared/Modal";
 
 type ProposalType = "PARAMETER_CHANGE" | "UPGRADE" | "TEXT";
 
@@ -35,36 +13,26 @@ export default function CreateGovernanceProposalPage() {
   const { address, isConnected } = useWallet();
   const { createProposal, isSubmitting, error } = useGovernance();
 
-  const [proposalType, setProposalType] =
-    useState<ProposalType>("TEXT");
+  const [proposalType, setProposalType] = useState<ProposalType>("TEXT");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [executionData, setExecutionData] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ------------------------------------------------------------
-  // GUARD
-  // ------------------------------------------------------------
-
   if (!isConnected) {
     return (
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">
-          Connect your wallet
-        </h2>
-        <p className="text-sm text-gray-600 mt-2">
-          You must connect a wallet to submit governance proposals.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="Connect your wallet"
+          message="Governance participation requires wallet authentication."
+          tone="neutral"
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setShowConfirm(true);
   }
 
@@ -76,145 +44,167 @@ export default function CreateGovernanceProposalPage() {
       description,
       payload: {
         type: proposalType,
-        executionData:
-          proposalType === "TEXT"
-            ? null
-            : executionData,
+        executionData: proposalType === "TEXT" ? null : executionData,
         createdBy: address,
       },
     });
   }
 
-  // ------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------
-
   return (
-    <main className="max-w-3xl mx-auto px-6 py-8 space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold">
-          Create Proposal
-        </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Submit a proposal for protocol governance.
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Governance Authoring</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">Submit Proposal</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-300">
+          Draft protocol motions and publish them for token-holder voting.
         </p>
       </header>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6"
-      >
-        {/* Proposal Type */}
-        <div>
-          <label className="block text-sm font-medium">
-            Proposal Type
-          </label>
-          <select
-            value={proposalType}
-            onChange={(e) =>
-              setProposalType(
-                e.target.value as ProposalType
-              )
-            }
-            className="mt-2 border rounded-md p-2 w-full"
-          >
-            <option value="TEXT">
-              Text Proposal
-            </option>
-            <option value="PARAMETER_CHANGE">
-              Parameter Change
-            </option>
-            <option value="UPGRADE">
-              Protocol Upgrade
-            </option>
-          </select>
-        </div>
+      <section className="grid gap-3 md:grid-cols-3">
+        <ProposalTypeCard
+          active={proposalType === "TEXT"}
+          title="Text"
+          description="Non-binding signaling proposal"
+          onClick={() => setProposalType("TEXT")}
+        />
+        <ProposalTypeCard
+          active={proposalType === "PARAMETER_CHANGE"}
+          title="Parameter Change"
+          description="Adjust protocol settings"
+          onClick={() => setProposalType("PARAMETER_CHANGE")}
+        />
+        <ProposalTypeCard
+          active={proposalType === "UPGRADE"}
+          title="Upgrade"
+          description="Upgrade contracts or protocol logic"
+          onClick={() => setProposalType("UPGRADE")}
+        />
+      </section>
 
-        {/* Title */}
+      <form onSubmit={handleSubmit} className="ui-card space-y-5 p-5">
         <div>
-          <label className="block text-sm font-medium">
-            Title
+          <label htmlFor="proposal-title" className="ui-label">
+            Proposal Title
           </label>
           <input
+            id="proposal-title"
             value={title}
-            onChange={(e) =>
-              setTitle(e.target.value)
-            }
+            onChange={(event) => setTitle(event.target.value)}
             required
-            className="mt-2 border rounded-md p-2 w-full"
+            className="ui-input"
+            placeholder="Increase max agent exposure cap"
           />
         </div>
 
-        {/* Description */}
         <div>
-          <label className="block text-sm font-medium">
+          <label htmlFor="proposal-description" className="ui-label">
             Description
           </label>
           <textarea
+            id="proposal-description"
             value={description}
-            onChange={(e) =>
-              setDescription(e.target.value)
-            }
+            onChange={(event) => setDescription(event.target.value)}
             required
-            rows={5}
-            className="mt-2 border rounded-md p-2 w-full"
+            rows={6}
+            className="ui-textarea"
+            placeholder="Describe rationale, expected impact, and implementation."
           />
         </div>
 
-        {/* Execution Data */}
         {proposalType !== "TEXT" && (
           <div>
-            <label className="block text-sm font-medium">
-              Execution Data
+            <label htmlFor="execution-payload" className="ui-label">
+              Execution Payload
             </label>
             <textarea
+              id="execution-payload"
               value={executionData}
-              onChange={(e) =>
-                setExecutionData(e.target.value)
-              }
+              onChange={(event) => setExecutionData(event.target.value)}
               required
               rows={4}
-              className="mt-2 border rounded-md p-2 w-full font-mono text-sm"
+              className="ui-textarea font-mono text-xs"
+              placeholder="Encoded contract call data"
             />
+            <p className="mt-1 text-xs text-slate-400">
+              Payload executes only if the proposal passes governance.
+            </p>
           </div>
         )}
 
-        {/* Error */}
-        {error && (
-          <div className="p-3 bg-red-50 border rounded-md text-sm text-red-600">
-            {error.message}
-          </div>
-        )}
+        {error && <p className="text-sm text-rose-300">{error.message}</p>}
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-4 py-2 bg-black text-white rounded-md"
-        >
-          {isSubmitting
-            ? "Submitting…"
-            : "Submit Proposal"}
-        </button>
+        <div className="flex justify-end">
+          <button type="submit" disabled={isSubmitting} className="ui-btn ui-btn-primary">
+            {isSubmitting ? "Submitting..." : "Submit Proposal"}
+          </button>
+        </div>
       </form>
 
       {showConfirm && (
         <Modal
-          title="Confirm proposal submission"
+          title="Confirm Governance Proposal"
           onClose={() => setShowConfirm(false)}
-          onConfirm={handleConfirm}
+          onConfirm={() => void handleConfirm()}
         >
-          <p className="text-sm text-gray-700">
-            You are about to submit a governance
-            proposal. If accepted, this may alter
-            protocol behavior.
+          <p className="text-sm text-slate-200">
+            This proposal will be published to the DAO and cannot be edited
+            afterwards.
           </p>
         </Modal>
       )}
 
-      {isSubmitting && (
-        <LoadingSpinner label="Submitting proposal…" />
-      )}
+      {isSubmitting && <LoadingSpinner label="Submitting proposal..." />}
     </main>
+  );
+}
+
+function ProposalTypeCard({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`ui-card p-4 text-left transition ${
+        active ? "border-cyan-300/40" : "hover:border-cyan-300/25"
+      }`}
+      aria-pressed={active}
+    >
+      <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+      <p className="mt-1 text-sm text-slate-300">{description}</p>
+    </button>
+  );
+}
+
+function MessageCard({
+  title,
+  message,
+  tone,
+}: {
+  title: string;
+  message: string;
+  tone: "neutral" | "error";
+}) {
+  return (
+    <article className="ui-card max-w-2xl p-6">
+      <h2
+        className={`text-lg font-semibold ${
+          tone === "error" ? "text-rose-200" : "text-slate-100"
+        }`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-2 text-sm ${tone === "error" ? "text-rose-100" : "text-slate-300"}`}>
+        {message}
+      </p>
+    </article>
   );
 }

@@ -1,120 +1,117 @@
-// File: frontend/app/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Primary application dashboard.
- *
- * This page:
- * - aggregates markets, agents, yield, and governance signals
- * - is the first authenticated landing surface
- * - is designed to scale with real data volumes
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - All data flows through hooks (even if infra wired later)
- * - Defensive UI: loading, error, empty, retry
- * - Zero business logic in JSX
- */
+import Link from "next/link";
 
 export default function LandingPage() {
   return (
-    <main className="bg-black text-white overflow-hidden">
-      {/* HERO */}
-      <section className="relative min-h-screen flex flex-col justify-center items-center text-center px-6">
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/30 via-black to-black" />
+    <main className="relative overflow-hidden pb-14">
+      <section className="page-container pt-14 sm:pt-20">
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+          <div className="fade-in-up space-y-6">
+            <p className="ui-kicker">AI-native markets and strategy infra</p>
+            <h1 className="ui-title max-w-3xl">
+              Build prediction markets that feel like a live trading terminal.
+            </h1>
+            <p className="ui-subtitle max-w-2xl">
+              MoltMarket combines prediction books, autonomous agents, yield
+              routing, and governance into one cohesive operating surface.
+            </p>
 
-        <h1 className="relative z-10 text-6xl font-bold tracking-tight max-w-4xl">
-          The Intelligence Layer for Prediction Markets
-        </h1>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/dashboard" className="ui-btn ui-btn-primary">
+                Enter Dashboard
+              </Link>
+              <Link href="/markets/list" className="ui-btn ui-btn-secondary">
+                Browse Markets
+              </Link>
+              <Link href="/guide" className="ui-btn ui-btn-ghost">
+                Read Guide
+              </Link>
+            </div>
 
-        <p className="relative z-10 mt-6 text-lg text-gray-400 max-w-2xl">
-          An AI-native financial system where humans and autonomous agents
-          create, trade, and optimize prediction markets with real yield.
-        </p>
+            <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+              <Metric label="Markets" value="500+" />
+              <Metric label="Agents" value="120+" />
+              <Metric label="Vaults" value="18" />
+              <Metric label="Settlement" value="<30m" />
+            </div>
+          </div>
 
-        <div className="relative z-10 mt-10 flex gap-4">
-          <a
-            href="/dashboard"
-            className="px-6 py-3 bg-white text-black rounded-lg font-medium"
-          >
-            Explore Markets
-          </a>
-          <a
-            href="/sign-in"
-            className="px-6 py-3 border border-gray-700 rounded-lg text-gray-300 hover:border-gray-500"
-          >
-            Launch App
-          </a>
-        </div>
-
-        <p className="relative z-10 mt-6 text-xs text-gray-500">
-          Non-custodial • Agent-native • Built for real markets
-        </p>
-      </section>
-
-      {/* METRICS STRIP */}
-      <section className="border-t border-gray-800 py-12">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <Metric label="Active Markets" value="500+" />
-          <Metric label="Autonomous Agents" value="AI-native" />
-          <Metric label="Settlement" value="On-chain" />
-          <Metric label="Yield Strategies" value="Live" />
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="py-24 px-6 max-w-6xl mx-auto">
-        <h2 className="text-3xl font-semibold text-center">
-          How PredAI Works
-        </h2>
-
-        <div className="mt-16 grid md:grid-cols-3 gap-12">
-          <Feature
-            title="Markets With Skin in the Game"
-            desc="Every market is seeded. Creators and the platform provide real liquidity."
-          />
-          <Feature
-            title="AI Agents as First-Class Citizens"
-            desc="Agents analyze signals, trade autonomously, and optimize outcomes."
-          />
-          <Feature
-            title="Prediction Meets Yield"
-            desc="Idle capital is deployed into yield strategies while markets resolve."
-          />
+          <div className="ui-card fade-in-up p-6 [animation-delay:90ms]">
+            <h2 className="text-lg font-semibold text-white">Platform Modules</h2>
+            <div className="mt-4 space-y-3">
+              {[
+                "Market discovery and position management",
+                "Autonomous trading agent marketplace",
+                "Risk-adjusted yield vault allocator",
+                "Social signal ingestion and argument staking",
+                "On-chain governance voting workflows",
+              ].map((item) => (
+                <p
+                  key={item}
+                  className="rounded-lg border border-white/10 bg-slate-950/35 px-3 py-2 text-sm text-slate-200"
+                >
+                  {item}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-gray-800 py-10 text-center text-sm text-gray-500">
-        <div className="space-x-6">
-          <a href="/terms" className="hover:text-gray-300">Terms</a>
-          <a href="/privacy" className="hover:text-gray-300">Privacy</a>
-          <a href="/risk" className="hover:text-gray-300">Risk Disclosure</a>
+      <section className="page-container mt-10">
+        <div className="grid gap-4 md:grid-cols-3">
+          <FeatureCard
+            title="Signal to market in one flow"
+            description="Compile prompts and social feeds into structured markets while preserving auditability."
+          />
+          <FeatureCard
+            title="AI agents as first-class actors"
+            description="Monitor ownership, stake, performance, and lifecycle controls from one dashboard."
+          />
+          <FeatureCard
+            title="Treasury-aware yield routing"
+            description="Balance expected APY and portfolio risk with allocation recommendations and rebalance actions."
+          />
         </div>
-        <p className="mt-4">© 2026 PredAI</p>
-      </footer>
+      </section>
+
+      <section className="page-container mt-10">
+        <div className="ui-card p-8 text-center">
+          <p className="ui-kicker">Ready to launch</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
+            Start with markets, scale to autonomous intelligence.
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-300">
+            Every route in the app is structured for real usage: discovery,
+            execution, governance, and portfolio control.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link href="/sign-in" className="ui-btn ui-btn-primary">
+              Sign In
+            </Link>
+            <Link href="/governance/proposals" className="ui-btn ui-btn-secondary">
+              View Governance
+            </Link>
+          </div>
+        </div>
+      </section>
     </main>
-  );
-}
-
-function Feature({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="border border-gray-800 rounded-xl p-6 bg-gray-950">
-      <h3 className="text-xl font-semibold">{title}</h3>
-      <p className="mt-3 text-gray-400">{desc}</p>
-    </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="mt-1 text-xs text-gray-500 uppercase tracking-wide">
-        {label}
-      </div>
+    <div className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
     </div>
+  );
+}
+
+function FeatureCard({ title, description }: { title: string; description: string }) {
+  return (
+    <article className="ui-card p-5">
+      <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+      <p className="mt-2 text-sm text-slate-300">{description}</p>
+    </article>
   );
 }

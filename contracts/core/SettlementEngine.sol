@@ -92,10 +92,7 @@ contract SettlementEngine {
         address _marketRegistry
     ) {
         require(_governance != address(0), "INVALID_GOVERNANCE");
-        require(
-    _oracleConsensus != address(0) || block.chainid == 80002,
-    "INVALID_ORACLE"
-);
+        require(_oracleConsensus != address(0), "INVALID_ORACLE");
         require(_marketRegistry != address(0), "INVALID_REGISTRY");
 
         governance = _governance;

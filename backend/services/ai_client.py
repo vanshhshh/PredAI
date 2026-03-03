@@ -13,7 +13,11 @@ import os
 import httpx
 from backend.security.invariants import InvariantViolation
 
-AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai:9000")
+AI_SERVICE_URL = (
+    os.getenv("AI_SERVICE_URL")
+    or os.getenv("AI_BASE_URL")
+    or "http://ai:9000"
+)
 
 
 class AIClient:

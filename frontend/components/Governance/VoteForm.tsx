@@ -1,23 +1,3 @@
-// File: frontend/components/Governance/VoteForm.tsx
-
-/**
- * PURPOSE
- * -------
- * Voting interface for governance proposals.
- *
- * This component:
- * - allows token holders to cast FOR / AGAINST votes
- * - validates vote weight client-side
- * - delegates signing / execution to parent logic
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No business logic
- * - No blockchain calls
- * - Deterministic, auditable inputs
- * - Defensive UX (pending, error, disabled)
- */
-
 "use client";
 
 import React, { useState } from "react";
@@ -27,10 +7,7 @@ import { LoadingSpinner } from "../Shared/LoadingSpinner";
 interface VoteFormProps {
   proposalId: string;
   votingPower: number;
-  onVote: (payload: {
-    support: "FOR" | "AGAINST";
-    weight: number;
-  }) => Promise<void>;
+  onVote: (payload: { support: "FOR" | "AGAINST"; weight: number }) => Promise<void>;
   isSubmitting?: boolean;
   error?: Error | null;
 }
@@ -42,17 +19,11 @@ export function VoteForm({
   isSubmitting = false,
   error,
 }: VoteFormProps) {
-  const [support, setSupport] =
-    useState<"FOR" | "AGAINST">("FOR");
+  const [support, setSupport] = useState<"FOR" | "AGAINST">("FOR");
   const [weight, setWeight] = useState<number>(0);
 
-  // ------------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------------
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     if (weight <= 0 || weight > votingPower) return;
 
     await onVote({
@@ -61,77 +32,105 @@ export function VoteForm({
     });
   }
 
-  // ------------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------------
+  const powerUsed = votingPower > 0 ? Math.min(100, (weight / votingPower) * 100) : 0;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="border rounded-md p-4 space-y-4"
-    >
-      <h3 className="font-semibold text-sm">
-        Cast Your Vote
-      </h3>
+    <form onSubmit={handleSubmit} className="ui-card space-y-5 p-5" aria-label="Vote form">
+      <header>
+        <p className="ui-kicker">Governance Vote</p>
+        <h3 className="text-base font-semibold text-white">Cast Ballot</h3>
+        <p className="mt-1 text-xs text-slate-300">
+          Voting power available: {votingPower.toLocaleString()}
+        </p>
+      </header>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
+      <div className="grid grid-cols-2 gap-2">
+        <SupportButton
+          active={support === "FOR"}
+          label="FOR"
+          tone="positive"
           onClick={() => setSupport("FOR")}
-          className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-            support === "FOR"
-              ? "bg-black text-white"
-              : "bg-white"
-          }`}
-        >
-          FOR
-        </button>
-        <button
-          type="button"
+        />
+        <SupportButton
+          active={support === "AGAINST"}
+          label="AGAINST"
+          tone="negative"
           onClick={() => setSupport("AGAINST")}
-          className={`flex-1 px-3 py-2 border rounded-md text-sm ${
-            support === "AGAINST"
-              ? "bg-black text-white"
-              : "bg-white"
-          }`}
-        >
-          AGAINST
-        </button>
+        />
       </div>
 
       <div>
-        <label className="block text-xs font-medium">
-          Vote Weight (max {votingPower})
+        <label htmlFor={`vote-weight-${proposalId}`} className="ui-label">
+          Vote Weight
         </label>
         <input
+          id={`vote-weight-${proposalId}`}
           type="number"
           min={0}
           max={votingPower}
           value={weight}
-          onChange={(e) =>
-            setWeight(Number(e.target.value))
-          }
-          className="mt-1 w-full border rounded-md p-2 text-sm"
+          onChange={(event) => setWeight(Number(event.target.value))}
+          className="ui-input"
+          aria-label="Vote weight"
         />
       </div>
 
-      {error && (
-        <div className="text-xs text-red-600">
-          {error.message}
+      <div className="rounded-xl border border-white/10 bg-slate-950/35 p-3">
+        <div className="flex items-center justify-between text-xs text-slate-300">
+          <span>Voting Power Used</span>
+          <span>{powerUsed.toFixed(1)}%</span>
         </div>
-      )}
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-950/45">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300"
+            style={{ width: `${powerUsed}%` }}
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-rose-300">{error.message}</p>}
 
       <button
         type="submit"
-        disabled={isSubmitting}
-        className="w-full px-4 py-2 bg-black text-white rounded-md text-sm"
+        disabled={isSubmitting || weight <= 0 || weight > votingPower}
+        className="ui-btn ui-btn-primary w-full"
       >
-        {isSubmitting ? "Submitting vote…" : "Submit Vote"}
+        {isSubmitting ? "Submitting vote..." : "Submit Vote"}
       </button>
 
-      {isSubmitting && (
-        <LoadingSpinner label="Submitting vote…" />
-      )}
+      {isSubmitting && <LoadingSpinner label="Submitting vote..." size="sm" />}
     </form>
+  );
+}
+
+function SupportButton({
+  active,
+  label,
+  tone,
+  onClick,
+}: {
+  active: boolean;
+  label: "FOR" | "AGAINST";
+  tone: "positive" | "negative";
+  onClick: () => void;
+}) {
+  const activeStyle =
+    tone === "positive"
+      ? "border-emerald-300/40 bg-emerald-400/15 text-emerald-100"
+      : "border-rose-300/40 bg-rose-400/15 text-rose-100";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+        active
+          ? activeStyle
+          : "border-white/15 bg-slate-950/25 text-slate-200 hover:border-white/30"
+      }`}
+    >
+      {label}
+    </button>
   );
 }

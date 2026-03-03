@@ -1,38 +1,13 @@
-// File: frontend/app/social/arguments/page.tsx
-
-/**
- * PURPOSE
- * -------
- * Stakeable reasoning / argument markets page.
- *
- * This page:
- * - displays arguments extracted from social & agent reasoning
- * - allows users to stake on arguments they believe are correct
- * - shows argument confidence, backing stake, and resolution status
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Argument = first-class financial primitive
- * - Clear risk + confidence signaling
- * - Defensive UX (loading, error, empty)
- */
-
 "use client";
 
 import React, { useMemo } from "react";
 
+import { ArgumentStaker } from "../../../components/Social/ArgumentStaker";
+import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useSocialFeeds } from "../../../hooks/useSocialFeeds";
 import { useWallet } from "../../../hooks/useWallet";
 
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
-import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
-
-import { ArgumentStaker } from "../../../components/Social/ArgumentStaker";
-
-/**
- * Canonical Argument type expected by ArgumentStaker
- */
 interface Argument {
   argumentId: string;
   text: string;
@@ -53,100 +28,113 @@ function ArgumentsContent() {
   const { isConnected } = useWallet();
   const { feeds, isLoading, error } = useSocialFeeds();
 
-  // ------------------------------------------------------------------
-  // ADAPT SOCIAL FEEDS → ARGUMENTS
-  // ------------------------------------------------------------------
-
   const argumentsFeed: Argument[] = useMemo(() => {
     return feeds
-      .filter(
-        (f) =>
-          typeof f.signalScore === "number" &&
-          f.signalScore > 0
-      )
-      .map((f) => ({
-        argumentId: f.id,
-        text: f.content,
-        confidence: f.signalScore ?? 0,
-        totalStake: 0, // backend-owned (real later)
+      .filter((feed) => typeof feed.signalScore === "number" && feed.signalScore > 0)
+      .map((feed) => ({
+        argumentId: feed.id,
+        text: feed.content,
+        confidence: feed.signalScore ?? 0,
+        totalStake: 0,
         resolved: false,
       }));
   }, [feeds]);
 
-  // ------------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------------
-
   if (isLoading) {
-    return <LoadingSpinner label="Loading arguments…" />;
+    return (
+      <section className="page-container py-14">
+        <LoadingSpinner label="Extracting reasoning signals..." />
+      </section>
+    );
   }
-
-  // ------------------------------------------------------------------
-  // ERROR
-  // ------------------------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 border rounded-md bg-red-50">
-        <h3 className="font-semibold text-red-700">
-          Failed to load arguments
-        </h3>
-        <p className="text-sm text-red-600 mt-2">
-          {error.message}
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard title="Reasoning layer unavailable" message={error.message} tone="error" />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // EMPTY
-  // ------------------------------------------------------------------
-
-  if (argumentsFeed.length === 0) {
+  if (!argumentsFeed.length) {
     return (
-      <div className="p-6 border rounded-md bg-gray-50">
-        <h3 className="font-semibold">
-          No arguments available
-        </h3>
-        <p className="text-sm text-gray-600 mt-2">
-          No stakeable arguments have been generated yet.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <MessageCard
+          title="No reasoning signals yet"
+          message="AI and social streams have not produced stakeable arguments."
+          tone="neutral"
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------------
-  // MAIN
-  // ------------------------------------------------------------------
+  const averageConfidence =
+    argumentsFeed.reduce((sum, item) => sum + item.confidence, 0) / argumentsFeed.length;
 
   return (
-    <main className="px-6 py-8 space-y-8 max-w-6xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold">
-          Arguments
-        </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Stake on reasoning primitives extracted from
-          social signals.
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Argument Markets</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">Stake on Reasoning</h1>
+        <p className="mt-2 max-w-3xl text-sm text-slate-300">
+          Evaluate machine and social reasoning signals, then allocate stake to
+          arguments you believe will hold.
         </p>
       </header>
 
-      <ArgumentStaker
-        items={argumentsFeed}
-        isConnected={isConnected}
-        onStake={
-          isConnected
-            ? async ({ argumentId, amount }) => {
-                // 🔒 intentionally backend-only later
-                console.log(
-                  "Stake on argument",
-                  argumentId,
-                  amount
-                );
-              }
-            : undefined
-        }
-      />
+      <section className="grid gap-3 md:grid-cols-3">
+        <StatCard label="Active Arguments" value={argumentsFeed.length.toString()} />
+        <StatCard label="Avg Confidence" value={averageConfidence.toFixed(2)} />
+        <StatCard label="Wallet Connected" value={isConnected ? "Yes" : "No"} />
+      </section>
+
+      <section className="ui-card p-5">
+        <ArgumentStaker
+          items={argumentsFeed}
+          isConnected={isConnected}
+          onStake={
+            isConnected
+              ? async ({ argumentId, amount }) => {
+                  console.log("Stake", argumentId, amount);
+                }
+              : undefined
+          }
+        />
+      </section>
     </main>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
+
+function MessageCard({
+  title,
+  message,
+  tone,
+}: {
+  title: string;
+  message: string;
+  tone: "neutral" | "error";
+}) {
+  return (
+    <article className="ui-card max-w-2xl p-6">
+      <h2
+        className={`text-lg font-semibold ${
+          tone === "error" ? "text-rose-200" : "text-slate-100"
+        }`}
+      >
+        {title}
+      </h2>
+      <p className={`mt-2 text-sm ${tone === "error" ? "text-rose-100" : "text-slate-300"}`}>
+        {message}
+      </p>
+    </article>
   );
 }

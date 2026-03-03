@@ -10,8 +10,6 @@
 # - Deterministic inference runtime
 # --------------------------------------------------
 
-# AI Service Dockerfile (demo-safe, minimal)
-
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -33,4 +31,4 @@ COPY ai /app/ai
 
 EXPOSE 9000
 
-CMD ["uvicorn", "ai.main:app", "--host", "0.0.0.0", "--port", "9000"]
+CMD ["uvicorn", "ai.inference.service:app", "--host", "0.0.0.0", "--port", "9000"]

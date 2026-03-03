@@ -1,23 +1,3 @@
-// File: frontend/components/Shared/WalletConnectButton.tsx
-
-/**
- * PURPOSE
- * -------
- * Wallet connection & status button.
- *
- * This component:
- * - connects / disconnects EVM-compatible wallets
- * - displays connected address & balance summary
- * - acts as the single wallet entrypoint across the app
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No business logic
- * - Delegates wallet ops to hooks
- * - Safe to render anywhere
- * - Production UX (loading, error, truncation)
- */
-
 "use client";
 
 import React from "react";
@@ -26,36 +6,35 @@ import { useWallet } from "../../hooks/useWallet";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 export function WalletConnectButton() {
-  const {
-    isConnected,
-    address,
-    isConnecting,
-    connect,
-    disconnect,
-    error,
-  } = useWallet();
-
-  // ------------------------------------------------------------------
-  // CONNECTING
-  // ------------------------------------------------------------------
+  const { isConnected, address, isConnecting, connect, disconnect, error } =
+    useWallet();
 
   if (isConnecting) {
-    return <LoadingSpinner label="Connecting wallet…" />;
+    return (
+      <div className="ui-card-soft px-3 py-2">
+        <LoadingSpinner label="Connecting wallet..." size="sm" />
+      </div>
+    );
   }
-
-  // ------------------------------------------------------------------
-  // CONNECTED
-  // ------------------------------------------------------------------
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-700">
+      <div className="ui-card-soft flex items-center gap-2 px-2 py-1.5">
+        <span
+          className="pulse-dot inline-block h-2 w-2 rounded-full bg-emerald-400"
+          aria-hidden="true"
+        />
+        <span
+          className="text-xs font-medium text-slate-100"
+          aria-label={`Connected wallet ${address}`}
+        >
           {truncate(address)}
         </span>
         <button
+          type="button"
           onClick={disconnect}
-          className="px-3 py-1 border rounded-md text-xs"
+          className="ui-btn ui-btn-ghost rounded-lg px-2 py-1 text-[11px]"
+          aria-label="Disconnect wallet"
         >
           Disconnect
         </button>
@@ -63,32 +42,21 @@ export function WalletConnectButton() {
     );
   }
 
-  // ------------------------------------------------------------------
-  // DISCONNECTED
-  // ------------------------------------------------------------------
-
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-end gap-1.5">
       <button
+        type="button"
         onClick={connect}
-        className="px-3 py-1 bg-black text-white rounded-md text-xs"
+        className="ui-btn ui-btn-primary"
+        aria-label="Connect wallet"
       >
         Connect Wallet
       </button>
-
-      {error && (
-        <span className="text-xs text-red-600">
-          {error.message}
-        </span>
-      )}
+      {error && <span className="text-[11px] text-rose-300">{error.message}</span>}
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Utils                                                              */
-/* ------------------------------------------------------------------ */
-
 function truncate(address: string): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

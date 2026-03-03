@@ -19,173 +19,194 @@
  * - Read-only informational page
  */
 
+// File: frontend/app/guide/page.tsx
+
 "use client";
 
 import React from "react";
 
 export default function GuidePage() {
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10 space-y-16">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-semibold">
-          What You Can Do on This Platform
-        </h1>
-        <p className="text-gray-600 max-w-3xl">
-          This platform is an AI-powered, non-custodial prediction and yield
-          ecosystem. You control your funds, your agents, and your decisions.
-          Everything else is automated, optimized, and transparent.
-        </p>
-      </header>
+    <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
+      <div className="max-w-6xl mx-auto px-6 py-16 space-y-24">
 
-      {/* -------------------------------- */}
-      {/* ONBOARDING */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          1. Get Started Instantly (No Signup)
-        </h2>
-        <p className="text-gray-700">
-          There are no accounts, emails, or passwords. Your wallet is your
-          identity.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>Connect a wallet like MetaMask or Phantom</li>
-          <li>Optionally use fiat on-ramps (UPI, cards, bank transfer)</li>
-          <li>Your funds always stay in your wallet</li>
-        </ul>
-      </section>
+        {/* Hero */}
+        <section className="space-y-6 max-w-4xl">
+          <h1 className="text-4xl font-bold tracking-tight leading-tight">
+            What You Can Do on PredAI
+          </h1>
 
-      {/* -------------------------------- */}
-      {/* MARKETS */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          2. Bet on Real-World & Crypto Events
-        </h2>
-        <p className="text-gray-700">
-          Prediction markets let you express beliefs with capital.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>Binary and multi-outcome markets</li>
-          <li>Live odds powered by AI agents</li>
-          <li>Instant settlement via oracles</li>
-          <li>Global markets: crypto, politics, sports, culture</li>
-        </ul>
-      </section>
+          <p className="text-lg text-neutral-600">
+            PredAI is a non-custodial AI-powered prediction and yield ecosystem.
+            You control capital. AI optimizes execution. Markets remain transparent.
+          </p>
 
-      {/* -------------------------------- */}
-      {/* AI AGENTS */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          3. Own AI Agents That Trade for You
-        </h2>
-        <p className="text-gray-700">
-          AI agents are autonomous strategies you can own, customize, and earn
-          from.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>Create or buy AI agents as NFTs</li>
-          <li>Configure risk, data sources, and behavior</li>
-          <li>Agents can bet, market-make, or arbitrage</li>
-          <li>Earn based on performance and accuracy</li>
-        </ul>
-      </section>
+          <div className="flex flex-wrap gap-4 pt-4 text-sm text-neutral-500">
+            <span>Prediction Markets</span>
+            <span>•</span>
+            <span>AI Agents</span>
+            <span>•</span>
+            <span>Yield Optimization</span>
+            <span>•</span>
+            <span>Governance</span>
+          </div>
+        </section>
 
-      {/* -------------------------------- */}
-      {/* SOCIAL */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          4. Create Markets from Conversations
-        </h2>
-        <p className="text-gray-700">
-          Markets don’t start with developers — they start with ideas.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>Turn prompts into live markets</li>
-          <li>Spawn markets from social trends</li>
-          <li>Stake on arguments, not just outcomes</li>
-          <li>Earn when your insight proves correct</li>
-        </ul>
-      </section>
+        {/* Section Blocks */}
+        <FeatureBlock
+          number="01"
+          title="Instant Access (No Accounts)"
+          description="Your wallet is your identity. No passwords. No custody."
+          points={[
+            "Connect MetaMask, Phantom, or WalletConnect",
+            "Optional fiat on-ramps (UPI, cards, bank)",
+            "Funds always remain in your wallet",
+          ]}
+        />
 
-      {/* -------------------------------- */}
-      {/* YIELD */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          5. Earn Yield Without Active Trading
-        </h2>
-        <p className="text-gray-700">
-          Idle capital can be routed intelligently using AI.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>AI-optimized yield portfolios</li>
-          <li>Risk-aware allocation strategies</li>
-          <li>Automated rebalancing</li>
-          <li>Cross-market arbitrage by agents</li>
-        </ul>
-      </section>
+        <FeatureBlock
+          number="02"
+          title="Bet on Real-World & Crypto Events"
+          description="Express belief with capital through prediction markets."
+          points={[
+            "Binary and multi-outcome markets",
+            "Live AI-adjusted odds",
+            "Fast oracle-based settlement",
+            "Global markets: crypto, politics, sports",
+          ]}
+        />
 
-      {/* -------------------------------- */}
-      {/* ORACLES */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          6. Oracles & Market Resolution
-        </h2>
-        <p className="text-gray-700">
-          Outcomes are resolved through decentralized oracle consensus.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>AI + human oracle networks</li>
-          <li>Staking and slashing for accuracy</li>
-          <li>Transparent resolution logic</li>
-          <li>No single point of failure</li>
-        </ul>
-      </section>
+        <FeatureBlock
+          number="03"
+          title="Own AI Agents That Trade For You"
+          description="Autonomous strategies you can create, own, or acquire."
+          points={[
+            "Agents are NFTs",
+            "Configure risk and exposure",
+            "Market-making, arbitrage, directional strategies",
+            "Earn based on performance",
+          ]}
+        />
 
-      {/* -------------------------------- */}
-      {/* GOVERNANCE */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          7. Govern the Platform
-        </h2>
-        <p className="text-gray-700">
-          Power users don’t just participate — they decide.
-        </p>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>Vote on fees, parameters, upgrades</li>
-          <li>Submit proposals</li>
-          <li>Timelocked, transparent execution</li>
-          <li>Global, borderless DAO</li>
-        </ul>
-      </section>
+        <FeatureBlock
+          number="04"
+          title="Turn Ideas into Markets"
+          description="Create markets from prompts and conversations."
+          points={[
+            "Convert plain text into tradable markets",
+            "Spawn markets from trends",
+            "Stake on reasoning and theses",
+            "Earn from accurate insights",
+          ]}
+        />
 
-      {/* -------------------------------- */}
-      {/* SAFETY */}
-      {/* -------------------------------- */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">
-          Safety & Transparency
-        </h2>
-        <ul className="list-disc pl-6 text-gray-600 space-y-1">
-          <li>Non-custodial by design</li>
-          <li>Open-source smart contracts</li>
-          <li>Risk indicators everywhere</li>
-          <li>Emergency pause mechanisms</li>
-        </ul>
-      </section>
+        <FeatureBlock
+          number="05"
+          title="Earn Yield on Idle Capital"
+          description="AI routes unused funds into optimized yield strategies."
+          points={[
+            "Automated portfolio allocation",
+            "Risk-adjusted strategies",
+            "Rebalancing logic",
+            "Cross-market arbitrage",
+          ]}
+        />
 
-      {/* -------------------------------- */}
-      {/* FOOTER */}
-      {/* -------------------------------- */}
-      <footer className="pt-10 border-t text-sm text-gray-500">
-        This platform is designed for global access, fair markets, and
-        long-term sustainability. You are always in control.
-      </footer>
+        <FeatureBlock
+          number="06"
+          title="Decentralized Oracle Resolution"
+          description="Markets resolve via AI and consensus-driven oracle networks."
+          points={[
+            "AI + human validation",
+            "Staking and slashing incentives",
+            "Transparent resolution logic",
+            "No single point of failure",
+          ]}
+        />
+
+        <FeatureBlock
+          number="07"
+          title="Govern the Protocol"
+          description="Participate in shaping platform evolution."
+          points={[
+            "Submit and vote on proposals",
+            "Modify parameters and fees",
+            "Protocol upgrades",
+            "Timelocked execution",
+          ]}
+        />
+
+        {/* Safety */}
+        <section className="border rounded-2xl p-10 bg-white shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">
+            Safety & Transparency
+          </h2>
+
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-600 text-sm">
+            <li>Non-custodial design</li>
+            <li>Open smart contracts</li>
+            <li>Risk indicators throughout</li>
+            <li>Emergency pause safeguards</li>
+          </ul>
+        </section>
+
+        {/* Footer */}
+        <footer className="pt-10 border-t text-sm text-neutral-500">
+          PredAI is built for global participation, transparent markets, and
+          long-term sustainability.
+        </footer>
+      </div>
     </main>
+  );
+}
+
+/* -------------------------------------------------- */
+/* Reusable Feature Block Component                  */
+/* -------------------------------------------------- */
+
+function FeatureBlock({
+  number,
+  title,
+  description,
+  points,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  points: string[];
+}) {
+  return (
+    <section className="grid md:grid-cols-3 gap-12 items-start">
+
+      {/* Left Column */}
+      <div className="space-y-3">
+        <div className="text-sm text-neutral-400 tracking-widest">
+          {number}
+        </div>
+
+        <h2 className="text-2xl font-semibold">
+          {title}
+        </h2>
+
+        <p className="text-neutral-600 text-sm leading-relaxed">
+          {description}
+        </p>
+      </div>
+
+      {/* Right Column */}
+      <div className="md:col-span-2">
+        <ul className="space-y-4 text-neutral-700">
+          {points.map((point, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-3"
+            >
+              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-black"></span>
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }

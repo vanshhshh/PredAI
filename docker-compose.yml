@@ -1,65 +1,103 @@
-version: "3.9"
-
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
+  db:
+    image: postgres:16-alpine
+    container_name: predai-postgres
+    restart: unless-stopped
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
+      POSTGRES_DB: predai
+      POSTGRES_USER: predai
+      POSTGRES_PASSWORD: predai
     ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    depends_on:
-      zookeeper:
-        condition: service_started
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-
-  backend:
-    build:
-      context: .
-      dockerfile: infra/docker/backend.Dockerfile
-    depends_on:
-      kafka:
-        condition: service_started
-      redis:
-        condition: service_started
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"
-    command: >
-      uvicorn backend.api.main:app
-      --host 0.0.0.0
-      --port 8000
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U predai -d predai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   ai:
     build:
       context: .
       dockerfile: infra/docker/ai.Dockerfile
+    container_name: predai-ai
+    restart: unless-stopped
+    env_file:
+      - ai/.env
     ports:
       - "9000:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: predai-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+    env_file:
+      - backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://predai:predai@db:5432/predai
+      AI_SERVICE_URL: http://ai:9000
+      AI_BASE_URL: http://ai:9000
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      JWT_SECRET: ${JWT_SECRET}
+      SQL_ECHO: "false"
+      DB_POOL_SIZE: "10"
+      DB_MAX_OVERFLOW: "20"
+      DB_POOL_RECYCLE_SECONDS: "1800"
+      DB_AUTO_MIGRATE: ${DB_AUTO_MIGRATE:-false}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
       context: .
       dockerfile: infra/docker/frontend.Dockerfile
-    environment:
-      NEXT_PUBLIC_BACKEND_BASE_URL: http://localhost:8000
+      args:
+        BACKEND_BASE_URL: http://backend:8000
+        NEXT_PUBLIC_BACKEND_BASE_URL: http://backend:8000
+    container_name: predai-frontend
+    restart: unless-stopped
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
+    environment:
+      BACKEND_BASE_URL: http://backend:8000
+      NEXT_PUBLIC_BACKEND_BASE_URL: http://backend:8000
+      NEXT_PUBLIC_BACKEND_URL: http://backend:8000
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID}
+      NEXT_PUBLIC_REOWN_PROJECT_ID: ${NEXT_PUBLIC_REOWN_PROJECT_ID}
+      NEXT_PUBLIC_PHANTOM_ID: ${NEXT_PUBLIC_PHANTOM_ID}
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
+      NEXT_PUBLIC_TRANSAK_API_KEY: ${NEXT_PUBLIC_TRANSAK_API_KEY}
+      NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY}
+      NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST}
     ports:
       - "3000:3000"
+
+volumes:
+  postgres_data:

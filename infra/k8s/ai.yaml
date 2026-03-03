@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
         - name: ai
-          image: ai-crypto-ai:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/moltmarket/ai@sha256:REPLACE_WITH_AI_DIGEST
+          imagePullPolicy: Always
           ports:
             - containerPort: 9000
           envFrom:

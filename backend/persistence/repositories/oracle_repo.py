@@ -1,37 +1,23 @@
 # File: backend/persistence/repositories/oracle_repo.py
 """
-PURPOSE
--------
-Persistence layer for oracles.
+Persistence layer for oracle identities and submissions.
 
-This module:
-- encapsulates ALL database access for oracle identities
-- tracks stake, activity status, and submissions
-- supports idempotent writes for indexer replay
-- NEVER contains business logic or consensus logic
-
-DESIGN RULES (from docs)
-------------------------
-- No service logic here
-- No blockchain calls
-- Deterministic queries
-- Idempotent updates
+Repository rules:
+- deterministic query/write behavior
+- no consensus or business logic
+- idempotent event-replay support
 """
 
 from typing import List, Optional
-from sqlalchemy import select, update, insert
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.persistence.db import get_session
+from sqlalchemy import select, update
+
+from backend.persistence.db import AsyncSessionLocal
+from backend.persistence.repositories.models import Oracle, OracleSubmission
 from backend.security.invariants import InvariantViolation
-from backend.persistence.repositories.models import Oracle, OracleSubmission  # ORM models
 
 
 class OracleRepository:
-    # ------------------------------------------------------------------
-    # CREATE
-    # ------------------------------------------------------------------
-
     @staticmethod
     async def create(
         *,
@@ -41,17 +27,18 @@ class OracleRepository:
         active: bool,
         stake: int,
     ):
-        async for session in get_session():
-            oracle = Oracle(
-                oracle_id=oracle_id,
-                address=address,
-                metadata_uri=metadata_uri,
-                active=active,
-                stake=stake,
-            )
-            session.add(oracle)
-            await session.flush()
-            return oracle
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                oracle = Oracle(
+                    oracle_id=oracle_id,
+                    address=address,
+                    metadata_uri=metadata_uri,
+                    active=active,
+                    stake=stake,
+                )
+                session.add(oracle)
+                await session.flush()
+                return oracle
 
     @staticmethod
     async def create_from_event(
@@ -63,45 +50,42 @@ class OracleRepository:
         """
         Idempotent creation for indexer replay.
         """
-        async for session in get_session():
-            exists = await session.scalar(
-                select(Oracle).where(Oracle.oracle_id == oracle_id)
-            )
-            if exists:
-                return exists
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                exists = await session.scalar(
+                    select(Oracle).where(Oracle.oracle_id == oracle_id)
+                )
+                if exists:
+                    return exists
 
-            oracle = Oracle(
-                oracle_id=oracle_id,
-                address=address,
-                metadata_uri=metadata_uri,
-                active=False,
-                stake=0,
-            )
-            session.add(oracle)
-            await session.flush()
-            return oracle
-
-    # ------------------------------------------------------------------
-    # READ
-    # ------------------------------------------------------------------
+                oracle = Oracle(
+                    oracle_id=oracle_id,
+                    address=address,
+                    metadata_uri=metadata_uri,
+                    active=False,
+                    stake=0,
+                )
+                session.add(oracle)
+                await session.flush()
+                return oracle
 
     @staticmethod
     async def get_by_oracle_id(oracle_id: str) -> Optional[Oracle]:
-        async for session in get_session():
+        async with AsyncSessionLocal() as session:
             return await session.scalar(
                 select(Oracle).where(Oracle.oracle_id == oracle_id)
             )
 
     @staticmethod
     async def get_by_address(address: str) -> Optional[Oracle]:
-        async for session in get_session():
+        async with AsyncSessionLocal() as session:
             return await session.scalar(
                 select(Oracle).where(Oracle.address == address)
             )
 
     @staticmethod
     async def list(limit: int, offset: int) -> List[Oracle]:
-        async for session in get_session():
+        async with AsyncSessionLocal() as session:
             result = await session.scalars(
                 select(Oracle)
                 .order_by(Oracle.stake.desc())
@@ -110,10 +94,6 @@ class OracleRepository:
             )
             return list(result)
 
-    # ------------------------------------------------------------------
-    # UPDATE
-    # ------------------------------------------------------------------
-
     @staticmethod
     async def update_stake(
         *,
@@ -121,22 +101,19 @@ class OracleRepository:
         stake: int,
         active: bool,
     ):
-        async for session in get_session():
-            result = await session.execute(
-                update(Oracle)
-                .where(Oracle.address == oracle_address)
-                .values(stake=stake, active=active)
-            )
-            if result.rowcount == 0:
-                raise InvariantViolation("ORACLE_NOT_FOUND")
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                result = await session.execute(
+                    update(Oracle)
+                    .where(Oracle.address == oracle_address)
+                    .values(stake=stake, active=active)
+                )
+                if result.rowcount == 0:
+                    raise InvariantViolation("ORACLE_NOT_FOUND")
 
-            return await session.scalar(
-                select(Oracle).where(Oracle.address == oracle_address)
-            )
-
-    # ------------------------------------------------------------------
-    # SUBMISSIONS
-    # ------------------------------------------------------------------
+                return await session.scalar(
+                    select(Oracle).where(Oracle.address == oracle_address)
+                )
 
     @staticmethod
     async def record_submission(
@@ -146,25 +123,31 @@ class OracleRepository:
         outcome: bool,
     ):
         """
-        Record an oracle submission.
-
-        NOTE:
-        -----
-        This does not resolve the market.
-        Used for auditing, scoring, and slashing pipelines.
+        Record an oracle submission for audit/scoring pipelines.
         """
-        async for session in get_session():
-            oracle = await session.scalar(
-                select(Oracle).where(Oracle.address == oracle_address)
-            )
-            if not oracle:
-                raise InvariantViolation("ORACLE_NOT_FOUND")
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                oracle = await session.scalar(
+                    select(Oracle).where(Oracle.address == oracle_address)
+                )
+                if not oracle:
+                    raise InvariantViolation("ORACLE_NOT_FOUND")
 
-            submission = OracleSubmission(
-                oracle_address=oracle_address,
-                market_id=market_id,
-                outcome=outcome,
+                submission = OracleSubmission(
+                    oracle_address=oracle_address,
+                    market_id=market_id,
+                    outcome=outcome,
+                )
+                session.add(submission)
+                await session.flush()
+                return submission
+
+    @staticmethod
+    async def list_submissions_by_market(market_id: str) -> List[OracleSubmission]:
+        async with AsyncSessionLocal() as session:
+            result = await session.scalars(
+                select(OracleSubmission)
+                .where(OracleSubmission.market_id == market_id)
+                .order_by(OracleSubmission.created_at.desc())
             )
-            session.add(submission)
-            await session.flush()
-            return submission
+            return list(result)

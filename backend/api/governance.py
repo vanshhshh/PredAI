@@ -50,11 +50,14 @@ class ProposalResponse(BaseModel):
     start_block: int
     end_block: int
     for_votes: int
+    against_votes: int
     executed: bool
+    quorum: int
     execute_after: Optional[int]
 
 
 class VoteRequest(BaseModel):
+    support: bool = Field(..., description="True=for, False=against")
     weight: int = Field(..., description="Voting weight")
 
 
@@ -142,6 +145,7 @@ async def vote(
         await GovernanceService.vote(
             proposal_id=proposal_id,
             voter=user.address,
+            support=req.support,
             weight=req.weight,
         )
         return {"status": "voted"}

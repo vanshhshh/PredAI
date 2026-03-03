@@ -7,14 +7,15 @@ export function PhantomConnect() {
       return;
     }
 
-    const resp = await window.solana.connect();
-    console.log("Phantom connected:", resp.publicKey.toString());
+    const response = await window.solana.connect();
+    console.log("Phantom connected:", response.publicKey.toString());
   }
 
   return (
     <button
+      type="button"
       onClick={connect}
-      className="w-full border rounded-md px-4 py-2"
+      className="ui-btn ui-btn-secondary w-full justify-center"
     >
       Continue with Phantom
     </button>

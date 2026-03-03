@@ -1,32 +1,15 @@
-// File: frontend/app/agents/create/page.tsx
-
-/**
- * PURPOSE
- * -------
- * AI Agent creation & registration page.
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Backend is source of truth
- * - Wallet-gated actions
- * - Strict hook contracts
- * - Production-safe typing
- */
-
 "use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useWallet } from "../../../hooks/useWallet";
-import { useAgents } from "../../../hooks/useAgents";
-
-import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { Modal } from "../../../components/Shared/Modal";
+import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
+import { useAgents } from "../../../hooks/useAgents";
+import { useWallet } from "../../../hooks/useWallet";
 
 export default function CreateAgentPage() {
   const router = useRouter();
-
   const { isConnected } = useWallet();
   const { createAgent, isMutating, error } = useAgents();
 
@@ -35,29 +18,20 @@ export default function CreateAgentPage() {
   const [maxExposure, setMaxExposure] = useState<number>(1000);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ------------------------------------------------------------
-  // GUARD
-  // ------------------------------------------------------------
-
   if (!isConnected) {
     return (
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">
-          Connect your wallet
-        </h2>
-        <p className="text-sm text-gray-600 mt-2">
-          You must connect a wallet to create an agent.
-        </p>
-      </div>
+      <section className="page-container py-14">
+        <CenteredState
+          title="Wallet not connected"
+          message="Connect your wallet to create and own a trading agent."
+        />
+      </section>
     );
   }
 
-  // ------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!name.trim()) return;
     setShowConfirm(true);
   }
 
@@ -73,99 +47,125 @@ export default function CreateAgentPage() {
     router.push("/agents/my-agents");
   }
 
-  // ------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------
-
   return (
-    <main className="max-w-2xl mx-auto px-6 py-8 space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold">
-          Create AI Agent
-        </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Register a new autonomous agent.
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Agent Provisioning</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">Create AI Agent</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-300">
+          Configure baseline risk and exposure settings before minting an
+          autonomous strategy agent.
         </p>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Agent Name */}
-        <div>
-          <label className="block text-sm font-medium">
-            Agent Name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="mt-2 border rounded-md p-2 w-full"
-            placeholder="Momentum Alpha"
-          />
-        </div>
+      <div className="grid gap-6 lg:grid-cols-[0.62fr_0.38fr]">
+        <section className="ui-card p-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="agent-name" className="ui-label">
+                Agent Name
+              </label>
+              <input
+                id="agent-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+                placeholder="Momentum Alpha"
+                className="ui-input"
+              />
+            </div>
 
-        {/* Risk */}
-        <div>
-          <label className="block text-sm font-medium">
-            Risk Tolerance (1–10)
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={riskTolerance}
-            onChange={(e) =>
-              setRiskTolerance(Number(e.target.value))
-            }
-            className="mt-2 border rounded-md p-2 w-full"
-          />
-        </div>
+            <div>
+              <label htmlFor="risk-slider" className="ui-label">
+                Risk Tolerance ({riskTolerance})
+              </label>
+              <input
+                id="risk-slider"
+                type="range"
+                min={1}
+                max={10}
+                value={riskTolerance}
+                onChange={(event) => setRiskTolerance(Number(event.target.value))}
+                className="w-full accent-cyan-400"
+              />
+              <div className="mt-1 flex justify-between text-[11px] text-slate-400">
+                <span>Conservative</span>
+                <span>Balanced</span>
+                <span>Aggressive</span>
+              </div>
+            </div>
 
-        {/* Exposure */}
-        <div>
-          <label className="block text-sm font-medium">
-            Max Exposure
-          </label>
-          <input
-            type="number"
-            min={1}
-            value={maxExposure}
-            onChange={(e) =>
-              setMaxExposure(Number(e.target.value))
-            }
-            className="mt-2 border rounded-md p-2 w-full"
-          />
-        </div>
+            <div>
+              <label htmlFor="max-exposure" className="ui-label">
+                Max Exposure
+              </label>
+              <input
+                id="max-exposure"
+                type="number"
+                min={1}
+                value={maxExposure}
+                onChange={(event) => setMaxExposure(Number(event.target.value))}
+                className="ui-input"
+              />
+            </div>
 
-        {error && (
-          <div className="p-3 bg-red-50 border rounded-md text-sm text-red-600">
-            {error.message}
-          </div>
-        )}
+            {error && <p className="text-sm text-rose-300">{error.message}</p>}
 
-        <button
-          type="submit"
-          disabled={isMutating}
-          className="px-4 py-2 bg-black text-white rounded-md"
-        >
-          {isMutating ? "Creating…" : "Create Agent"}
-        </button>
-      </form>
+            <button type="submit" disabled={isMutating} className="ui-btn ui-btn-primary w-full">
+              {isMutating ? "Creating..." : "Launch Agent"}
+            </button>
+          </form>
+        </section>
+
+        <aside className="ui-card space-y-4 p-5">
+          <h2 className="text-lg font-semibold text-white">Agent Summary</h2>
+          <SummaryRow label="Name" value={name || "Unnamed Agent"} />
+          <SummaryRow label="Risk Profile" value={riskLabel(riskTolerance)} />
+          <SummaryRow label="Max Exposure" value={`$${maxExposure}`} />
+          <p className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2 text-xs text-slate-400">
+            This agent will be minted as an NFT and controlled by your connected
+            wallet.
+          </p>
+        </aside>
+      </div>
 
       {showConfirm && (
         <Modal
-          title="Confirm agent creation"
+          title="Confirm Agent Creation"
           onClose={() => setShowConfirm(false)}
-          onConfirm={handleConfirm}
+          onConfirm={() => void handleConfirm()}
         >
-          <p className="text-sm text-gray-700">
-            This will permanently register a new AI agent.
+          <p className="text-sm text-slate-200">
+            You are about to register this AI agent on-chain.
           </p>
         </Modal>
       )}
 
-      {isMutating && (
-        <LoadingSpinner label="Registering agent…" />
-      )}
+      {isMutating && <LoadingSpinner label="Registering agent..." />}
     </main>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-slate-950/35 px-3 py-2 text-sm">
+      <span className="text-slate-400">{label}</span>
+      <span className="font-semibold text-slate-100">{value}</span>
+    </div>
+  );
+}
+
+function riskLabel(level: number) {
+  if (level <= 3) return "Conservative";
+  if (level <= 7) return "Balanced";
+  return "Aggressive";
+}
+
+function CenteredState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="ui-card mx-auto max-w-md p-8 text-center">
+      <h2 className="text-xl font-semibold text-white">{title}</h2>
+      <p className="mt-2 text-sm text-slate-300">{message}</p>
+    </div>
   );
 }

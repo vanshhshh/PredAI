@@ -1,23 +1,3 @@
-// File: frontend/components/Agent/StakingControls.tsx
-
-/**
- * PURPOSE
- * -------
- * Agent staking & lifecycle controls.
- *
- * This component:
- * - allows users to stake / unstake tokens on an agent
- * - activates or deactivates the agent
- * - enforces minimal client-side validation
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No blockchain calls
- * - Stateless except local form state
- * - Owner / delegate gating enforced by parent
- * - Defensive UX (pending, error, disabled)
- */
-
 "use client";
 
 import React, { useState } from "react";
@@ -30,26 +10,21 @@ interface StakingControlsProps {
   active: boolean;
   onStake: (amount: number) => Promise<void>;
   onUnstake: (amount: number) => Promise<void>;
-  onToggleActive: () => Promise<void>;
+  onDeactivate: () => Promise<void>;
   isPending?: boolean;
   error?: Error | null;
 }
 
 export function StakingControls({
-  agentId,
   currentStake,
   active,
   onStake,
   onUnstake,
-  onToggleActive,
+  onDeactivate,
   isPending = false,
   error,
 }: StakingControlsProps) {
   const [amount, setAmount] = useState<number>(0);
-
-  // ------------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------------
 
   async function handleStake() {
     if (amount <= 0) return;
@@ -63,68 +38,73 @@ export function StakingControls({
     setAmount(0);
   }
 
-  // ------------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------------
-
   return (
-    <div className="border rounded-md p-4 space-y-3">
-      <h3 className="font-semibold text-sm">Staking</h3>
+    <section className="ui-card space-y-5 p-5">
+      <header>
+        <p className="ui-kicker">Capital Controls</p>
+        <h3 className="text-base font-semibold text-white">Stake Management</h3>
+      </header>
 
-      <div className="text-xs text-gray-600">
-        Current stake:{" "}
-        <strong>{currentStake.toLocaleString()}</strong>
+      <div className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2 text-sm">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Current Stake</p>
+        <p className="mt-1 text-lg font-semibold text-slate-100">
+          {currentStake.toLocaleString()}
+        </p>
       </div>
 
-      <input
-        type="number"
-        min={0}
-        value={amount}
-        onChange={(e) =>
-          setAmount(Number(e.target.value))
-        }
-        className="w-full border rounded-md p-2 text-sm"
-        placeholder="Amount"
-      />
+      <div>
+        <label htmlFor="stake-amount" className="ui-label">
+          Amount
+        </label>
+        <input
+          id="stake-amount"
+          type="number"
+          min={0}
+          value={amount}
+          onChange={(event) => setAmount(Number(event.target.value))}
+          className="ui-input"
+          placeholder="Enter amount"
+        />
+      </div>
 
-      <div className="flex gap-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         <button
-          onClick={handleStake}
+          type="button"
+          onClick={() => void handleStake()}
           disabled={isPending || amount <= 0}
-          className="flex-1 px-3 py-1 border rounded-md text-xs"
+          className="ui-btn ui-btn-primary"
         >
           Stake
         </button>
         <button
-          onClick={handleUnstake}
-          disabled={
-            isPending ||
-            amount <= 0 ||
-            amount > currentStake
-          }
-          className="flex-1 px-3 py-1 border rounded-md text-xs"
+          type="button"
+          onClick={() => void handleUnstake()}
+          disabled={isPending || amount <= 0 || amount > currentStake}
+          className="ui-btn ui-btn-secondary"
         >
           Unstake
         </button>
       </div>
 
-      <button
-        onClick={onToggleActive}
-        disabled={isPending}
-        className="w-full px-3 py-1 border rounded-md text-xs"
-      >
-        {active ? "Deactivate Agent" : "Activate Agent"}
-      </button>
-
-      {error && (
-        <div className="text-xs text-red-600">
-          {error.message}
+      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Lifecycle</p>
+          <p className={`mt-1 text-sm font-semibold ${active ? "text-emerald-200" : "text-slate-300"}`}>
+            {active ? "Active" : "Inactive"}
+          </p>
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => void onDeactivate()}
+          disabled={isPending || !active}
+          className="ui-btn border border-rose-300/30 bg-rose-400/15 text-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {active ? "Deactivate" : "Already Inactive"}
+        </button>
+      </div>
 
-      {isPending && (
-        <LoadingSpinner label="Processing…" />
-      )}
-    </div>
+      {error && <p className="text-sm text-rose-300">{error.message}</p>}
+      {isPending && <LoadingSpinner label="Processing transaction..." size="sm" />}
+    </section>
   );
 }

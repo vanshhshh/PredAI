@@ -33,9 +33,11 @@ class AgentEventParser:
     @staticmethod
     def verify_registration(receipt: Dict[str, Any], agent_id: str) -> bool:
         for log in receipt.get("logs", []):
+            logged_id = log.get("agent_id") or log.get("agentId")
             if (
                 log.get("event") == "AgentRegistered"
-                and log.get("agent_id") == agent_id
+                and logged_id is not None
+                and str(logged_id).lower() == str(agent_id).lower()
             ):
                 return True
         return False
@@ -44,9 +46,7 @@ class AgentEventParser:
     def parse_stake_and_activate(receipt: Dict[str, Any]) -> Dict[str, Any] | None:
         for log in receipt.get("logs", []):
             if log.get("event") == "AgentActivated":
-                return {
-                    "stake": log.get("stake"),
-                }
+                return {"stake": log.get("stake")}
         return None
 
     @staticmethod

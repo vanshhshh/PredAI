@@ -18,9 +18,11 @@
  * - Safe for rapid updates
  */
 
+// File: frontend/components/Oracle/ConsensusMeter.tsx
+
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 
 interface ConsensusMeterProps {
   confidence: number; // 0..1
@@ -31,44 +33,86 @@ export function ConsensusMeter({
   confidence,
   quorumReached,
 }: ConsensusMeterProps) {
-  const percent = Math.round(confidence * 100);
+  const percent = Math.max(
+    0,
+    Math.min(100, Math.round(confidence * 100))
+  );
 
-  let barColor = "bg-gray-300";
-  let textColor = "text-gray-700";
+  const { barColor, textColor, glowColor, label } =
+    useMemo(() => {
+      if (quorumReached && percent >= 66) {
+        return {
+          barColor: "bg-green-500",
+          textColor: "text-green-400",
+          glowColor: "shadow-[0_0_12px_rgba(34,197,94,0.6)]",
+          label: "Strong Consensus",
+        };
+      }
 
-  if (quorumReached && percent >= 66) {
-    barColor = "bg-green-500";
-    textColor = "text-green-700";
-  } else if (percent >= 50) {
-    barColor = "bg-yellow-400";
-    textColor = "text-yellow-700";
-  } else {
-    barColor = "bg-red-400";
-    textColor = "text-red-700";
-  }
+      if (percent >= 50) {
+        return {
+          barColor: "bg-yellow-400",
+          textColor: "text-yellow-400",
+          glowColor: "shadow-[0_0_10px_rgba(250,204,21,0.5)]",
+          label: "Moderate Consensus",
+        };
+      }
+
+      return {
+        barColor: "bg-red-500",
+        textColor: "text-red-400",
+        glowColor: "shadow-[0_0_10px_rgba(239,68,68,0.5)]",
+        label: "Weak Consensus",
+      };
+    }, [percent, quorumReached]);
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs">
-        <span className={textColor}>
-          Confidence: {percent}%
-        </span>
-        <span
-          className={
-            quorumReached
-              ? "text-green-700"
-              : "text-gray-500"
-          }
+    <div className="space-y-4 rounded-xl border border-white/5 bg-white/[0.02] p-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <div className="text-xs uppercase tracking-wide text-gray-500">
+            Oracle Confidence
+          </div>
+          <div className={`text-sm font-medium ${textColor}`}>
+            {label}
+          </div>
+        </div>
+
+        <div
+          className={`
+            text-xs px-3 py-1 rounded-full border
+            ${
+              quorumReached
+                ? "bg-green-500/10 text-green-400 border-green-500/20"
+                : "bg-gray-700/40 text-gray-400 border-white/10"
+            }
+          `}
         >
-          {quorumReached ? "Quorum reached" : "Waiting quorum"}
-        </span>
+          {quorumReached ? "Quorum Reached" : "Awaiting Quorum"}
+        </div>
       </div>
 
-      <div className="w-full h-2 bg-gray-200 rounded">
+      {/* Percentage */}
+      <div className="text-3xl font-semibold tracking-tight">
+        {percent}%
+      </div>
+
+      {/* Bar */}
+      <div className="relative w-full h-3 bg-white/5 rounded-full overflow-hidden">
         <div
-          className={`h-2 rounded ${barColor}`}
+          className={`
+            h-full transition-all duration-700 ease-out
+            ${barColor}
+            ${glowColor}
+          `}
           style={{ width: `${percent}%` }}
         />
+      </div>
+
+      {/* Subtext */}
+      <div className="text-[11px] text-gray-500">
+        Confidence reflects weighted oracle agreement across submissions.
       </div>
     </div>
   );

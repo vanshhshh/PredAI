@@ -93,12 +93,7 @@ contract MarketRegistry {
 
     constructor(address _governance, address _marketFactory) {
         require(_governance != address(0), "INVALID_GOVERNANCE");
-
-        // 🔐 DEMO BOOTSTRAP BYPASS (Amoy only)
-        require(
-            _marketFactory != address(0) || block.chainid == 80002,
-            "INVALID_FACTORY"
-        );
+        require(_marketFactory != address(0), "INVALID_FACTORY");
 
         governance = _governance;
         marketFactory = _marketFactory;

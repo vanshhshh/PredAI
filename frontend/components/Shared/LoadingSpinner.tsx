@@ -1,60 +1,29 @@
-// File: frontend/components/Shared/LoadingSpinner.tsx
-
-/**
- * PURPOSE
- * -------
- * Global loading indicator.
- *
- * This component:
- * - provides a consistent loading UI across the app
- * - supports optional labels
- * - is safe to render inline or as a block
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Stateless
- * - Accessible
- * - Minimal and reusable
- */
-
 "use client";
 
 import React from "react";
 
 interface LoadingSpinnerProps {
   label?: string;
+  size?: "sm" | "md" | "lg";
 }
 
-export function LoadingSpinner({
-  label,
-}: LoadingSpinnerProps) {
+const SIZE_STYLES: Record<NonNullable<LoadingSpinnerProps["size"]>, string> = {
+  sm: "h-4 w-4 border-2",
+  md: "h-5 w-5 border-2",
+  lg: "h-7 w-7 border-[3px]",
+};
+
+export function LoadingSpinner({ label, size = "md" }: LoadingSpinnerProps) {
   return (
     <div
-      className="flex items-center gap-2 text-xs text-gray-600"
+      className="inline-flex items-center gap-2 text-sm text-slate-300"
       role="status"
       aria-live="polite"
+      aria-label={label ?? "Loading"}
     >
-      <svg
-        className="animate-spin h-4 w-4 text-gray-600"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        />
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-        />
-      </svg>
-
+      <span
+        className={`inline-block animate-spin rounded-full border-cyan-400 border-t-transparent ${SIZE_STYLES[size]}`}
+      />
       {label && <span>{label}</span>}
     </div>
   );

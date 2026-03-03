@@ -21,11 +21,11 @@ DESIGN RULES (from docs)
 
 from typing import List
 
+from backend.indexing.block_listener import ChainReader
+from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.oracle_repo import OracleRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
-from backend.indexing.block_listener import ChainReader
-from backend.indexing.event_handlers.oracle_events import OracleEventParser
 
 
 class OracleService:
@@ -39,6 +39,7 @@ class OracleService:
         oracle_address: str,
         oracle_id: str,
         metadata_uri: str,
+        tx_hash: str,
     ):
         """
         Register a new oracle identity.
@@ -61,6 +62,16 @@ class OracleService:
         if existing:
             raise InvariantViolation("ORACLE_ID_ALREADY_EXISTS")
 
+        if not tx_hash:
+            raise InvariantViolation("ORACLE_REGISTER_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_oracle_registration_tx(
+            tx_hash=tx_hash,
+            oracle_address=oracle_address,
+            oracle_id=oracle_id,
+            metadata_uri=metadata_uri,
+        )
+
         # Persist initial off-chain state
         oracle = await OracleRepository.create(
             oracle_id=oracle_id,
@@ -69,17 +80,6 @@ class OracleService:
             active=False,
             stake=0,
         )
-
-        # On-chain registration
-        tx_hash = await ChainReader.register_oracle_on_chain(
-            oracle_address=oracle_address,
-            oracle_id=oracle_id,
-            metadata_uri=metadata_uri,
-        )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        if not OracleEventParser.verify_registration(receipt, oracle_id):
-            raise InvariantViolation("ORACLE_ONCHAIN_REGISTRATION_FAILED")
 
         return oracle
 
@@ -92,6 +92,7 @@ class OracleService:
         *,
         oracle_address: str,
         amount: int,
+        tx_hash: str,
     ):
         """
         Stake capital as an oracle.
@@ -108,19 +109,18 @@ class OracleService:
         if not oracle:
             raise InvariantViolation("ORACLE_NOT_FOUND")
 
-        tx_hash = await ChainReader.stake_oracle_on_chain(
+        if not tx_hash:
+            raise InvariantViolation("ORACLE_STAKE_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_oracle_stake_tx(
+            tx_hash=tx_hash,
             oracle_address=oracle_address,
             amount=amount,
         )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        parsed = OracleEventParser.parse_stake(receipt)
-        if not parsed:
-            raise InvariantViolation("ORACLE_STAKE_FAILED")
 
         updated = await OracleRepository.update_stake(
             oracle_address=oracle_address,
-            stake=parsed.stake,
+            stake=int(oracle.stake) + amount,
             active=True,
         )
 
@@ -136,6 +136,7 @@ class OracleService:
         oracle_address: str,
         market_id: str,
         outcome: bool,
+        tx_hash: str,
     ):
         """
         Submit an outcome for a market.
@@ -152,15 +153,25 @@ class OracleService:
         if not oracle.active:
             raise InvariantViolation("ORACLE_INACTIVE")
 
-        tx_hash = await ChainReader.submit_oracle_outcome_on_chain(
+        market = await MarketRepository.get_by_market_id(market_id)
+        if not market:
+            raise InvariantViolation("MARKET_NOT_FOUND")
+
+        if not tx_hash:
+            raise InvariantViolation("ORACLE_SUBMIT_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_oracle_submission_tx(
+            tx_hash=tx_hash,
+            oracle_address=oracle_address,
+            market_address=market.address,
+            outcome=outcome,
+        )
+
+        await OracleRepository.record_submission(
             oracle_address=oracle_address,
             market_id=market_id,
             outcome=outcome,
         )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        if not OracleEventParser.verify_submission(receipt, market_id):
-            raise InvariantViolation("ORACLE_SUBMISSION_FAILED")
 
         # NOTE:
         # Consensus, weighting, and slashing are triggered asynchronously

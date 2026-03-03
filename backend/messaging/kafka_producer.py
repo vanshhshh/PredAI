@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------------------------
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv(
-    "KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"
+    "KAFKA_BOOTSTRAP_SERVERS", ""
 )
 
 KAFKA_CLIENT_ID = os.getenv(
@@ -55,6 +55,8 @@ def get_producer() -> KafkaProducer:
     global _producer
 
     if _producer is None:
+        if not KAFKA_BOOTSTRAP_SERVERS:
+            raise ValueError("KAFKA_BOOTSTRAP_SERVERS_NOT_CONFIGURED")
         _producer = KafkaProducer(
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
             client_id=KAFKA_CLIENT_ID,

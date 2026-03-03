@@ -1,22 +1,97 @@
-# backend/persistence/repositories/rwa_repo.py
+"""
+Async persistence for RWA asset records.
+"""
 
-from typing import List, Dict
+from __future__ import annotations
+
+from typing import Optional
+
+from sqlalchemy import select
+
+from backend.persistence.db import AsyncSessionLocal
+from backend.persistence.repositories.models import RWAAsset
+from backend.security.invariants import InvariantViolation
 
 
 class RWARepository:
-    """
-    Repository for Real World Asset records.
-    """
+    @staticmethod
+    async def create(
+        *,
+        rwa_id: str,
+        token_address: str,
+        metadata_uri: str,
+        max_supply: int,
+        creator: str,
+    ):
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                asset = RWAAsset(
+                    rwa_id=rwa_id,
+                    token_address=token_address,
+                    metadata_uri=metadata_uri,
+                    max_supply=max_supply,
+                    current_supply=0,
+                    creator=creator,
+                )
+                session.add(asset)
+                await session.flush()
+                return asset
 
-    def __init__(self):
-        self._storage: Dict[str, dict] = {}
+    @staticmethod
+    async def get_by_rwa_id(rwa_id: str) -> Optional[RWAAsset]:
+        async with AsyncSessionLocal() as session:
+            return await session.scalar(select(RWAAsset).where(RWAAsset.rwa_id == rwa_id))
 
-    def create(self, rwa_id: str, data: dict):
-        self._storage[rwa_id] = data
-        return data
+    @staticmethod
+    async def list_all(limit: int = 200):
+        async with AsyncSessionLocal() as session:
+            result = await session.scalars(
+                select(RWAAsset).order_by(RWAAsset.created_at.desc()).limit(limit)
+            )
+            return list(result)
 
-    def get(self, rwa_id: str):
-        return self._storage.get(rwa_id)
+    @staticmethod
+    async def mint(
+        *,
+        rwa_id: str,
+        amount: int,
+    ):
+        if amount <= 0:
+            raise InvariantViolation("INVALID_MINT_AMOUNT")
 
-    def list_all(self) -> List[dict]:
-        return list(self._storage.values())
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                asset = await session.scalar(
+                    select(RWAAsset).where(RWAAsset.rwa_id == rwa_id)
+                )
+                if not asset:
+                    raise InvariantViolation("RWA_NOT_FOUND")
+
+                if asset.current_supply + amount > asset.max_supply:
+                    raise InvariantViolation("RWA_MAX_SUPPLY_EXCEEDED")
+
+                asset.current_supply += amount
+                return asset
+
+    @staticmethod
+    async def burn(
+        *,
+        rwa_id: str,
+        amount: int,
+    ):
+        if amount <= 0:
+            raise InvariantViolation("INVALID_BURN_AMOUNT")
+
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                asset = await session.scalar(
+                    select(RWAAsset).where(RWAAsset.rwa_id == rwa_id)
+                )
+                if not asset:
+                    raise InvariantViolation("RWA_NOT_FOUND")
+
+                if amount > asset.current_supply:
+                    raise InvariantViolation("RWA_BURN_EXCEEDS_SUPPLY")
+
+                asset.current_supply -= amount
+                return asset

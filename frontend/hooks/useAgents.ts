@@ -2,7 +2,10 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ethers } from "ethers";
+
+import { contractAddresses, sendContractTx, toWeiAmount } from "../lib/evmTx";
 
 export interface Agent {
   agentId: string;
@@ -10,8 +13,9 @@ export interface Agent {
   active: boolean;
   stake: number;
   accuracy: number; // 0..1
-  pnl: number;
-  trades: number;
+  pnl: number | null;
+  trades: number | null;
+  createdAt?: number;
   nftTokenId?: string;
   metadataUri?: string;
 }
@@ -20,11 +24,49 @@ export interface CreateAgentInput {
   name: string;
   riskTolerance: number;
   maxExposure: number;
+  metadataUri?: string;
 }
 
 export interface StakeInput {
   agentId: string;
   amount: number;
+}
+
+const AGENT_REGISTRY_ABI = [
+  "function registerAgent(bytes32 agentId, string metadataURI)",
+  "function stakeAndActivate() payable",
+  "function deactivate()",
+];
+
+const AGENT_STAKING_ABI = ["function withdraw(uint256 amount)"];
+
+function slugifyAgentId(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!slug) {
+    throw new Error("Agent name must contain at least one alphanumeric character");
+  }
+  return slug;
+}
+
+function encodeDataJson(payload: Record<string, unknown>): string {
+  const json = JSON.stringify(payload);
+  const encoded = new TextEncoder().encode(json);
+  let binary = "";
+  for (const byte of encoded) {
+    binary += String.fromCharCode(byte);
+  }
+  return `data:application/json;base64,${btoa(binary)}`;
+}
+
+function toSafeAmount(value: bigint): number {
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Amount exceeds MAX_SAFE_INTEGER for API payload");
+  }
+  return Number(value);
 }
 
 export function useAgents() {
@@ -109,12 +151,35 @@ export function useAgents() {
       setError(null);
 
       try {
+        const agentId = slugifyAgentId(input.name);
+        const metadataUri =
+          input.metadataUri?.trim() ||
+          encodeDataJson({
+            agentId,
+            name: input.name.trim(),
+            riskTolerance: input.riskTolerance,
+            maxExposure: input.maxExposure,
+            schema: "moltmarket.agent.metadata.v1",
+          });
+
+        const txHash = await sendContractTx({
+          address: contractAddresses.agentRegistry,
+          abi: AGENT_REGISTRY_ABI,
+          functionName: "registerAgent",
+          args: [ethers.id(agentId), metadataUri],
+          label: "AgentRegistry",
+        });
+
         const res = await fetch("/api/agents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "CREATE_AGENT",
-            payload: input,
+            payload: {
+              agentId,
+              metadataUri,
+              txHash,
+            },
           }),
         });
 
@@ -143,12 +208,26 @@ export function useAgents() {
       setError(null);
 
       try {
+        const amountWei = toWeiAmount(input.amount);
+        const txHash = await sendContractTx({
+          address: contractAddresses.agentRegistry,
+          abi: AGENT_REGISTRY_ABI,
+          functionName: "stakeAndActivate",
+          args: [],
+          valueWei: amountWei,
+          label: "AgentRegistry",
+        });
+
         const res = await fetch("/api/agents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "STAKE_AGENT",
-            payload: input,
+            payload: {
+              agentId: input.agentId,
+              amount: toSafeAmount(amountWei),
+              txHash,
+            },
           }),
         });
 
@@ -173,12 +252,25 @@ export function useAgents() {
       setError(null);
 
       try {
+        const amountWei = toWeiAmount(input.amount);
+        const txHash = await sendContractTx({
+          address: contractAddresses.agentStaking,
+          abi: AGENT_STAKING_ABI,
+          functionName: "withdraw",
+          args: [amountWei],
+          label: "AgentStaking",
+        });
+
         const res = await fetch("/api/agents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "UNSTAKE_AGENT",
-            payload: input,
+            payload: {
+              agentId: input.agentId,
+              amount: toSafeAmount(amountWei),
+              txHash,
+            },
           }),
         });
 
@@ -207,12 +299,20 @@ export function useAgents() {
       setError(null);
 
       try {
+        const txHash = await sendContractTx({
+          address: contractAddresses.agentRegistry,
+          abi: AGENT_REGISTRY_ABI,
+          functionName: "deactivate",
+          args: [],
+          label: "AgentRegistry",
+        });
+
         const res = await fetch("/api/agents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "TOGGLE_ACTIVE",
-            payload: { agentId },
+            payload: { agentId, txHash },
           }),
         });
 

@@ -1,26 +1,6 @@
-// File: frontend/components/Shared/Modal.tsx
-
-/**
- * PURPOSE
- * -------
- * Reusable modal / dialog component.
- *
- * This component:
- * - renders content in an overlay
- * - supports confirm / cancel flows
- * - is used for governance confirms, destructive actions, etc.
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Controlled by parent
- * - No side effects
- * - Accessible defaults
- * - Production-safe UX
- */
-
 "use client";
 
-import React, { ReactNode, useEffect } from "react";
+import React, { ReactNode, useEffect, useId, useMemo, useRef } from "react";
 
 interface ModalProps {
   title: string;
@@ -39,48 +19,108 @@ export function Modal({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
 }: ModalProps) {
-  // Close on ESC
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  const focusableSelector = useMemo(
+    () =>
+      [
+        "a[href]",
+        "button:not([disabled])",
+        "textarea:not([disabled])",
+        "input:not([disabled])",
+        "select:not([disabled])",
+        "[tabindex]:not([tabindex='-1'])",
+      ].join(","),
+    []
+  );
+
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const elements = dialogRef.current?.querySelectorAll<HTMLElement>(
+      focusableSelector
+    );
+    elements?.[0]?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusables = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector)
+      );
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previous;
+    };
+  }, [focusableSelector, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-md shadow-lg max-w-md w-full p-4 space-y-4">
-        <header className="flex justify-between items-center">
-          <h2 className="font-semibold text-sm">{title}</h2>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center px-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+        onClick={onClose}
+        aria-label="Close dialog backdrop"
+      />
+
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="ui-card fade-in-up relative z-[91] w-full max-w-lg p-6"
+      >
+        <header className="mb-4 flex items-start justify-between gap-4">
+          <h2 id={titleId} className="text-lg font-semibold text-white">
+            {title}
+          </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="text-xs text-gray-500"
+            className="ui-btn ui-btn-ghost rounded-lg px-2 py-1 text-sm"
+            aria-label="Close dialog"
           >
-            ✕
+            Close
           </button>
         </header>
 
-        <div className="text-sm">{children}</div>
+        <div className="text-sm text-slate-200">{children}</div>
 
-        <footer className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-1 border rounded-md text-xs"
-          >
+        <footer className="mt-6 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {cancelLabel}
           </button>
 
           {onConfirm && (
-            <button
-              onClick={onConfirm}
-              className="px-3 py-1 bg-black text-white rounded-md text-xs"
-            >
+            <button type="button" onClick={onConfirm} className="ui-btn ui-btn-primary">
               {confirmLabel}
             </button>
           )}
         </footer>
-      </div>
+      </section>
     </div>
   );
 }

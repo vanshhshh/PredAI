@@ -1,32 +1,6 @@
-// File: frontend/components/Shared/AICopilotChat.tsx
-
-/**
- * PURPOSE
- * -------
- * Embedded AI copilot chat interface.
- *
- * This component:
- * - provides contextual AI assistance (markets, agents, yield, governance)
- * - streams responses from backend AI services
- * - is designed to be embedded on any page
- *
- * IMPORTANT
- * ---------
- * - This is a UI + interaction shell only
- * - No model logic lives here
- * - All intelligence is delegated to backend / AI services
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Stateless with respect to intelligence
- * - Stream-friendly
- * - Safe fallbacks
- * - Production-grade UX (latency, errors, cancel)
- */
-
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { LoadingSpinner } from "./LoadingSpinner";
 
@@ -44,20 +18,19 @@ interface AICopilotChatProps {
 }
 
 export function AICopilotChat({ context }: AICopilotChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    []
-  );
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [isSending, setIsSending] =
-    useState<boolean>(false);
+  const [isSending, setIsSending] = useState(false);
 
-  const abortRef = useRef<AbortController | null>(
-    null
-  );
+  const abortRef = useRef<AbortController | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // ------------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------------
+  useEffect(() => {
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   async function sendMessage() {
     if (!input.trim()) return;
@@ -70,15 +43,12 @@ export function AICopilotChat({ context }: AICopilotChatProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsSending(true);
-
     abortRef.current = new AbortController();
 
     try {
       const res = await fetch("/api/ai/copilot", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
           context,
@@ -86,28 +56,19 @@ export function AICopilotChat({ context }: AICopilotChatProps) {
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok) {
-        throw new Error("Copilot request failed");
-      }
-
+      if (!res.ok) throw new Error("Copilot failed");
       const data = await res.json();
-
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: data.reply,
-      };
 
       setMessages((prev) => [
         ...prev,
-        assistantMessage,
+        { role: "assistant", content: data.reply },
       ]);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "Sorry, something went wrong while responding.",
+          content: "The copilot encountered an error while responding.",
         },
       ]);
     } finally {
@@ -122,62 +83,90 @@ export function AICopilotChat({ context }: AICopilotChatProps) {
     setIsSending(false);
   }
 
-  // ------------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------------
-
   return (
-    <div className="border rounded-md p-3 space-y-3 text-sm">
-      <header className="font-semibold">
-        AI Copilot
+    <section className="ui-card flex h-[460px] flex-col p-4 sm:p-5">
+      <header className="mb-3 flex items-center justify-between">
+        <div>
+          <p className="ui-kicker">Assistant</p>
+          <h3 className="text-base font-semibold text-white">AI Copilot</h3>
+        </div>
+        {context && (
+          <p className="text-[11px] text-slate-400">
+            Context:
+            {context.marketId && " Market"}
+            {context.agentId && " Agent"}
+            {context.vaultId && " Vault"}
+          </p>
+        )}
       </header>
 
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {messages.map((m, idx) => (
-          <div
-            key={idx}
-            className={`p-2 rounded ${
-              m.role === "user"
-                ? "bg-gray-100"
-                : "bg-blue-50"
+      <div
+        ref={scrollRef}
+        className="ui-card-soft flex-1 space-y-3 overflow-y-auto p-3"
+        aria-live="polite"
+      >
+        {messages.length === 0 && (
+          <p className="text-xs text-slate-400">
+            Ask about pricing signals, strategy setup, risk scoring, or
+            governance mechanics.
+          </p>
+        )}
+
+        {messages.map((message, index) => (
+          <article
+            key={`${message.role}-${index}`}
+            className={`max-w-[88%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+              message.role === "user"
+                ? "ml-auto border border-cyan-300/20 bg-cyan-400/15 text-cyan-100"
+                : "border border-white/10 bg-slate-950/40 text-slate-100"
             }`}
           >
-            {m.content}
-          </div>
+            {message.content}
+          </article>
         ))}
+
+        {isSending && (
+          <div className="px-1">
+            <LoadingSpinner label="Generating response..." size="sm" />
+          </div>
+        )}
       </div>
 
-      <div className="flex gap-2 items-center">
-        <input
+      <div className="mt-3 flex items-end gap-2">
+        <textarea
+          rows={2}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="flex-1 border rounded-md p-2 text-sm"
-          placeholder="Ask the copilot…"
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void sendMessage();
+            }
+          }}
           disabled={isSending}
+          placeholder="Ask the copilot..."
+          className="ui-textarea min-h-[64px] flex-1"
+          aria-label="Copilot chat input"
         />
 
-        {!isSending && (
+        {!isSending ? (
           <button
-            onClick={sendMessage}
-            className="px-3 py-1 bg-black text-white rounded-md text-xs"
+            type="button"
+            onClick={() => void sendMessage()}
+            className="ui-btn ui-btn-primary h-[42px]"
           >
             Send
           </button>
-        )}
-
-        {isSending && (
+        ) : (
           <button
+            type="button"
             onClick={cancel}
-            className="px-3 py-1 border rounded-md text-xs"
+            className="ui-btn ui-btn-secondary h-[42px]"
           >
             Cancel
           </button>
         )}
       </div>
-
-      {isSending && (
-        <LoadingSpinner label="Thinking…" />
-      )}
-    </div>
+    </section>
   );
 }

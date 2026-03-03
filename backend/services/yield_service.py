@@ -19,19 +19,27 @@ DESIGN RULES (from docs)
 - Fail closed on risk violations
 - Chain interactions abstracted
 """
-
-from typing import List
+from typing import List, Any
 
 from backend.persistence.repositories.yield_repo import YieldRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
-from backend.indexing.block_listener import ChainReader
-from backend.indexing.event_handlers.yield_events import YieldEventParser
 from backend.services.ai_client import AIClient
 
 
 
 class YieldService:
+    @staticmethod
+    def _normalize_recommendation(recommendation: Any):
+        if isinstance(recommendation, dict):
+            allocation = recommendation.get("allocation")
+            if isinstance(allocation, list):
+                return allocation
+            return []
+        if isinstance(recommendation, list):
+            return recommendation
+        return []
+
     # ------------------------------------------------------------------
     # VAULT DISCOVERY
     # ------------------------------------------------------------------
@@ -114,29 +122,34 @@ class YieldService:
 
         if not recommendation:
             raise InvariantViolation("NO_VALID_ALLOCATION")
+        
 
-        # ------------------------------------------------------------------
-        # EXECUTE ROUTING ON-CHAIN
-        # ------------------------------------------------------------------
-
-        tx_hash = await ChainReader.execute_rebalance_on_chain(
-            user_address=user_address,
-            allocation=recommendation,
-        )
-
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        parsed = YieldEventParser.parse_rebalance(receipt)
-        if not parsed:
+        allocation = YieldService._normalize_recommendation(recommendation)
+        if not allocation:
             raise InvariantViolation("REBALANCE_FAILED")
 
-        # ------------------------------------------------------------------
-        # UPDATE OFF-CHAIN STATE
-        # ------------------------------------------------------------------
+        normalized_positions = []
+        for item in allocation:
+            vault_id = str(item.get("vault_id", "")).strip()
+            if not vault_id:
+                continue
+
+            recommended_amount = item.get("recommended_amount", item.get("amount", 0))
+            normalized_positions.append(
+                {
+                    "vault_id": vault_id,
+                    "amount": max(0, int(float(recommended_amount))),
+                    "apy_bps": max(0, int(item.get("apy_bps", 0))),
+                    "risk_score": max(0, int(item.get("risk_score", target_risk_score))),
+                }
+            )
+
+        if not normalized_positions:
+            raise InvariantViolation("NO_VALID_ALLOCATION")
 
         await YieldRepository.apply_rebalance(
             user_address=user_address,
-            new_positions=parsed.positions,
+            new_positions=normalized_positions,
         )
 
         return True

@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: postgres:16-alpine
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: backup-secrets
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  apk add --no-cache aws-cli > /dev/null
+                  ts="$(date -u +%Y%m%dT%H%M%SZ)"
+                  file="/tmp/backup-${ts}.sql.gz"
+                  pg_dump "${DATABASE_URL}" | gzip > "${file}"
+                  aws s3 cp "${file}" "s3://${BACKUP_BUCKET}/${BACKUP_PREFIX}/backup-${ts}.sql.gz"

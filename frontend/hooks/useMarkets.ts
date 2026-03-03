@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ethers } from "ethers";
 
 /* ------------------------------------------------------------------ */
 /* TYPES */
@@ -8,10 +9,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface Market {
   marketId: string;
+  address: string;
   title: string;
   description?: string;
-  yesOdds: number;
-  noOdds: number;
+  yesOdds: number | null;
+  noOdds: number | null;
   liquidity: number;
   endTime: number;
   settled: boolean;
@@ -30,6 +32,11 @@ export interface PlaceBetInput {
   side: "YES" | "NO";
   amount: number;
 }
+
+const BET_IFACE = new ethers.Interface([
+  "function betYes()",
+  "function betNo()",
+]);
 
 /* ------------------------------------------------------------------ */
 /* HOOK */
@@ -147,12 +154,35 @@ export function useMarkets() {
       setError(null);
 
       try {
+        const market = markets.find((m) => m.marketId === input.marketId);
+        if (!market?.address) {
+          throw new Error("Market contract address unavailable");
+        }
+        if (!(window as any).ethereum) {
+          throw new Error("Wallet not detected");
+        }
+
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const tx = await signer.sendTransaction({
+          to: market.address,
+          value: BigInt(Math.max(0, Math.floor(input.amount))),
+          data:
+            input.side === "YES"
+              ? BET_IFACE.encodeFunctionData("betYes")
+              : BET_IFACE.encodeFunctionData("betNo"),
+        });
+        await tx.wait();
+
         const res = await fetch("/api/markets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "PLACE_BET",
-            payload: input,
+            payload: {
+              ...input,
+              txHash: tx.hash,
+            },
           }),
         });
 
@@ -169,7 +199,7 @@ export function useMarkets() {
         setIsBetting(false);
       }
     },
-    [fetchMarkets]
+    [fetchMarkets, markets]
   );
 
   /* ------------------------------------------------------------------ */

@@ -22,6 +22,7 @@
 "use client";
 
 import { ApiError } from "./errors";
+import { getSupabaseClient } from "./supabase";
 
 export interface ApiRequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE";
@@ -38,10 +39,20 @@ const DEFAULT_HEADERS: Record<string, string> = {
 async function getAuthHeader(): Promise<
   Record<string, string>
 > {
-  // NOTE:
-  // Wallet-based auth / JWT injection
-  // will be wired here later.
-  // For now this is a no-op placeholder.
+  try {
+    const supabase = getSupabaseClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (token) {
+      return {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+  } catch {
+    // Ignore auth header resolution errors and continue unauthenticated.
+  }
+
   return {};
 }
 

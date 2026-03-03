@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IRWA {
@@ -22,10 +22,9 @@ contract RWAToken is ERC20, Pausable, Ownable {
         bytes32 assetId_,
         address rwaRegistry_,
         address owner_
-    ) ERC20(name_, symbol_) {
+    ) ERC20(name_, symbol_) Ownable(owner_) {
         assetId = assetId_;
         rwaRegistry = IRWA(rwaRegistry_);
-        _transferOwnership(owner_);
     }
 
     // -------------------------
@@ -69,11 +68,11 @@ contract RWAToken is ERC20, Pausable, Ownable {
     // Transfers
     // -------------------------
 
-    function _beforeTokenTransfer(
+    function _update(
         address from,
         address to,
         uint256 amount
     ) internal override whenNotPaused {
-        super._beforeTokenTransfer(from, to, amount);
+        super._update(from, to, amount);
     }
 }

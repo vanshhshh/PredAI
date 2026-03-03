@@ -28,7 +28,29 @@ import time
 from backend.security.invariants import InvariantViolation
 from backend.services.market_service import MarketService
 from backend.persistence.repositories.social_repo import SocialRepository
-from ai.inference.runner import extract_market_prompt
+
+
+def _extract_market_prompts(content: str) -> List[str]:
+    """
+    Deterministic prompt extraction from unstructured social text.
+    """
+    text = (content or "").strip()
+    if not text:
+        return []
+
+    prompts: List[str] = []
+    for part in text.replace("?", "?.").split("."):
+        candidate = part.strip()
+        if len(candidate) < 20:
+            continue
+        if "?" in candidate or candidate.lower().startswith(("will ", "can ", "is ", "are ")):
+            prompts.append(candidate.rstrip("?") + "?")
+
+    if prompts:
+        return prompts[:5]
+
+    # Fallback to full-content single prompt when no question-like chunks exist.
+    return [text[:240]]
 
 
 class SocialService:
@@ -99,7 +121,7 @@ class SocialService:
         if not event:
             raise InvariantViolation("SOCIAL_EVENT_NOT_FOUND")
 
-        prompts = extract_market_prompt(event.content)
+        prompts = _extract_market_prompts(event.content)
 
         if not prompts:
             return []

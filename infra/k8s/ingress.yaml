@@ -11,8 +11,18 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
 spec:
+  tls:
+    - hosts:
+        - app.moltmarket.com
+      secretName: app-moltmarket-tls
+    - hosts:
+        - api.moltmarket.com
+      secretName: api-moltmarket-tls
+    - hosts:
+        - ai.moltmarket.com
+      secretName: ai-moltmarket-tls
   rules:
-    - host: app.example.com
+    - host: app.moltmarket.com
       http:
         paths:
           - path: /
@@ -22,7 +32,7 @@ spec:
                 name: frontend
                 port:
                   number: 80
-    - host: api.example.com
+    - host: api.moltmarket.com
       http:
         paths:
           - path: /
@@ -32,7 +42,7 @@ spec:
                 name: backend
                 port:
                   number: 80
-    - host: ai.example.com
+    - host: ai.moltmarket.com
       http:
         paths:
           - path: /

@@ -21,11 +21,10 @@ DESIGN RULES
 
 from typing import Optional, List
 
+from backend.indexing.block_listener import ChainReader
 from backend.persistence.repositories.agent_repo import AgentRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
-from backend.indexing.block_listener import ChainReader
-from backend.indexing.event_handlers.agent_events import AgentEventParser
 from backend.services.scoring_client import score_agent
 
 
@@ -40,6 +39,7 @@ class AgentService:
         owner_address: str,
         agent_id: str,
         metadata_uri: str,
+        tx_hash: str,
     ):
         """
         Register a new agent.
@@ -62,6 +62,16 @@ class AgentService:
         if existing:
             raise InvariantViolation("AGENT_ID_ALREADY_EXISTS")
 
+        if not tx_hash:
+            raise InvariantViolation("AGENT_REGISTER_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_agent_registration_tx(
+            tx_hash=tx_hash,
+            owner=owner_address,
+            agent_id=agent_id,
+            metadata_uri=metadata_uri,
+        )
+
         # Persist initial off-chain state
         agent = await AgentRepository.create(
             agent_id=agent_id,
@@ -71,17 +81,6 @@ class AgentService:
             stake=0,
             score=0,
         )
-
-        # On-chain identity registration
-        tx_hash = await ChainReader.register_agent_on_chain(
-            owner=owner_address,
-            agent_id=agent_id,
-            metadata_uri=metadata_uri,
-        )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        if not AgentEventParser.verify_registration(receipt, agent_id):
-            raise InvariantViolation("AGENT_ONCHAIN_REGISTRATION_FAILED")
 
         return agent
 
@@ -95,6 +94,7 @@ class AgentService:
         owner_address: str,
         agent_id: str,
         amount: int,
+        tx_hash: str,
     ):
         """
         Stake capital and activate an agent.
@@ -119,20 +119,18 @@ class AgentService:
         if agent.active:
             raise InvariantViolation("AGENT_ALREADY_ACTIVE")
 
-        tx_hash = await ChainReader.stake_agent_on_chain(
+        if not tx_hash:
+            raise InvariantViolation("AGENT_STAKE_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_agent_stake_activate_tx(
+            tx_hash=tx_hash,
             owner=owner_address,
-            agent_id=agent_id,
             amount=amount,
         )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
-
-        parsed = AgentEventParser.parse_stake_and_activate(receipt)
-        if not parsed:
-            raise InvariantViolation("AGENT_STAKE_FAILED")
 
         updated = await AgentRepository.activate(
             agent_id=agent_id,
-            stake=parsed.stake,
+            stake=int(agent.stake) + amount,
         )
 
         return updated
@@ -146,6 +144,7 @@ class AgentService:
         *,
         owner_address: str,
         agent_id: str,
+        tx_hash: str,
     ):
         """
         Deactivate an agent.
@@ -166,16 +165,56 @@ class AgentService:
         if not agent.active:
             raise InvariantViolation("AGENT_ALREADY_INACTIVE")
 
-        tx_hash = await ChainReader.deactivate_agent_on_chain(
-            owner=owner_address,
-            agent_id=agent_id,
-        )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
+        if not tx_hash:
+            raise InvariantViolation("AGENT_DEACTIVATE_TX_HASH_REQUIRED")
 
-        if not AgentEventParser.verify_deactivation(receipt):
-            raise InvariantViolation("AGENT_DEACTIVATION_FAILED")
+        await ChainReader.verify_agent_deactivate_tx(
+            tx_hash=tx_hash,
+            owner=owner_address,
+        )
 
         return await AgentRepository.deactivate(agent_id=agent_id)
+
+    @staticmethod
+    async def unstake_agent(
+        *,
+        owner_address: str,
+        agent_id: str,
+        amount: int,
+        tx_hash: str,
+    ):
+        """
+        Unstake capital from an owned agent.
+
+        Invariants:
+        - amount > 0
+        - agent exists
+        - caller is owner
+        - stake >= amount
+        """
+        if amount <= 0:
+            raise InvariantViolation("INVALID_UNSTAKE_AMOUNT")
+
+        agent = await AgentRepository.get_by_agent_id(agent_id)
+        if not agent:
+            raise InvariantViolation("AGENT_NOT_FOUND")
+
+        if agent.owner != owner_address:
+            raise InvariantViolation("NOT_AGENT_OWNER")
+
+        if int(agent.stake or 0) < amount:
+            raise InvariantViolation("INSUFFICIENT_STAKE")
+
+        if not tx_hash:
+            raise InvariantViolation("AGENT_UNSTAKE_TX_HASH_REQUIRED")
+
+        await ChainReader.verify_agent_unstake_tx(
+            tx_hash=tx_hash,
+            owner=owner_address,
+            amount=amount,
+        )
+
+        return await AgentRepository.unstake(agent_id=agent_id, amount=amount)
 
     # ------------------------------------------------------------------
     # READ OPERATIONS

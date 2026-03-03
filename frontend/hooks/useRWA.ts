@@ -26,10 +26,10 @@ export interface RWAAsset {
   assetId: string;
   symbol: string;
   name: string;
-  chainId: number;
+  chainId: number | null;
   underlyingMarketId?: string;
   supply: number;
-  price: number;
+  price: number | null;
   metadataUri?: string;
 }
 

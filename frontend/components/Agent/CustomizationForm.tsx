@@ -18,10 +18,11 @@
  * - Defensive UX (pending, error, disabled)
  */
 
+// File: frontend/components/Agent/CustomizationForm.tsx
+
 "use client";
 
 import React, { useState } from "react";
-
 import { LoadingSpinner } from "../Shared/LoadingSpinner";
 
 interface AgentConfig {
@@ -54,14 +55,9 @@ export function CustomizationForm({
   const [rebalanceIntervalSec, setRebalanceIntervalSec] =
     useState<number>(initialConfig.rebalanceIntervalSec);
 
-  // ------------------------------------------------------------------
-  // HANDLERS
-  // ------------------------------------------------------------------
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Client-side sanity checks
     if (
       riskTolerance < 0 ||
       riskTolerance > 1 ||
@@ -78,54 +74,94 @@ export function CustomizationForm({
     });
   }
 
-  // ------------------------------------------------------------------
-  // RENDER
-  // ------------------------------------------------------------------
-
   return (
     <form
       onSubmit={handleSubmit}
-      className="border rounded-md p-4 space-y-4"
+      className="
+        rounded-2xl
+        border border-white/5
+        bg-gradient-to-br from-white/[0.04] to-white/[0.02]
+        backdrop-blur-xl
+        p-6
+        space-y-6
+        transition-all
+      "
     >
-      <h3 className="font-semibold text-sm">Agent Configuration</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold tracking-tight">
+          Agent Configuration
+        </h3>
+        <span className="text-xs text-gray-500">
+          ID: {agentId.slice(0, 8)}…
+        </span>
+      </div>
 
+      {/* ----------------------------- */}
       {/* Risk Tolerance */}
-      <div>
-        <label className="block text-xs font-medium">
-          Risk Tolerance (0–1)
+      {/* ----------------------------- */}
+      <div className="space-y-2">
+        <label className="text-xs uppercase tracking-wide text-gray-400">
+          Risk Tolerance
         </label>
+
         <input
-          type="number"
-          step="0.01"
+          type="range"
           min={0}
           max={1}
+          step={0.01}
           value={riskTolerance}
           onChange={(e) =>
             setRiskTolerance(Number(e.target.value))
           }
-          className="mt-1 w-full border rounded-md p-2 text-sm"
+          className="w-full accent-indigo-500"
         />
+
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Conservative</span>
+          <span className="font-medium text-gray-300">
+            {(riskTolerance * 100).toFixed(0)}%
+          </span>
+          <span>Aggressive</span>
+        </div>
       </div>
 
+      {/* ----------------------------- */}
       {/* Max Exposure */}
-      <div>
-        <label className="block text-xs font-medium">
+      {/* ----------------------------- */}
+      <div className="space-y-2">
+        <label className="text-xs uppercase tracking-wide text-gray-400">
           Max Exposure
         </label>
         <input
           type="number"
-          min={0}
+          min={1}
           value={maxExposure}
           onChange={(e) =>
             setMaxExposure(Number(e.target.value))
           }
-          className="mt-1 w-full border rounded-md p-2 text-sm"
+          className="
+            w-full
+            rounded-lg
+            bg-black/40
+            border border-white/10
+            px-3 py-2
+            text-sm
+            focus:outline-none
+            focus:ring-2
+            focus:ring-indigo-500/40
+            transition
+          "
         />
+        <p className="text-xs text-gray-500">
+          Maximum capital allocation for a single strategy.
+        </p>
       </div>
 
+      {/* ----------------------------- */}
       {/* Rebalance Interval */}
-      <div>
-        <label className="block text-xs font-medium">
+      {/* ----------------------------- */}
+      <div className="space-y-2">
+        <label className="text-xs uppercase tracking-wide text-gray-400">
           Rebalance Interval (seconds)
         </label>
         <input
@@ -133,33 +169,59 @@ export function CustomizationForm({
           min={1}
           value={rebalanceIntervalSec}
           onChange={(e) =>
-            setRebalanceIntervalSec(
-              Number(e.target.value)
-            )
+            setRebalanceIntervalSec(Number(e.target.value))
           }
-          className="mt-1 w-full border rounded-md p-2 text-sm"
+          className="
+            w-full
+            rounded-lg
+            bg-black/40
+            border border-white/10
+            px-3 py-2
+            text-sm
+            focus:outline-none
+            focus:ring-2
+            focus:ring-indigo-500/40
+            transition
+          "
         />
+        <p className="text-xs text-gray-500">
+          How frequently the agent recalibrates its positions.
+        </p>
       </div>
 
+      {/* ----------------------------- */}
       {/* Error */}
+      {/* ----------------------------- */}
       {error && (
-        <div className="text-xs text-red-600">
+        <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
           {error.message}
         </div>
       )}
 
+      {/* ----------------------------- */}
       {/* Submit */}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="px-4 py-2 bg-black text-white rounded-md text-sm"
-      >
-        {isSubmitting ? "Saving…" : "Save Changes"}
-      </button>
+      {/* ----------------------------- */}
+      <div className="flex items-center gap-4">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="
+            px-5 py-2
+            rounded-lg
+            text-sm font-medium
+            bg-indigo-600
+            hover:bg-indigo-500
+            disabled:opacity-50
+            transition-colors
+          "
+        >
+          {isSubmitting ? "Saving…" : "Save Changes"}
+        </button>
 
-      {isSubmitting && (
-        <LoadingSpinner label="Updating agent…" />
-      )}
+        {isSubmitting && (
+          <LoadingSpinner label="Updating agent…" />
+        )}
+      </div>
     </form>
   );
 }

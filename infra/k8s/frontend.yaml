@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ai-crypto-frontend:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/moltmarket/frontend@sha256:REPLACE_WITH_FRONTEND_DIGEST
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           envFrom:

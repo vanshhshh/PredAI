@@ -1,23 +1,3 @@
-// File: frontend/components/Social/FeedMonitor.tsx
-
-/**
- * PURPOSE
- * -------
- * Real-time social feed monitor for AI-agent–tracked signals.
- *
- * This component:
- * - renders live social items (e.g. X posts, on-chain social events)
- * - highlights AI-detected signals
- * - allows spawning markets from eligible feed items
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Read-only by default
- * - Action hooks injected via props
- * - Stream-safe (frequent updates)
- * - No platform-specific assumptions (X, Farcaster, etc.)
- */
-
 "use client";
 
 import React from "react";
@@ -28,7 +8,7 @@ interface SocialFeedItem {
   author: string;
   content: string;
   timestamp: number;
-  signalScore?: number; // 0..1, AI confidence
+  signalScore?: number;
   marketEligible?: boolean;
 }
 
@@ -37,14 +17,11 @@ interface FeedMonitorProps {
   onSpawnMarket?: (feedId: string) => void;
 }
 
-export function FeedMonitor({
-  feeds,
-  onSpawnMarket,
-}: FeedMonitorProps) {
-  if (!feeds || feeds.length === 0) {
+export function FeedMonitor({ feeds, onSpawnMarket }: FeedMonitorProps) {
+  if (!feeds?.length) {
     return (
-      <div className="border rounded-md p-4 text-sm text-gray-600">
-        No social feed activity.
+      <div className="ui-card-soft rounded-xl p-4 text-sm text-slate-300">
+        No social feeds are being tracked right now.
       </div>
     );
   }
@@ -52,44 +29,77 @@ export function FeedMonitor({
   return (
     <div className="space-y-3">
       {feeds.map((item) => (
-        <div
-          key={item.id}
-          className="border rounded-md p-3 space-y-2"
-        >
-          {/* Header */}
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>
-              {item.source} · {item.author}
-            </span>
-            <span>
-              {new Date(item.timestamp).toLocaleTimeString()}
-            </span>
-          </div>
-
-          {/* Content */}
-          <div className="text-sm">{item.content}</div>
-
-          {/* Signal */}
-          {item.signalScore !== undefined && (
-            <div className="text-xs text-gray-600">
-              AI Signal Confidence:{" "}
-              <strong>
-                {(item.signalScore * 100).toFixed(0)}%
-              </strong>
-            </div>
-          )}
-
-          {/* Action */}
-          {item.marketEligible && onSpawnMarket && (
-            <button
-              onClick={() => onSpawnMarket(item.id)}
-              className="px-3 py-1 border rounded-md text-xs"
-            >
-              Spawn Market
-            </button>
-          )}
-        </div>
+        <FeedCard key={item.id} item={item} onSpawnMarket={onSpawnMarket} />
       ))}
     </div>
   );
+}
+
+function FeedCard({
+  item,
+  onSpawnMarket,
+}: {
+  item: SocialFeedItem;
+  onSpawnMarket?: (feedId: string) => void;
+}) {
+  const confidencePercent =
+    item.signalScore !== undefined ? Math.round(item.signalScore * 100) : null;
+
+  return (
+    <article className="ui-card rounded-xl p-4">
+      <header className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+        <div className="flex items-center gap-2">
+          <SourceBadge source={item.source} />
+          <span className="font-semibold text-slate-100">{item.author}</span>
+        </div>
+        <time>{new Date(item.timestamp).toLocaleTimeString()}</time>
+      </header>
+
+      <p className="mt-3 text-sm leading-relaxed text-slate-100">{item.content}</p>
+
+      {confidencePercent !== null && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-xs text-slate-300">
+            <span>AI Signal Confidence</span>
+            <span>{confidencePercent}%</span>
+          </div>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-950/45">
+            <div
+              className={`h-full rounded-full ${
+                confidencePercent >= 70
+                  ? "bg-emerald-400"
+                  : confidencePercent >= 50
+                  ? "bg-amber-300"
+                  : "bg-rose-400"
+              }`}
+              style={{ width: `${confidencePercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {item.marketEligible && onSpawnMarket && (
+        <button
+          type="button"
+          onClick={() => onSpawnMarket(item.id)}
+          className="ui-btn ui-btn-primary mt-4"
+        >
+          Spawn Market From Signal
+        </button>
+      )}
+    </article>
+  );
+}
+
+function SourceBadge({ source }: { source: SocialFeedItem["source"] }) {
+  const styles =
+    source === "X"
+      ? "border-cyan-300/30 bg-cyan-400/15 text-cyan-100"
+      : source === "FARCASTER"
+      ? "border-indigo-300/30 bg-indigo-400/15 text-indigo-100"
+      : source === "ONCHAIN"
+      ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
+      : "border-slate-300/30 bg-slate-400/15 text-slate-200";
+
+  return <span className={`ui-badge ${styles}`}>{source}</span>;
 }
