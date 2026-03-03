@@ -9,20 +9,31 @@ import { WalletConnectConnector } from "wagmi/connectors/walletConnect";
 const { chains, publicClient, webSocketPublicClient } =
   configureChains([polygon], [publicProvider()]);
 
+const walletConnectProjectIdRaw =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() ||
+  process.env.NEXT_PUBLIC_REOWN_PROJECT_ID?.trim() ||
+  "";
+const walletConnectProjectId = /^[a-f0-9]{32}$/i.test(walletConnectProjectIdRaw)
+  ? walletConnectProjectIdRaw
+  : "";
+
+const connectors = [
+  new MetaMaskConnector({ chains }),
+  ...(walletConnectProjectId
+    ? [
+        new WalletConnectConnector({
+          chains,
+          options: {
+            projectId: walletConnectProjectId,
+          },
+        }),
+      ]
+    : []),
+];
+
 export const wagmiConfig = createConfig({
   autoConnect: true,
-  connectors: [
-    new MetaMaskConnector({ chains }),
-    new WalletConnectConnector({
-      chains,
-      options: {
-        projectId:
-          process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
-          process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ||
-          "",
-      },
-    }),
-  ],
+  connectors,
   publicClient,
   webSocketPublicClient,
 });
