@@ -120,7 +120,10 @@ class _ChainClient:
         if int(self.w3.eth.chain_id) != self.chain_id:
             raise InvariantViolation("CHAIN_ID_MISMATCH")
 
-        self.account = Account.from_key(signer_key)
+        try:
+            self.account = Account.from_key(signer_key)
+        except Exception as exc:
+            raise InvariantViolation("INVALID_CHAIN_SIGNER_PRIVATE_KEY", str(exc)) from exc
         self.signer = to_checksum_address(self.account.address)
         self.confirmations = max(1, int(os.getenv("CHAIN_CONFIRMATIONS", "1")))
         self.poll_s = max(0.5, float(os.getenv("CHAIN_TX_POLL_SECONDS", "2")))
@@ -157,17 +160,22 @@ class _ChainClient:
         return {"maxPriorityFeePerGas": prio, "maxFeePerGas": int(base) * 2 + prio}
 
     def send(self, contract: Contract, fn_name: str, args: list[Any], value_wei: int = 0) -> str:
-        fn = getattr(contract.functions, fn_name)(*args)
-        with self._nonce_lock:
-            nonce = self.w3.eth.get_transaction_count(self.signer, "pending")
-            tx = fn.build_transaction({"from": self.signer, "nonce": nonce, "chainId": self.chain_id, "value": int(value_wei), **self._fee_fields()})
-            try:
-                gas = self.w3.eth.estimate_gas(tx)
-                tx["gas"] = max(gas + 50_000, int(gas * 1.2))
-            except Exception:
-                tx["gas"] = 1_500_000
-            signed = self.w3.eth.account.sign_transaction(tx, private_key=self.account.key)
-            return self.w3.eth.send_raw_transaction(signed.rawTransaction).hex()
+        try:
+            fn = getattr(contract.functions, fn_name)(*args)
+            with self._nonce_lock:
+                nonce = self.w3.eth.get_transaction_count(self.signer, "pending")
+                tx = fn.build_transaction({"from": self.signer, "nonce": nonce, "chainId": self.chain_id, "value": int(value_wei), **self._fee_fields()})
+                try:
+                    gas = self.w3.eth.estimate_gas(tx)
+                    tx["gas"] = max(gas + 50_000, int(gas * 1.2))
+                except Exception:
+                    tx["gas"] = 1_500_000
+                signed = self.w3.eth.account.sign_transaction(tx, private_key=self.account.key)
+                return self.w3.eth.send_raw_transaction(signed.rawTransaction).hex()
+        except InvariantViolation:
+            raise
+        except Exception as exc:
+            raise InvariantViolation("CHAIN_TX_SUBMIT_FAILED", str(exc)) from exc
 
     def wait(self, tx_hash: str) -> Dict[str, Any]:
         deadline = time.time() + self.timeout_s
