@@ -6,8 +6,28 @@ import { polygon } from "wagmi/chains";
 import { MetaMaskConnector } from "wagmi/connectors/metaMask";
 import { WalletConnectConnector } from "wagmi/connectors/walletConnect";
 
+const amoyRpcUrl =
+  process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology";
+const polygonAmoy = {
+  id: 80002,
+  name: "Polygon Amoy",
+  network: "polygon-amoy",
+  nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+  rpcUrls: {
+    default: { http: [amoyRpcUrl] },
+    public: { http: [amoyRpcUrl] },
+  },
+  blockExplorers: {
+    default: { name: "PolygonScan", url: "https://amoy.polygonscan.com" },
+  },
+  testnet: true,
+} as const;
+
+const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID?.trim() ?? "0");
+const activeChain = configuredChainId === polygon.id ? polygon : (polygonAmoy as any);
+
 const { chains, publicClient, webSocketPublicClient } =
-  configureChains([polygon], [publicProvider()]);
+  configureChains([activeChain], [publicProvider()]);
 
 const walletConnectProjectIdRaw =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() ||

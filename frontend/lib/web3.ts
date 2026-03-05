@@ -28,6 +28,12 @@ export interface ChainConfig {
 }
 
 export const CHAINS: Record<number, ChainConfig> = {
+  80002: {
+    chainId: 80002,
+    name: "Polygon Amoy",
+    rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://rpc-amoy.polygon.technology",
+    blockExplorer: "https://amoy.polygonscan.com",
+  },
   8453: {
     chainId: 8453,
     name: "Base",

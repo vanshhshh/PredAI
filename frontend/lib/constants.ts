@@ -21,9 +21,9 @@
 // CHAINS
 // -------------------------------------------------------------------
 
-export const SUPPORTED_CHAIN_IDS = [8453, 137] as const;
+export const SUPPORTED_CHAIN_IDS = [80002] as const;
 
-export const DEFAULT_CHAIN_ID = 8453; // Base mainnet
+export const DEFAULT_CHAIN_ID = 80002; // Polygon Amoy
 
 // -------------------------------------------------------------------
 // MARKETS
