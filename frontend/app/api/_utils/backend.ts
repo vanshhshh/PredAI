@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = Number(process.env.BACKEND_PROXY_TIMEOUT_MS ?? 45_000);
+const MAX_RETRIES = 1;
 
 function isLocalBackendUrl(value: string): boolean {
   const normalized = value.trim().toLowerCase();
@@ -60,21 +61,34 @@ export async function proxyFetch(
   options: RequestInit,
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<Response | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    return response;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        cache: "no-store",
+      });
+
+      if (response.status >= 500 && response.status <= 504 && attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        continue;
+      }
+
+      return response;
+    } catch {
+      if (attempt >= MAX_RETRIES) {
+        return null;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+
+  return null;
 }
 
 export async function readErrorText(
