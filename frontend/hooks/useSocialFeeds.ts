@@ -211,15 +211,24 @@ export function useSocialFeeds() {
   /* ------------------------------------------------------------------ */
 
   const stakeOnArgument = useCallback(
-    async (argumentId: string, amount: number) => {
+    async (
+      argumentId: string,
+      amount: number,
+      walletAddress: string,
+      txHash?: string
+    ) => {
       setIsSpawning(true);
       setError(null);
 
       try {
-        const res = await fetch("/api/social/stake", {
+        const res = await fetch(`/api/social/arguments/${encodeURIComponent(argumentId)}/stake`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ argumentId, amount }),
+          body: JSON.stringify({
+            amount,
+            wallet_address: walletAddress,
+            tx_hash: txHash,
+          }),
         });
 
         if (!res.ok) {

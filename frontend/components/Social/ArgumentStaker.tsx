@@ -16,9 +16,15 @@ interface ArgumentStakerProps {
   items: Argument[];
   onStake?: (payload: { argumentId: string; amount: number }) => Promise<void>;
   isConnected: boolean;
+  onRequestConnect?: () => void;
 }
 
-export function ArgumentStaker({ items, onStake, isConnected }: ArgumentStakerProps) {
+export function ArgumentStaker({
+  items,
+  onStake,
+  isConnected,
+  onRequestConnect,
+}: ArgumentStakerProps) {
   if (!items?.length) {
     return (
       <div className="ui-card-soft rounded-xl p-4 text-sm text-slate-300">
@@ -35,6 +41,7 @@ export function ArgumentStaker({ items, onStake, isConnected }: ArgumentStakerPr
           argument={argument}
           onStake={onStake}
           isConnected={isConnected}
+          onRequestConnect={onRequestConnect}
         />
       ))}
     </div>
@@ -45,26 +52,37 @@ function ArgumentCard({
   argument,
   onStake,
   isConnected,
+  onRequestConnect,
 }: {
   argument: Argument;
   onStake?: (payload: { argumentId: string; amount: number }) => Promise<void>;
   isConnected: boolean;
+  onRequestConnect?: () => void;
 }) {
   const [amount, setAmount] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const confidencePercent = Math.round(argument.confidence * 100);
 
   async function handleStake() {
-    if (!onStake || amount <= 0) return;
+    if (!isConnected || !onStake) {
+      onRequestConnect?.();
+      return;
+    }
+    if (amount <= 0) return;
 
     try {
+      setSubmitError(null);
       setIsSubmitting(true);
       await onStake({
         argumentId: argument.argumentId,
         amount,
       });
       setAmount(0);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to submit stake";
+      setSubmitError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -98,7 +116,7 @@ function ArgumentCard({
         </p>
       )}
 
-      {!argument.resolved && isConnected && onStake && (
+      {!argument.resolved && (
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="number"
@@ -106,16 +124,17 @@ function ArgumentCard({
             value={amount}
             onChange={(event) => setAmount(Number(event.target.value))}
             className="ui-input"
-            placeholder="Stake amount"
+            placeholder={isConnected ? "Stake amount" : "Connect wallet first"}
             aria-label="Stake amount"
+            disabled={!isConnected || isSubmitting}
           />
           <button
             type="button"
             onClick={() => void handleStake()}
-            disabled={isSubmitting || amount <= 0}
+            disabled={isConnected ? isSubmitting || amount <= 0 : false}
             className="ui-btn ui-btn-primary sm:min-w-[110px]"
           >
-            Stake
+            {isConnected ? (isSubmitting ? "Staking..." : "Stake") : "Connect wallet to stake"}
           </button>
         </div>
       )}
@@ -123,6 +142,8 @@ function ArgumentCard({
       {!isConnected && !argument.resolved && (
         <p className="mt-3 text-xs text-slate-400">Connect a wallet to stake on this argument.</p>
       )}
+
+      {submitError && <p className="mt-3 text-xs text-rose-300">{submitError}</p>}
 
       {isSubmitting && <LoadingSpinner label="Submitting stake..." size="sm" />}
     </article>

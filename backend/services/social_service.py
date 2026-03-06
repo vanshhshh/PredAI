@@ -321,6 +321,37 @@ class SocialService:
         )
 
     # ------------------------------------------------------------------
+    # ARGUMENT STAKING
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def stake_argument(
+        *,
+        argument_id: str,
+        amount: int,
+        wallet_address: str,
+        tx_hash: str | None = None,
+    ):
+        if not argument_id.strip():
+            raise InvariantViolation("INVALID_ARGUMENT_ID")
+        if amount <= 0:
+            raise InvariantViolation("INVALID_STAKE_AMOUNT")
+
+        normalized_wallet = wallet_address.strip().lower()
+        if not normalized_wallet.startswith("0x") or len(normalized_wallet) != 42:
+            raise InvariantViolation("INVALID_WALLET_ADDRESS")
+
+        if tx_hash:
+            normalized_hash = tx_hash.strip().lower()
+            if not normalized_hash.startswith("0x") or len(normalized_hash) != 66:
+                raise InvariantViolation("INVALID_TX_HASH")
+
+        return await SocialRepository.apply_signal_stake(
+            event_id=argument_id,
+            amount=amount,
+        )
+
+    # ------------------------------------------------------------------
     # HELPERS
     # ------------------------------------------------------------------
 

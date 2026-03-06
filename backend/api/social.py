@@ -7,13 +7,15 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from datetime import datetime, timedelta, timezone
 
 import httpx
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from backend.core.config import settings
 from backend.persistence.repositories.social_repo import SocialRepository
+from backend.security.auth import get_current_user
 from backend.security.invariants import InvariantViolation
 from backend.services.market_service import MarketService
 from backend.services.social_service import SocialService
@@ -25,6 +27,12 @@ router = APIRouter()
 class StakeRequest(BaseModel):
     argumentId: str
     amount: int = Field(..., gt=0)
+
+
+class ArgumentStakeRequest(BaseModel):
+    amount: int = Field(..., gt=0)
+    wallet_address: str = Field(..., min_length=42, max_length=42)
+    tx_hash: str | None = None
 
 
 class SpawnRequest(BaseModel):
@@ -42,6 +50,71 @@ class IngestRequest(BaseModel):
     content: str
     timestamp: int = Field(..., gt=0)
     metadata: dict = Field(default_factory=dict)
+
+
+def _normalize_confidence(value: object) -> float:
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        confidence = 0.5
+
+    if confidence > 1.0 and confidence <= 100:
+        confidence = confidence / 100
+
+    return max(0.0, min(1.0, confidence))
+
+
+def _normalize_initial_odds(value: object) -> dict[str, float]:
+    yes = 0.5
+    no = 0.5
+
+    if isinstance(value, dict):
+        raw_yes = value.get("yes", yes)
+        raw_no = value.get("no", no)
+        try:
+            yes = float(raw_yes)
+        except (TypeError, ValueError):
+            yes = 0.5
+        try:
+            no = float(raw_no)
+        except (TypeError, ValueError):
+            no = 0.5
+
+    if yes > 1.0 and no > 1.0:
+        total = yes + no
+        if total > 0:
+            yes = yes / total
+            no = no / total
+    else:
+        total = yes + no
+        if total > 0:
+            yes = yes / total
+            no = no / total
+        else:
+            yes, no = 0.5, 0.5
+
+    return {
+        "yes": round(max(0.0, min(1.0, yes)), 4),
+        "no": round(max(0.0, min(1.0, no)), 4),
+    }
+
+
+def _normalize_end_date(value: object) -> str:
+    default_end_date = datetime.now(timezone.utc) + timedelta(days=21)
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(value), tz=timezone.utc).isoformat()
+        except (ValueError, OSError):
+            return default_end_date.isoformat()
+
+    if isinstance(value, str) and value.strip():
+        candidate = value.strip().replace("Z", "+00:00")
+        try:
+            return datetime.fromisoformat(candidate).astimezone(timezone.utc).isoformat()
+        except ValueError:
+            return default_end_date.isoformat()
+
+    return default_end_date.isoformat()
 
 
 @router.post("/ingest", status_code=status.HTTP_201_CREATED)
@@ -109,6 +182,37 @@ async def stake_argument(req: StakeRequest):
     }
 
 
+@router.post("/arguments/{argument_id}/stake")
+async def stake_argument_for_market(
+    argument_id: str,
+    req: ArgumentStakeRequest,
+    user=Depends(get_current_user),
+):
+    wallet_address = req.wallet_address.strip().lower()
+    if wallet_address != user.address.lower():
+        raise HTTPException(status_code=403, detail="WALLET_MISMATCH")
+
+    try:
+        updated = await SocialService.stake_argument(
+            argument_id=argument_id,
+            amount=req.amount,
+            wallet_address=wallet_address,
+            tx_hash=req.tx_hash,
+        )
+    except InvariantViolation as exc:
+        raise HTTPException(status_code=400, detail=exc.to_dict())
+
+    if not updated:
+        raise HTTPException(status_code=404, detail="ARGUMENT_NOT_FOUND")
+
+    return {
+        "status": "staked",
+        "argumentId": updated.event_id,
+        "wallet_address": wallet_address,
+        "signalScore": round(int(updated.signal_score_bps) / 10_000, 4),
+    }
+
+
 @router.post("/spawn")
 async def spawn_market(req: SpawnRequest):
     event = await SocialRepository.get_event(req.feedId)
@@ -154,9 +258,11 @@ async def compile_prompt(req: CompileRequest):
 
     prompt = req.prompt.strip()
     system = (
-        "Convert a social trading prompt into a prediction market spec JSON. "
-        "Return strict JSON with keys: title, description, resolutionSource, "
-        "resolutionTime, outcomes, confidence."
+        "Convert a social trading prompt into a prediction market spec. "
+        "Return strict JSON with keys: title, description, resolution_criteria, "
+        "category, end_date, initial_odds, confidence. "
+        "initial_odds must be an object: {\"yes\": number, \"no\": number}. "
+        "confidence must be 0..1."
     )
 
     payload = {
@@ -193,11 +299,23 @@ async def compile_prompt(req: CompileRequest):
             detail="SOCIAL_COMPILE_FAILED",
         ) from exc
 
-    compiled.setdefault("title", prompt[:120])
-    compiled.setdefault("description", prompt)
-    compiled.setdefault("resolutionSource", "Oracle committee")
-    compiled.setdefault("resolutionTime", int(time.time()) + 21 * 24 * 60 * 60)
-    compiled.setdefault("outcomes", ["YES", "NO"])
-    compiled["confidence"] = float(compiled.get("confidence", 0.5))
+    title = str(compiled.get("title") or prompt[:120]).strip() or prompt[:120]
+    description = str(compiled.get("description") or prompt).strip() or prompt
+    resolution_criteria = (
+        str(compiled.get("resolution_criteria") or "").strip()
+        or "Resolves YES if the stated condition is true at end date; otherwise NO."
+    )
+    category = str(compiled.get("category") or "General").strip() or "General"
+    end_date = _normalize_end_date(compiled.get("end_date"))
+    initial_odds = _normalize_initial_odds(compiled.get("initial_odds"))
+    confidence = _normalize_confidence(compiled.get("confidence"))
 
-    return compiled
+    return {
+        "title": title,
+        "description": description,
+        "resolution_criteria": resolution_criteria,
+        "category": category,
+        "end_date": end_date,
+        "initial_odds": initial_odds,
+        "confidence": confidence,
+    }

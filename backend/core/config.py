@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     # -------------------------------------------------
     ALCHEMY_API_KEY: str
     CHAIN_ID: int = 137  # Polygon mainnet default
+    # Set NEXT_PUBLIC_CHAIN_ID=80002 and ALLOW_TESTNET=true for testnet
+    # Set NEXT_PUBLIC_CHAIN_ID=137 and ALLOW_TESTNET=false for mainnet
+    ALLOW_TESTNET: bool = os.getenv("ALLOW_TESTNET", "true").lower() == "true"
     RPC_URL: str
     CHAIN_SIGNER_PRIVATE_KEY: Optional[str] = None
     MARKET_CREATION_BOND_WEI: int = 0
@@ -106,7 +109,7 @@ def _validate_production_settings(cfg: Settings) -> None:
 
     errors: list[str] = []
 
-    if cfg.CHAIN_ID == 80002:
+    if not cfg.ALLOW_TESTNET and cfg.CHAIN_ID == 80002:
         errors.append("CHAIN_ID_TESTNET_DISALLOWED")
     if _is_local_url(cfg.BASE_URL):
         errors.append("BASE_URL_LOCALHOST_DISALLOWED")

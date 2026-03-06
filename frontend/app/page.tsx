@@ -1,6 +1,63 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type PlatformStats = {
+  total_markets: number | null;
+  total_wallets: number | null;
+  total_bets: number | null;
+  total_agents: number | null;
+};
+
+const EMPTY_STATS: PlatformStats = {
+  total_markets: null,
+  total_wallets: null,
+  total_bets: null,
+  total_agents: null,
+};
 
 export default function LandingPage() {
+  const [stats, setStats] = useState<PlatformStats>(EMPTY_STATS);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadStats() {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/stats", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("Stats unavailable");
+        }
+        const payload = (await response.json()) as Partial<Record<keyof PlatformStats, unknown>>;
+        if (!active) return;
+
+        setStats({
+          total_markets:
+            typeof payload.total_markets === "number" ? payload.total_markets : null,
+          total_wallets:
+            typeof payload.total_wallets === "number" ? payload.total_wallets : null,
+          total_bets: typeof payload.total_bets === "number" ? payload.total_bets : null,
+          total_agents: typeof payload.total_agents === "number" ? payload.total_agents : null,
+        });
+      } catch {
+        if (!active) return;
+        setStats(EMPTY_STATS);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadStats();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <main className="relative overflow-hidden pb-14">
       <section className="page-container pt-14 sm:pt-20">
@@ -28,10 +85,10 @@ export default function LandingPage() {
             </div>
 
             <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
-              <Metric label="Markets" value="500+" />
-              <Metric label="Agents" value="120+" />
-              <Metric label="Vaults" value="18" />
-              <Metric label="Settlement" value="<30m" />
+              <Metric label="Markets Created" value={stats.total_markets} isLoading={isLoading} />
+              <Metric label="Wallets Connected" value={stats.total_wallets} isLoading={isLoading} />
+              <Metric label="Bets Placed" value={stats.total_bets} isLoading={isLoading} />
+              <Metric label="Active Agents" value={stats.total_agents} isLoading={isLoading} />
             </div>
           </div>
 
@@ -98,11 +155,26 @@ export default function LandingPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  isLoading,
+}: {
+  label: string;
+  value: number | null;
+  isLoading: boolean;
+}) {
+  const displayValue =
+    typeof value === "number" ? new Intl.NumberFormat("en-US").format(value) : "—";
+
   return (
     <div className="ui-stat">
       <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
+      {isLoading ? (
+        <div className="mt-1 h-7 w-20 animate-pulse rounded-md bg-slate-700/50" />
+      ) : (
+        <p className="mt-1 text-xl font-semibold text-slate-100">{displayValue}</p>
+      )}
     </div>
   );
 }

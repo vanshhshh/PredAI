@@ -6,6 +6,8 @@ import { polygon } from "wagmi/chains";
 import { MetaMaskConnector } from "wagmi/connectors/metaMask";
 import { WalletConnectConnector } from "wagmi/connectors/walletConnect";
 
+import { DEFAULT_CHAIN_ID } from "../lib/constants";
+
 const amoyRpcUrl =
   process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology";
 const polygonAmoy = {
@@ -23,8 +25,7 @@ const polygonAmoy = {
   testnet: true,
 } as const;
 
-const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID?.trim() ?? "0");
-const activeChain = configuredChainId === polygon.id ? polygon : (polygonAmoy as any);
+const activeChain = DEFAULT_CHAIN_ID === polygon.id ? polygon : (polygonAmoy as any);
 
 const { chains, publicClient, webSocketPublicClient } =
   configureChains([activeChain], [publicProvider()]);

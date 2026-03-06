@@ -21,9 +21,13 @@
 // CHAINS
 // -------------------------------------------------------------------
 
-export const SUPPORTED_CHAIN_IDS = [80002] as const;
+export const SUPPORTED_CHAIN_IDS = [80002, 137] as const;
 
-export const DEFAULT_CHAIN_ID = 80002; // Polygon Amoy
+// Set NEXT_PUBLIC_CHAIN_ID=80002 and ALLOW_TESTNET=true for testnet
+// Set NEXT_PUBLIC_CHAIN_ID=137 and ALLOW_TESTNET=false for mainnet
+export const DEFAULT_CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID
+  ? parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10)
+  : 80002;
 
 // -------------------------------------------------------------------
 // MARKETS

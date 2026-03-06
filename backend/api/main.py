@@ -31,6 +31,7 @@ from backend.api.markets import router as markets_router
 from backend.api.oracles import router as oracles_router
 from backend.api.rwa import router as rwa_router
 from backend.api.social import router as social_router
+from backend.api.stats import router as stats_router
 from backend.api.users import router as users_router
 from backend.api.yield_api import router as yield_router
 from backend.persistence.db import close_db, init_db, ping_db
@@ -133,6 +134,7 @@ app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(ai_router, prefix="/ai", tags=["ai"])
 app.include_router(social_router, prefix="/social", tags=["social"])
 app.include_router(rwa_router, prefix="/rwa", tags=["rwa"])
+app.include_router(stats_router, prefix="/api", tags=["stats"])
 
 
 @app.exception_handler(InvariantViolation)
