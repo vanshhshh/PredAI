@@ -20,7 +20,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /* ------------------------------------------------------------------ */
 /* TYPES */
@@ -43,17 +43,24 @@ export interface SocialFeedItem {
 export function useSocialFeeds() {
   const [feeds, setFeeds] = useState<SocialFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isSpawning, setIsSpawning] = useState<boolean>(false);
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoadedRef = useRef(false);
 
   /* ------------------------------------------------------------------ */
   /* FETCH FEEDS */
   /* ------------------------------------------------------------------ */
 
   const fetchFeeds = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    const initialLoad = !hasLoadedRef.current;
+    if (initialLoad) {
+      setIsLoading(true);
+      setError(null);
+    } else {
+      setIsRefreshing(true);
+    }
 
     try {
       const res = await fetch("/api/social/feeds", {
@@ -66,10 +73,16 @@ export function useSocialFeeds() {
 
       const data = await res.json();
       setFeeds(data.feeds ?? data);
+      setError(null);
     } catch (err) {
       setError(err as Error);
     } finally {
-      setIsLoading(false);
+      hasLoadedRef.current = true;
+      if (initialLoad) {
+        setIsLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   }, []);
 
@@ -199,6 +212,7 @@ export function useSocialFeeds() {
     argumentsFeed,
 
     isLoading,
+    isRefreshing,
     isSpawning,
     isCompiling,
     error,

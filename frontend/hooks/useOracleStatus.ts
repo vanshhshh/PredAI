@@ -64,10 +64,10 @@ export function useOracleStatus(marketId?: string) {
     const initialLoad = !hasLoadedRef.current;
     if (initialLoad) {
       setIsLoading(true);
+      setError(null);
     } else {
       setIsRefreshing(true);
     }
-    setError(null);
 
     try {
       const res = await fetch(
@@ -88,6 +88,7 @@ export function useOracleStatus(marketId?: string) {
 
       const data = await res.json();
       setStatus(data);
+      setError(null);
     } catch (err) {
       setError(err as Error);
     } finally {

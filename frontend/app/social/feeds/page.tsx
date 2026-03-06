@@ -19,9 +19,9 @@ export default function SocialFeedsPage() {
 
 function SocialFeedsContent() {
   const { isConnected } = useWallet();
-  const { feeds, isLoading, error, spawnMarketFromFeed } = useSocialFeeds();
+  const { feeds, isLoading, isRefreshing, error, spawnMarketFromFeed } = useSocialFeeds();
 
-  if (isLoading) {
+  if (isLoading && !feeds?.length) {
     return (
       <section className="page-container py-14">
         <LoadingSpinner label="Initializing signal monitoring..." />
@@ -29,7 +29,7 @@ function SocialFeedsContent() {
     );
   }
 
-  if (error) {
+  if (error && !feeds?.length) {
     return (
       <section className="page-container py-14">
         <MessageCard title="Social stream unavailable" message={error.message} tone="error" />
@@ -62,7 +62,16 @@ function SocialFeedsContent() {
           Track live social events, inspect AI confidence, and spawn markets from
           high-signal narratives.
         </p>
+        <p className="mt-3 text-xs text-slate-400">
+          {isRefreshing ? "Refreshing feed..." : "Live polling every 15 seconds."}
+        </p>
       </header>
+
+      {error && (
+        <section className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-100">
+          Feed refresh failed: {error.message}. Showing last known data.
+        </section>
+      )}
 
       <section className="grid gap-3 md:grid-cols-3">
         <StatCard label="Active Feeds" value={feeds.length.toString()} />
