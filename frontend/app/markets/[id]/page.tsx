@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
+import { useMemo } from "react";
 
 import { BetForm } from "../../../components/Market/BetForm";
 import { LiquidityChart } from "../../../components/Market/LiquidityChart";
@@ -21,7 +22,20 @@ export default function MarketPage() {
 
 function MarketContent() {
   const params = useParams();
-  const marketId = params?.id as string | undefined;
+  const marketIdRaw = params?.id as string | undefined;
+  const marketIdCandidates = useMemo(() => {
+    const raw = String(marketIdRaw ?? "").trim();
+    if (!raw) return [] as string[];
+
+    const decoded = decodeURIComponent(raw);
+    const candidates = new Set<string>([decoded]);
+    if (decoded.endsWith(".")) {
+      candidates.add(decoded.slice(0, -1));
+    } else {
+      candidates.add(`${decoded}.`);
+    }
+    return Array.from(candidates).filter((value) => value.length > 0);
+  }, [marketIdRaw]);
 
   const {
     markets,
@@ -29,13 +43,20 @@ function MarketContent() {
     error: marketsError,
   } = useMarkets();
 
+  const market = useMemo(() => {
+    if (marketIdCandidates.length === 0) return undefined;
+    return markets.find((item) => marketIdCandidates.includes(item.marketId));
+  }, [marketIdCandidates, markets]);
+
+  const oracleMarketId = market?.marketId ?? marketIdCandidates[0] ?? "";
+
   const {
     status: oracleStatus,
     isLoading: oracleLoading,
     error: oracleError,
-  } = useOracleStatus(marketId ?? "");
+  } = useOracleStatus(oracleMarketId);
 
-  if (!marketId) {
+  if (!marketIdRaw) {
     return (
       <section className="page-container py-14">
         <ErrorState title="Invalid market" message="Missing market identifier." />
@@ -67,7 +88,6 @@ function MarketContent() {
     );
   }
 
-  const market = markets.find((item) => item.marketId === marketId);
   if (!market) {
     return (
       <section className="page-container py-14">
