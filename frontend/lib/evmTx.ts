@@ -50,12 +50,109 @@ export const contractAddresses: AddressConfig = {
   ),
 };
 
+type AddEthereumChainParam = {
+  chainId: string;
+  chainName: string;
+  nativeCurrency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  rpcUrls: string[];
+  blockExplorerUrls?: string[];
+};
+
+function chainParamsFor(chainId: bigint): AddEthereumChainParam | null {
+  const id = Number(chainId);
+  if (id === 80002) {
+    const rpcUrl =
+      process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology";
+    return {
+      chainId: "0x13882",
+      chainName: "Polygon Amoy",
+      nativeCurrency: {
+        name: "POL",
+        symbol: "POL",
+        decimals: 18,
+      },
+      rpcUrls: [rpcUrl],
+      blockExplorerUrls: ["https://amoy.polygonscan.com"],
+    };
+  }
+  if (id === 137) {
+    return {
+      chainId: "0x89",
+      chainName: "Polygon",
+      nativeCurrency: {
+        name: "POL",
+        symbol: "POL",
+        decimals: 18,
+      },
+      rpcUrls: ["https://polygon-rpc.com"],
+      blockExplorerUrls: ["https://polygonscan.com"],
+    };
+  }
+  return null;
+}
+
 function parseExpectedChainId(): bigint | null {
   const raw = process.env.NEXT_PUBLIC_CHAIN_ID?.trim();
   if (!raw) return null;
   const value = Number(raw);
   if (!Number.isInteger(value) || value <= 0) return null;
   return BigInt(value);
+}
+
+async function ensureExpectedChain(
+  provider: ethers.BrowserProvider,
+  expectedChainId: bigint
+): Promise<void> {
+  const network = await provider.getNetwork();
+  if (network.chainId === expectedChainId) {
+    return;
+  }
+
+  const ethereum = (window as { ethereum?: ethers.Eip1193Provider }).ethereum;
+  if (!ethereum) {
+    throw new Error("Wallet not detected");
+  }
+
+  const chainHex = `0x${expectedChainId.toString(16)}`;
+  try {
+    await ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: chainHex }],
+    });
+  } catch (switchErr) {
+    const code = Number((switchErr as { code?: unknown })?.code ?? 0);
+    if (code === 4902) {
+      const params = chainParamsFor(expectedChainId);
+      if (!params) {
+        throw new Error(
+          `Unsupported configured chain ${expectedChainId.toString()} in wallet`
+        );
+      }
+      await ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [params],
+      });
+      await ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: chainHex }],
+      });
+    } else {
+      throw new Error(
+        `Please switch wallet to chain ${expectedChainId.toString()} and retry`
+      );
+    }
+  }
+
+  const updated = await provider.getNetwork();
+  if (updated.chainId !== expectedChainId) {
+    throw new Error(
+      `Wrong network connected (expected chain ${expectedChainId.toString()})`
+    );
+  }
 }
 
 function normalizeAddress(label: string, value: string): string {
@@ -85,12 +182,7 @@ export async function sendContractTx(input: ContractTxInput): Promise<string> {
   const provider = new ethers.BrowserProvider(ethereum);
   const expectedChainId = parseExpectedChainId();
   if (expectedChainId !== null) {
-    const network = await provider.getNetwork();
-    if (network.chainId !== expectedChainId) {
-      throw new Error(
-        `Wrong network connected (expected chain ${expectedChainId.toString()})`
-      );
-    }
+    await ensureExpectedChain(provider, expectedChainId);
   }
 
   const signer = await provider.getSigner();
