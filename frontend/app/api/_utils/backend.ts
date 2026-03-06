@@ -95,9 +95,46 @@ export async function readErrorText(
   response: Response,
   fallback: string
 ): Promise<string> {
+  function extractErrorMessage(payload: unknown, depth = 0): string | null {
+    if (depth > 4 || payload === null || payload === undefined) return null;
+
+    if (typeof payload === "string") {
+      const trimmed = payload.trim();
+      if (!trimmed) return null;
+
+      if (
+        (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+        (trimmed.startsWith("[") && trimmed.endsWith("]"))
+      ) {
+        try {
+          const parsed = JSON.parse(trimmed) as unknown;
+          return extractErrorMessage(parsed, depth + 1) ?? trimmed;
+        } catch {
+          return trimmed;
+        }
+      }
+      return trimmed;
+    }
+
+    if (typeof payload !== "object") return null;
+    const record = payload as Record<string, unknown>;
+
+    return (
+      extractErrorMessage(record.error, depth + 1) ??
+      extractErrorMessage(record.detail, depth + 1) ??
+      extractErrorMessage(record.message, depth + 1)
+    );
+  }
+
   try {
     const text = await response.text();
-    return text || fallback;
+    if (!text) return fallback;
+    try {
+      const parsed = JSON.parse(text) as unknown;
+      return extractErrorMessage(parsed) ?? fallback;
+    } catch {
+      return extractErrorMessage(text) ?? fallback;
+    }
   } catch {
     return fallback;
   }

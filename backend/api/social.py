@@ -122,7 +122,7 @@ async def spawn_market(req: SpawnRequest):
             ),
         )
     except InvariantViolation as exc:
-        raise HTTPException(status_code=400, detail=exc.message)
+        raise HTTPException(status_code=400, detail=exc.to_dict())
 
     return {
         "status": "spawned",

@@ -36,6 +36,45 @@ export interface SocialFeedItem {
   marketEligible?: boolean;
 }
 
+function extractApiErrorMessage(payload: unknown, depth = 0): string | null {
+  if (depth > 4 || payload === null || payload === undefined) return null;
+
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    if (!trimmed) return null;
+    if (
+      (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+      (trimmed.startsWith("[") && trimmed.endsWith("]"))
+    ) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        return extractApiErrorMessage(parsed, depth + 1) ?? trimmed;
+      } catch {
+        return trimmed;
+      }
+    }
+    return trimmed;
+  }
+
+  if (typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+
+  return (
+    extractApiErrorMessage(record.error, depth + 1) ??
+    extractApiErrorMessage(record.detail, depth + 1) ??
+    extractApiErrorMessage(record.message, depth + 1)
+  );
+}
+
+async function readApiError(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = (await response.json()) as unknown;
+    return extractApiErrorMessage(payload) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* HOOK */
 /* ------------------------------------------------------------------ */
@@ -122,8 +161,7 @@ export function useSocialFeeds() {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Market spawn failed");
+          throw new Error(await readApiError(res, "Market spawn failed"));
         }
 
         await fetchFeeds();
@@ -154,8 +192,7 @@ export function useSocialFeeds() {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Stake failed");
+          throw new Error(await readApiError(res, "Stake failed"));
         }
 
         await fetchFeeds();
@@ -186,10 +223,7 @@ export function useSocialFeeds() {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(
-            text || "Prompt compilation failed"
-          );
+          throw new Error(await readApiError(res, "Prompt compilation failed"));
         }
 
         return await res.json();

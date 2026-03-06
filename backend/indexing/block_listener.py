@@ -41,12 +41,35 @@ _REVERT_SELECTOR_ERRORS: Dict[str, str] = {
     "0x5a483ae3": "INSUFFICIENT_CREATION_BOND",
 }
 
+_INSUFFICIENT_FUNDS_MARKERS = (
+    "insufficient funds",
+    "insufficient balance",
+    "not enough funds",
+)
+
 
 def _extract_revert_selector(exc: Exception) -> Optional[str]:
     for arg in getattr(exc, "args", ()):
         if isinstance(arg, str) and arg.startswith("0x") and len(arg) >= 10:
             return arg[:10].lower()
     return None
+
+
+def _contains_insufficient_funds_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    if any(marker in text for marker in _INSUFFICIENT_FUNDS_MARKERS):
+        return True
+
+    for arg in getattr(exc, "args", ()):
+        if isinstance(arg, str) and any(marker in arg.lower() for marker in _INSUFFICIENT_FUNDS_MARKERS):
+            return True
+        if isinstance(arg, dict):
+            for value in arg.values():
+                if isinstance(value, str) and any(
+                    marker in value.lower() for marker in _INSUFFICIENT_FUNDS_MARKERS
+                ):
+                    return True
+    return False
 
 
 def _camel_to_snake(text: str) -> str:
@@ -191,11 +214,33 @@ class _ChainClient:
                     tx["gas"] = max(gas + 50_000, int(gas * 1.2))
                 except Exception:
                     tx["gas"] = 1_500_000
+
+                gas_price = int(tx.get("maxFeePerGas") or tx.get("gasPrice") or 0)
+                required_wei = int(value_wei) + int(tx["gas"]) * gas_price
+                signer_balance = int(self.w3.eth.get_balance(self.signer))
+                if signer_balance < required_wei:
+                    raise InvariantViolation(
+                        "CHAIN_SIGNER_INSUFFICIENT_FUNDS",
+                        (
+                            f"Relayer wallet {self.signer} has {signer_balance} wei, "
+                            f"but needs at least {required_wei} wei (value + max gas). "
+                            "Fund the signer wallet and retry."
+                        ),
+                    )
+
                 signed = self.w3.eth.account.sign_transaction(tx, private_key=self.account.key)
                 return self.w3.eth.send_raw_transaction(signed.rawTransaction).hex()
         except InvariantViolation:
             raise
         except Exception as exc:
+            if _contains_insufficient_funds_error(exc):
+                raise InvariantViolation(
+                    "CHAIN_SIGNER_INSUFFICIENT_FUNDS",
+                    (
+                        f"Relayer wallet {self.signer} has insufficient native token for "
+                        "gas/value transfer. Fund the signer wallet and retry."
+                    ),
+                ) from exc
             selector = _extract_revert_selector(exc)
             if selector and selector in _REVERT_SELECTOR_ERRORS:
                 raise InvariantViolation(_REVERT_SELECTOR_ERRORS[selector]) from exc
