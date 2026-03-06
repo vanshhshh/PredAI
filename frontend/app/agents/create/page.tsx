@@ -11,7 +11,7 @@ import { useWallet } from "../../../hooks/useWallet";
 export default function CreateAgentPage() {
   const router = useRouter();
   const { isConnected } = useWallet();
-  const { createAgent, isMutating, error } = useAgents();
+  const { createAgent, myAgents, isMutating, error } = useAgents();
 
   const [name, setName] = useState("");
   const [riskTolerance, setRiskTolerance] = useState<number>(5);
@@ -24,6 +24,17 @@ export default function CreateAgentPage() {
         <CenteredState
           title="Wallet not connected"
           message="Connect your wallet to create and own a trading agent."
+        />
+      </section>
+    );
+  }
+
+  if (myAgents.length > 0) {
+    return (
+      <section className="page-container py-14">
+        <CenteredState
+          title="Agent limit reached"
+          message="This protocol deployment currently supports one agent per wallet."
         />
       </section>
     );

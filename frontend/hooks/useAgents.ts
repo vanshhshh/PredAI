@@ -148,6 +148,10 @@ export function useAgents() {
       setError(null);
 
       try {
+        if (myAgents.length > 0) {
+          throw new Error("Only one agent per wallet is currently supported.");
+        }
+
         const agentId = slugifyAgentId(input.name);
         const metadataUri =
           input.metadataUri?.trim() ||
@@ -192,7 +196,7 @@ export function useAgents() {
         setIsMutating(false);
       }
     },
-    [fetchAgents]
+    [fetchAgents, myAgents]
   );
 
   // ------------------------------------------------------------------
