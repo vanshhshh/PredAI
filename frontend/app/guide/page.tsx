@@ -1,168 +1,133 @@
-// File: frontend/app/guide/page.tsx
-
-/**
- * PURPOSE
- * -------
- * User explainer / product guide.
- *
- * This page explains:
- * - what the platform does
- * - what users can do at each level
- * - how AI, markets, agents, yield, and governance connect
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No marketing fluff
- * - Clear mental models
- * - Non-crypto-friendly language
- * - Global-first (India, US, EU)
- * - Read-only informational page
- */
-
-// File: frontend/app/guide/page.tsx
-
 "use client";
-
-import React from "react";
 
 export default function GuidePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
-      <div className="max-w-6xl mx-auto px-6 py-16 space-y-24">
+    <main className="page-container space-y-6 py-8">
+      <header className="ui-card p-6">
+        <p className="ui-kicker">Platform Guide</p>
+        <h1 className="mt-1 text-3xl font-semibold text-white">What You Can Do on PredAI</h1>
+        <p className="mt-2 max-w-3xl text-sm text-slate-300">
+          PredAI is a non-custodial prediction and yield platform. You control capital in your
+          wallet while AI and protocol logic handle strategy and execution workflows.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Tag label="Prediction Markets" />
+          <Tag label="AI Agents" />
+          <Tag label="Yield Optimization" />
+          <Tag label="Governance" />
+        </div>
+      </header>
 
-        {/* Hero */}
-        <section className="space-y-6 max-w-4xl">
-          <h1 className="text-4xl font-bold tracking-tight leading-tight">
-            What You Can Do on PredAI
-          </h1>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Access Model" value="Wallet-First" />
+        <StatCard label="Custody" value="Non-Custodial" />
+        <StatCard label="Execution" value="On-Chain" />
+        <StatCard label="Control" value="User-Owned" />
+      </section>
 
-          <p className="text-lg text-neutral-600">
-            PredAI is a non-custodial AI-powered prediction and yield ecosystem.
-            You control capital. AI optimizes execution. Markets remain transparent.
-          </p>
-
-          <div className="flex flex-wrap gap-4 pt-4 text-sm text-neutral-500">
-            <span>Prediction Markets</span>
-            <span>•</span>
-            <span>AI Agents</span>
-            <span>•</span>
-            <span>Yield Optimization</span>
-            <span>•</span>
-            <span>Governance</span>
-          </div>
-        </section>
-
-        {/* Section Blocks */}
+      <section className="space-y-4">
         <FeatureBlock
           number="01"
           title="Instant Access (No Accounts)"
-          description="Your wallet is your identity. No passwords. No custody."
+          description="Your wallet is your identity. No passwords and no custodial lock-in."
           points={[
             "Connect MetaMask, Phantom, or WalletConnect",
-            "Optional fiat on-ramps (UPI, cards, bank)",
-            "Funds always remain in your wallet",
+            "Optional fiat on-ramp integrations",
+            "Funds remain in your wallet",
           ]}
         />
-
         <FeatureBlock
           number="02"
-          title="Bet on Real-World & Crypto Events"
-          description="Express belief with capital through prediction markets."
+          title="Bet on Real-World and Crypto Events"
+          description="Express conviction by taking positions in outcome-based markets."
           points={[
-            "Binary and multi-outcome markets",
-            "Live AI-adjusted odds",
-            "Fast oracle-based settlement",
-            "Global markets: crypto, politics, sports",
+            "Binary and multi-outcome market structures",
+            "Real-time probabilities and order flow",
+            "Oracle-driven settlement lifecycle",
+            "Coverage across crypto, macro, and public events",
           ]}
         />
-
         <FeatureBlock
           number="03"
           title="Own AI Agents That Trade For You"
-          description="Autonomous strategies you can create, own, or acquire."
+          description="Deploy autonomous agents to run strategy logic continuously."
           points={[
-            "Agents are NFTs",
-            "Configure risk and exposure",
-            "Market-making, arbitrage, directional strategies",
-            "Earn based on performance",
+            "Agent ownership represented on-chain",
+            "Risk and exposure controls per strategy",
+            "Support for directional and market-making patterns",
+            "Performance and activity tracking",
           ]}
         />
-
         <FeatureBlock
           number="04"
           title="Turn Ideas into Markets"
-          description="Create markets from prompts and conversations."
+          description="Convert social or research signals into market proposals."
           points={[
-            "Convert plain text into tradable markets",
-            "Spawn markets from trends",
-            "Stake on reasoning and theses",
-            "Earn from accurate insights",
+            "Prompt-to-market workflow",
+            "Spawn market drafts from validated signals",
+            "Structure market metadata and resolution criteria",
+            "Publish through protocol governance rules",
           ]}
         />
-
         <FeatureBlock
           number="05"
           title="Earn Yield on Idle Capital"
-          description="AI routes unused funds into optimized yield strategies."
+          description="Allocate inactive capital through optimizer-guided vault routing."
           points={[
-            "Automated portfolio allocation",
-            "Risk-adjusted strategies",
-            "Rebalancing logic",
-            "Cross-market arbitrage",
+            "Automated allocation and rebalancing",
+            "Risk-adjusted strategy suggestions",
+            "Vault-level exposure visibility",
+            "Portfolio-level performance monitoring",
           ]}
         />
-
         <FeatureBlock
           number="06"
           title="Decentralized Oracle Resolution"
-          description="Markets resolve via AI and consensus-driven oracle networks."
+          description="Market outcomes resolve through oracle and protocol consensus."
           points={[
-            "AI + human validation",
-            "Staking and slashing incentives",
-            "Transparent resolution logic",
-            "No single point of failure",
+            "AI-assisted evidence evaluation",
+            "Staking and slashing mechanics",
+            "Audit-friendly on-chain resolution records",
+            "No single operator dependency",
           ]}
         />
-
         <FeatureBlock
           number="07"
           title="Govern the Protocol"
-          description="Participate in shaping platform evolution."
+          description="Participate in protocol parameter changes and upgrades."
           points={[
             "Submit and vote on proposals",
-            "Modify parameters and fees",
-            "Protocol upgrades",
-            "Timelocked execution",
+            "Govern fee and risk parameters",
+            "Review upgrade payloads",
+            "Timelocked execution for transparency",
           ]}
         />
+      </section>
 
-        {/* Safety */}
-        <section className="border rounded-2xl p-10 bg-white shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">
-            Safety & Transparency
-          </h2>
+      <section className="ui-card p-5">
+        <h2 className="text-lg font-semibold text-white">Safety and Transparency</h2>
+        <ul className="mt-3 grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
+          <li className="rounded-lg border border-slate-400/20 bg-slate-900/30 p-3">
+            Non-custodial architecture
+          </li>
+          <li className="rounded-lg border border-slate-400/20 bg-slate-900/30 p-3">
+            Open contract interactions
+          </li>
+          <li className="rounded-lg border border-slate-400/20 bg-slate-900/30 p-3">
+            Risk disclosures across trading flows
+          </li>
+          <li className="rounded-lg border border-slate-400/20 bg-slate-900/30 p-3">
+            Protocol safeguards and emergency controls
+          </li>
+        </ul>
+      </section>
 
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-600 text-sm">
-            <li>Non-custodial design</li>
-            <li>Open smart contracts</li>
-            <li>Risk indicators throughout</li>
-            <li>Emergency pause safeguards</li>
-          </ul>
-        </section>
-
-        {/* Footer */}
-        <footer className="pt-10 border-t text-sm text-neutral-500">
-          PredAI is built for global participation, transparent markets, and
-          long-term sustainability.
-        </footer>
-      </div>
+      <footer className="ui-card p-5 text-sm text-slate-300">
+        PredAI is designed for transparent market infrastructure and user-owned execution.
+      </footer>
     </main>
   );
 }
-
-/* -------------------------------------------------- */
-/* Reusable Feature Block Component                  */
-/* -------------------------------------------------- */
 
 function FeatureBlock({
   number,
@@ -176,37 +141,37 @@ function FeatureBlock({
   points: string[];
 }) {
   return (
-    <section className="grid md:grid-cols-3 gap-12 items-start">
-
-      {/* Left Column */}
-      <div className="space-y-3">
-        <div className="text-sm text-neutral-400 tracking-widest">
-          {number}
+    <article className="ui-card p-5">
+      <div className="grid gap-6 md:grid-cols-3 md:items-start">
+        <div>
+          <p className="ui-kicker">Step {number}</p>
+          <h2 className="mt-1 text-xl font-semibold text-white">{title}</h2>
+          <p className="mt-2 text-sm text-slate-300">{description}</p>
         </div>
-
-        <h2 className="text-2xl font-semibold">
-          {title}
-        </h2>
-
-        <p className="text-neutral-600 text-sm leading-relaxed">
-          {description}
-        </p>
-      </div>
-
-      {/* Right Column */}
-      <div className="md:col-span-2">
-        <ul className="space-y-4 text-neutral-700">
-          {points.map((point, i) => (
+        <ul className="space-y-2 md:col-span-2">
+          {points.map((point) => (
             <li
-              key={i}
-              className="flex items-start gap-3"
+              key={`${number}-${point}`}
+              className="rounded-lg border border-slate-400/20 bg-slate-900/30 px-3 py-2 text-sm text-slate-200"
             >
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-black"></span>
-              <span>{point}</span>
+              {point}
             </li>
           ))}
         </ul>
       </div>
-    </section>
+    </article>
   );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="ui-stat">
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
+    </article>
+  );
+}
+
+function Tag({ label }: { label: string }) {
+  return <span className="ui-badge border border-sky-300/30 bg-sky-400/10 text-sky-100">{label}</span>;
 }
