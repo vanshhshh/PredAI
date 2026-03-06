@@ -20,7 +20,12 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export interface OracleSubmission {
   oracleId: string;
@@ -42,9 +47,12 @@ export function useOracleStatus(marketId?: string) {
     useState<OracleStatus | null>(null);
   const [isLoading, setIsLoading] =
     useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] =
+    useState<boolean>(false);
   const [error, setError] = useState<Error | null>(
     null
   );
+  const hasLoadedRef = useRef(false);
 
   // ------------------------------------------------------------------
   // FETCH STATUS
@@ -53,12 +61,19 @@ export function useOracleStatus(marketId?: string) {
   const fetchStatus = useCallback(async () => {
     if (!marketId) return;
 
-    setIsLoading(true);
+    const initialLoad = !hasLoadedRef.current;
+    if (initialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setError(null);
 
     try {
       const res = await fetch(
-        `/api/oracles/status?marketId=${marketId}`,
+        `/api/oracles/status?marketId=${encodeURIComponent(
+          marketId
+        )}`,
         {
           method: "GET",
           cache: "no-store",
@@ -76,8 +91,21 @@ export function useOracleStatus(marketId?: string) {
     } catch (err) {
       setError(err as Error);
     } finally {
-      setIsLoading(false);
+      hasLoadedRef.current = true;
+      if (initialLoad) {
+        setIsLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
+  }, [marketId]);
+
+  useEffect(() => {
+    hasLoadedRef.current = false;
+    setStatus(null);
+    setError(null);
+    setIsLoading(false);
+    setIsRefreshing(false);
   }, [marketId]);
 
   useEffect(() => {
@@ -94,6 +122,7 @@ export function useOracleStatus(marketId?: string) {
   return {
     status,
     isLoading,
+    isRefreshing,
     error,
     refetch: fetchStatus,
   };

@@ -54,6 +54,7 @@ function MarketContent() {
     status: oracleStatus,
     isLoading: oracleLoading,
     error: oracleError,
+    refetch: refetchOracle,
   } = useOracleStatus(oracleMarketId);
 
   if (!marketIdRaw) {
@@ -64,7 +65,7 @@ function MarketContent() {
     );
   }
 
-  if (marketsLoading || oracleLoading) {
+  if (marketsLoading) {
     return (
       <section className="page-container py-14">
         <LoadingSpinner label="Loading market..." />
@@ -76,14 +77,6 @@ function MarketContent() {
     return (
       <section className="page-container py-14">
         <ErrorState title="Market unavailable" message={marketsError.message} />
-      </section>
-    );
-  }
-
-  if (oracleError) {
-    return (
-      <section className="page-container py-14">
-        <ErrorState title="Oracle unavailable" message={oracleError.message} />
       </section>
     );
   }
@@ -139,6 +132,21 @@ function MarketContent() {
                 settled={market.settled}
                 finalOutcome={oracleStatus.finalOutcome}
               />
+            ) : oracleError ? (
+              <div className="space-y-3">
+                <p className="text-sm text-rose-200">
+                  Oracle unavailable: {oracleError.message}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void refetchOracle()}
+                  className="rounded-md border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/10"
+                >
+                  Retry Oracle Status
+                </button>
+              </div>
+            ) : oracleLoading ? (
+              <p className="text-sm text-slate-300">Loading oracle status...</p>
             ) : (
               <p className="text-sm text-slate-300">Oracle status is not available yet.</p>
             )}
