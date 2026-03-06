@@ -8,6 +8,10 @@ import {
   safeJson,
 } from "../_utils/backend";
 
+const MARKET_START_DELAY_SECONDS = 60;
+const MIN_MARKET_DURATION_SECONDS = 60 * 60; // 1 hour
+const MAX_MARKET_DURATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
+
 type BackendMarket = {
   market_id: string;
   address: string;
@@ -123,14 +127,31 @@ export async function POST(req: NextRequest) {
     const marketId = String(payload.marketId ?? title.toLowerCase().replace(/\s+/g, "-"));
     const endTime = Number(payload.endTime ?? Date.now() + 7 * 24 * 60 * 60 * 1000);
     const maxExposure = Math.max(1, Number(payload.maxExposure ?? 1000));
+    const startTimeSeconds = Math.floor(Date.now() / 1000) + MARKET_START_DELAY_SECONDS;
+    const endTimeSeconds = Math.floor((endTime < 1_000_000_000_000 ? endTime * 1000 : endTime) / 1000);
+    const marketDurationSeconds = endTimeSeconds - startTimeSeconds;
+
+    if (
+      !Number.isFinite(endTimeSeconds) ||
+      marketDurationSeconds < MIN_MARKET_DURATION_SECONDS ||
+      marketDurationSeconds > MAX_MARKET_DURATION_SECONDS
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Market duration must be between 1 hour and 30 days from now. Adjust end date/time and try again.",
+        },
+        { status: 400 }
+      );
+    }
 
     const response = await proxyFetch(`${getBackendBaseUrl()}/markets`, {
       method: "POST",
       headers: forwardAuthHeaders(req),
       body: JSON.stringify({
         market_id: marketId,
-        start_time: Math.floor(Date.now() / 1000) + 60,
-        end_time: Math.floor((endTime < 1_000_000_000_000 ? endTime * 1000 : endTime) / 1000),
+        start_time: startTimeSeconds,
+        end_time: endTimeSeconds,
         max_exposure: maxExposure,
         metadata_uri: JSON.stringify({ title, description }),
       }),

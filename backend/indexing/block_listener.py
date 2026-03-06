@@ -33,6 +33,21 @@ except ImportError:  # web3>=7
 
 logger = logging.getLogger(__name__)
 
+_REVERT_SELECTOR_ERRORS: Dict[str, str] = {
+    "0x8d587b5a": "MARKET_CREATION_PAUSED",
+    "0xe1ae47b7": "INVALID_MARKET_PARAMETERS",
+    "0x3f504f14": "MARKET_DURATION_OUT_OF_BOUNDS",
+    "0xb8475905": "MARKET_EXPOSURE_OUT_OF_BOUNDS",
+    "0x5a483ae3": "INSUFFICIENT_CREATION_BOND",
+}
+
+
+def _extract_revert_selector(exc: Exception) -> Optional[str]:
+    for arg in getattr(exc, "args", ()):
+        if isinstance(arg, str) and arg.startswith("0x") and len(arg) >= 10:
+            return arg[:10].lower()
+    return None
+
 
 def _camel_to_snake(text: str) -> str:
     out: list[str] = []
@@ -181,6 +196,9 @@ class _ChainClient:
         except InvariantViolation:
             raise
         except Exception as exc:
+            selector = _extract_revert_selector(exc)
+            if selector and selector in _REVERT_SELECTOR_ERRORS:
+                raise InvariantViolation(_REVERT_SELECTOR_ERRORS[selector]) from exc
             raise InvariantViolation("CHAIN_TX_SUBMIT_FAILED", str(exc)) from exc
 
     def wait(self, tx_hash: str) -> Dict[str, Any]:
