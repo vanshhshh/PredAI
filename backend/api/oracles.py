@@ -91,6 +91,48 @@ async def register_oracle(
         )
 
 
+@router.get("/status")
+async def oracle_status(market_id: str):
+    submissions = await OracleRepository.list_submissions_by_market(market_id)
+    total = len(submissions)
+    quorum_target = max(1, int(os.getenv("ORACLE_QUORUM", "3")))
+
+    yes = sum(1 for s in submissions if bool(s.outcome))
+    no = total - yes
+    leading = max(yes, no)
+    confidence = (leading / total) if total else 0.0
+    quorum_reached = total >= quorum_target
+
+    if not quorum_reached:
+        phase = "COLLECTING"
+    elif yes == no:
+        phase = "FINALIZING"
+    else:
+        phase = "RESOLVED"
+
+    final_outcome = "YES" if yes >= no else "NO"
+
+    payload = {
+        "phase": phase,
+        "confidence": confidence,
+        "quorumReached": quorum_reached,
+        "submissions": [
+            {
+                "oracleId": s.oracle_address,
+                "outcome": "YES" if s.outcome else "NO",
+                "weight": 1,
+            }
+            for s in submissions[:10]
+        ],
+    }
+    if phase == "RESOLVED":
+        latest_submission = max(submissions, key=lambda item: item.created_at)
+        payload["resolvedAt"] = int(latest_submission.created_at.timestamp() * 1000)
+        payload["finalOutcome"] = final_outcome
+
+    return payload
+
+
 @router.get(
     "/{oracle_id}",
     response_model=OracleResponse,
@@ -173,45 +215,3 @@ async def submit_outcome(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=e.message,
         )
-
-
-@router.get("/status")
-async def oracle_status(market_id: str):
-    submissions = await OracleRepository.list_submissions_by_market(market_id)
-    total = len(submissions)
-    quorum_target = max(1, int(os.getenv("ORACLE_QUORUM", "3")))
-
-    yes = sum(1 for s in submissions if bool(s.outcome))
-    no = total - yes
-    leading = max(yes, no)
-    confidence = (leading / total) if total else 0.0
-    quorum_reached = total >= quorum_target
-
-    if not quorum_reached:
-        phase = "COLLECTING"
-    elif yes == no:
-        phase = "FINALIZING"
-    else:
-        phase = "RESOLVED"
-
-    final_outcome = "YES" if yes >= no else "NO"
-
-    payload = {
-        "phase": phase,
-        "confidence": confidence,
-        "quorumReached": quorum_reached,
-        "submissions": [
-            {
-                "oracleId": s.oracle_address,
-                "outcome": "YES" if s.outcome else "NO",
-                "weight": 1,
-            }
-            for s in submissions[:10]
-        ],
-    }
-    if phase == "RESOLVED":
-        latest_submission = max(submissions, key=lambda item: item.created_at)
-        payload["resolvedAt"] = int(latest_submission.created_at.timestamp() * 1000)
-        payload["finalOutcome"] = final_outcome
-
-    return payload
