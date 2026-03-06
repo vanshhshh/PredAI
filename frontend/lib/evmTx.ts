@@ -27,27 +27,49 @@ function readEnvAddress(...keys: string[]): string {
   return "";
 }
 
+function parseChainIdNumber(): number {
+  const raw = process.env.NEXT_PUBLIC_CHAIN_ID?.trim();
+  const value = Number(raw);
+  if (Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  return 80002;
+}
+
+const CHAIN_DEFAULT_ADDRESSES: Record<number, AddressConfig> = {
+  80002: {
+    agentRegistry: "0x588140A031aDA47e67BB54667d2caAF70Bc04b6C",
+    agentStaking: "0x8E6db4E8FB0E940045261f65c52842dCF8aCE1e5",
+    oracleRegistry: "0x553a86753c4064D94C8235c62C0860323e26848c",
+    oracleStaking: "0x14ea6585d695568c6bBa26cE6515f8B9cD080317",
+    oracleConsensus: "0x82FFe8DcfAA6411F90d18d5005bB4233c4A77750",
+  },
+};
+
+const chainDefaults =
+  CHAIN_DEFAULT_ADDRESSES[parseChainIdNumber()] ?? ({} as AddressConfig);
+
 export const contractAddresses: AddressConfig = {
   agentRegistry: readEnvAddress(
     "NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS",
     "NEXT_PUBLIC_AGENT_REGISTRY"
-  ),
+  ) || chainDefaults.agentRegistry,
   agentStaking: readEnvAddress(
     "NEXT_PUBLIC_AGENT_STAKING_ADDRESS",
     "NEXT_PUBLIC_AGENT_STAKING"
-  ),
+  ) || chainDefaults.agentStaking,
   oracleRegistry: readEnvAddress(
     "NEXT_PUBLIC_ORACLE_REGISTRY_ADDRESS",
     "NEXT_PUBLIC_ORACLE_REGISTRY"
-  ),
+  ) || chainDefaults.oracleRegistry,
   oracleStaking: readEnvAddress(
     "NEXT_PUBLIC_ORACLE_STAKING_ADDRESS",
     "NEXT_PUBLIC_ORACLE_STAKING"
-  ),
+  ) || chainDefaults.oracleStaking,
   oracleConsensus: readEnvAddress(
     "NEXT_PUBLIC_ORACLE_CONSENSUS_ADDRESS",
     "NEXT_PUBLIC_ORACLE_CONSENSUS"
-  ),
+  ) || chainDefaults.oracleConsensus,
 };
 
 type AddEthereumChainParam = {
