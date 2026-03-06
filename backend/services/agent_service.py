@@ -23,12 +23,15 @@ from typing import Optional, List
 
 from backend.indexing.block_listener import ChainReader
 from backend.persistence.repositories.agent_repo import AgentRepository
+from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
 from backend.services.scoring_client import score_agent
 
 
 class AgentService:
+    _RECENT_WINDOW = 20
+
     # ------------------------------------------------------------------
     # REGISTRATION
     # ------------------------------------------------------------------
@@ -202,6 +205,9 @@ class AgentService:
         if agent.owner != owner_address:
             raise InvariantViolation("NOT_AGENT_OWNER")
 
+        if agent.active:
+            raise InvariantViolation("AGENT_MUST_BE_DEACTIVATED_BEFORE_UNSTAKE")
+
         if int(agent.stake or 0) < amount:
             raise InvariantViolation("INSUFFICIENT_STAKE")
 
@@ -255,12 +261,39 @@ class AgentService:
         if not agent:
             raise InvariantViolation("AGENT_NOT_FOUND")
 
-        # External scoring engine (Rust via HTTP)
-        score = await score_agent(agent_id)
+        outcomes = await MarketRepository.list_settled_bet_correctness_by_user(
+            user_address=agent.owner,
+        )
+        total_predictions = len(outcomes)
+        correct_predictions = sum(1 for outcome in outcomes if outcome)
+
+        recent_outcomes = outcomes[: AgentService._RECENT_WINDOW]
+        recent_total = len(recent_outcomes)
+        if recent_total == 0:
+            recent_accuracy_bps = 0
+        else:
+            recent_correct = sum(1 for outcome in recent_outcomes if outcome)
+            recent_accuracy_bps = int((recent_correct * 10_000) / recent_total)
+
+        score = await score_agent(
+            correct_predictions=correct_predictions,
+            total_predictions=total_predictions,
+            recent_accuracy_bps=recent_accuracy_bps,
+        )
 
         await AgentRepository.update_score(
             agent_id=agent_id,
-            score=score,
+            score=int(score),
         )
 
         return score
+
+    @staticmethod
+    async def recompute_scores_for_owner(owner_address: str) -> int:
+        """
+        Recompute scores for all agents owned by a wallet.
+        """
+        agents = await AgentRepository.list_by_owner(owner_address)
+        for agent in agents:
+            await AgentService.recompute_score(agent.agent_id)
+        return len(agents)

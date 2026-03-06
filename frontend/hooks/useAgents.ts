@@ -37,9 +37,8 @@ const AGENT_REGISTRY_ABI = [
   "function registerAgent(bytes32 agentId, string metadataURI)",
   "function stakeAndActivate() payable",
   "function deactivate()",
+  "function unstake(uint256 amount)",
 ];
-
-const AGENT_STAKING_ABI = ["function withdraw(uint256 amount)"];
 
 function slugifyAgentId(value: string): string {
   const slug = value
@@ -259,11 +258,11 @@ export function useAgents() {
       try {
         const amountWei = toWeiAmount(input.amount);
         const txHash = await sendContractTx({
-          address: contractAddresses.agentStaking,
-          abi: AGENT_STAKING_ABI,
-          functionName: "withdraw",
+          address: contractAddresses.agentRegistry,
+          abi: AGENT_REGISTRY_ABI,
+          functionName: "unstake",
           args: [amountWei],
-          label: "AgentStaking",
+          label: "AgentRegistry",
         });
 
         const res = await fetch("/api/agents", {

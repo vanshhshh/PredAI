@@ -21,12 +21,16 @@ DESIGN RULES (from docs)
 
 from typing import Dict, List, Optional, Tuple
 import time
+import logging
 
 from backend.indexing.block_listener import ChainReader
 from backend.indexing.event_handlers.market_events import MarketEventParser
 from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
+
+
+logger = logging.getLogger(__name__)
 
 
 class MarketService:
@@ -182,6 +186,21 @@ class MarketService:
             market_id=market_id,
             final_outcome=bool(final_outcome),
         )
+
+        # Refresh performance signals for agents owned by impacted bettors.
+        try:
+            from backend.services.agent_service import AgentService
+
+            bettors = await MarketRepository.list_unique_bettors(market_id)
+            for bettor in bettors:
+                await AgentService.recompute_scores_for_owner(bettor)
+        except Exception as exc:
+            # Settlement remains canonical; score refresh is best-effort post-processing.
+            logger.warning(
+                "agent score refresh failed after settlement for market %s: %s",
+                market_id,
+                str(exc),
+            )
 
         return True
 

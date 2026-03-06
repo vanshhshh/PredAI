@@ -49,4 +49,5 @@ interface IAgent {
     function register(bytes32 agentId, string calldata metadataURI) external;
     function stakeAndActivate() external payable;
     function deactivate() external;
+    function unstake(uint256 amount) external;
 }

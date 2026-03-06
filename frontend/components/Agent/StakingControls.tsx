@@ -79,12 +79,18 @@ export function StakingControls({
         <button
           type="button"
           onClick={() => void handleUnstake()}
-          disabled={isPending || amount <= 0 || amount > currentStake}
+          disabled={isPending || active || amount <= 0 || amount > currentStake}
           className="ui-btn ui-btn-secondary"
         >
           Unstake
         </button>
       </div>
+
+      {active && (
+        <p className="text-xs text-slate-400">
+          Deactivate the agent before unstaking.
+        </p>
+      )}
 
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2">
         <div>

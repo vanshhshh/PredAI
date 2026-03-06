@@ -107,9 +107,11 @@ AGENT_REGISTRY_ABI = [
     {"type": "function", "name": "registerAgent", "stateMutability": "nonpayable", "inputs": [{"name": "agentId", "type": "bytes32"}, {"name": "metadataURI", "type": "string"}], "outputs": []},
     {"type": "function", "name": "stakeAndActivate", "stateMutability": "payable", "inputs": [], "outputs": []},
     {"type": "function", "name": "deactivate", "stateMutability": "nonpayable", "inputs": [], "outputs": []},
+    {"type": "function", "name": "unstake", "stateMutability": "nonpayable", "inputs": [{"name": "amount", "type": "uint256"}], "outputs": []},
     {"type": "event", "name": "AgentRegistered", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}, {"name": "agentId", "type": "bytes32", "indexed": True}, {"name": "metadataURI", "type": "string", "indexed": False}]},
     {"type": "event", "name": "AgentActivated", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}]},
     {"type": "event", "name": "AgentDeactivated", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}]},
+    {"type": "event", "name": "AgentStakeWithdrawn", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
 ]
 AGENT_STAKING_ABI = [
     {"type": "function", "name": "withdraw", "stateMutability": "nonpayable", "inputs": [{"name": "amount", "type": "uint256"}], "outputs": []},
@@ -269,7 +271,7 @@ class _ChainClient:
         specs: list[tuple[Optional[str], list[dict], list[str]]] = [
             (os.getenv("MARKET_FACTORY_ADDRESS"), MARKET_FACTORY_ABI, ["MarketCreated"]),
             (None, PREDICTION_MARKET_ABI, ["MarketSettled"]),
-            (os.getenv("AGENT_REGISTRY_ADDRESS"), AGENT_REGISTRY_ABI, ["AgentRegistered", "AgentActivated", "AgentDeactivated"]),
+            (os.getenv("AGENT_REGISTRY_ADDRESS"), AGENT_REGISTRY_ABI, ["AgentRegistered", "AgentActivated", "AgentDeactivated", "AgentStakeWithdrawn"]),
             (os.getenv("AGENT_STAKING_ADDRESS"), AGENT_STAKING_ABI, ["StakeWithdrawn"]),
             (os.getenv("ORACLE_REGISTRY_ADDRESS"), ORACLE_REGISTRY_ABI, ["OracleRegistered"]),
             (os.getenv("ORACLE_STAKING_ADDRESS"), ORACLE_STAKING_ABI, ["StakeDeposited"]),
@@ -405,8 +407,8 @@ class ChainReader:
     @staticmethod
     async def verify_agent_unstake_tx(*, tx_hash: str, owner: str, amount: int) -> Dict[str, Any]:
         c = ChainReader._c()
-        contract = c.contract(c.env_address("AGENT_STAKING_ADDRESS"), AGENT_STAKING_ABI)
-        return await asyncio.to_thread(c.verify_call, tx_hash=tx_hash, contract=contract, expected_from=owner, expected_fn="withdraw", expected_value_wei=0, expected_args={"amount": int(amount)})
+        contract = c.contract(c.env_address("AGENT_REGISTRY_ADDRESS"), AGENT_REGISTRY_ABI)
+        return await asyncio.to_thread(c.verify_call, tx_hash=tx_hash, contract=contract, expected_from=owner, expected_fn="unstake", expected_value_wei=0, expected_args={"amount": int(amount)})
 
     @staticmethod
     async def verify_oracle_registration_tx(*, tx_hash: str, oracle_address: str, oracle_id: str, metadata_uri: str) -> Dict[str, Any]:

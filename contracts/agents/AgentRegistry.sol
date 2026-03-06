@@ -36,8 +36,11 @@ contract AgentRegistry {
     error AgentAlreadyRegistered();
     error AgentNotRegistered();
     error AgentInactive();
+    error AgentStillActive();
     error InvalidMetadata();
     error InvalidStake();
+    error InsufficientStake();
+    error TransferFailed();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -51,6 +54,7 @@ contract AgentRegistry {
 
     event AgentActivated(address indexed agent);
     event AgentDeactivated(address indexed agent);
+    event AgentStakeWithdrawn(address indexed agent, uint256 amount);
 
     event MinimumStakeUpdated(uint256 newMinimumStake);
 
@@ -166,6 +170,24 @@ contract AgentRegistry {
 
         agent.active = false;
         emit AgentDeactivated(msg.sender);
+    }
+
+    /**
+     * @notice Withdraw stake after deactivation.
+     * @dev Keeps stake accounting and custody in the same contract as activation logic.
+     */
+    function unstake(uint256 amount) external {
+        Agent storage agent = agents[msg.sender];
+        if (!agent.exists) revert AgentNotRegistered();
+        if (agent.active) revert AgentStillActive();
+        if (amount == 0 || amount > agent.stake) revert InsufficientStake();
+
+        agent.stake -= amount;
+
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+
+        emit AgentStakeWithdrawn(msg.sender, amount);
     }
 
     /*//////////////////////////////////////////////////////////////

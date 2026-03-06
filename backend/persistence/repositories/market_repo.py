@@ -289,3 +289,49 @@ class MarketRepository:
                 "total_markets": int(total_markets or 0),
                 "settled_markets": int(settled_markets or 0),
             }
+
+    @staticmethod
+    async def list_settled_bet_correctness_by_user(
+        *,
+        user_address: str,
+        limit: int | None = None,
+    ) -> list[bool]:
+        """
+        Return ordered correctness outcomes for settled bets by wallet.
+        """
+        normalized = user_address.strip().lower()
+        if not normalized:
+            return []
+
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(MarketBet.side, Market.final_outcome)
+                .join(Market, Market.market_id == MarketBet.market_id)
+                .where(
+                    MarketBet.user_address == normalized,
+                    Market.settled.is_(True),
+                    Market.final_outcome.is_not(None),
+                )
+                .order_by(Market.end_time.desc(), MarketBet.updated_at.desc())
+            )
+            if limit is not None and limit > 0:
+                stmt = stmt.limit(int(limit))
+
+            rows = (await session.execute(stmt)).all()
+            outcomes: list[bool] = []
+            for side, final_outcome in rows:
+                outcome = bool(final_outcome)
+                is_correct = (side == "YES" and outcome) or (side == "NO" and not outcome)
+                outcomes.append(is_correct)
+            return outcomes
+
+    @staticmethod
+    async def list_unique_bettors(market_id: str) -> list[str]:
+        """
+        Return distinct wallet addresses that placed bets in a market.
+        """
+        async with AsyncSessionLocal() as session:
+            rows = await session.scalars(
+                select(MarketBet.user_address).where(MarketBet.market_id == market_id).distinct()
+            )
+            return [str(address).strip().lower() for address in rows if address]

@@ -91,6 +91,17 @@ class AgentRepository:
             return list(result)
 
     @staticmethod
+    async def list_by_owner(owner: str) -> List[Agent]:
+        normalized_owner = owner.strip().lower()
+        async with AsyncSessionLocal() as session:
+            result = await session.scalars(
+                select(Agent)
+                .where(Agent.owner == normalized_owner)
+                .order_by(Agent.created_at.asc())
+            )
+            return list(result)
+
+    @staticmethod
     async def activate(*, agent_id: str, stake: Optional[int] = None):
         async with AsyncSessionLocal() as session:
             async with session.begin():
