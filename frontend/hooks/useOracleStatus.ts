@@ -53,6 +53,7 @@ export function useOracleStatus(marketId?: string) {
     null
   );
   const hasLoadedRef = useRef(false);
+  const inFlightRef = useRef(false);
 
   // ------------------------------------------------------------------
   // FETCH STATUS
@@ -60,6 +61,8 @@ export function useOracleStatus(marketId?: string) {
 
   const fetchStatus = useCallback(async () => {
     if (!marketId) return;
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
 
     const initialLoad = !hasLoadedRef.current;
     if (initialLoad) {
@@ -92,6 +95,7 @@ export function useOracleStatus(marketId?: string) {
     } catch (err) {
       setError(err as Error);
     } finally {
+      inFlightRef.current = false;
       hasLoadedRef.current = true;
       if (initialLoad) {
         setIsLoading(false);
@@ -112,7 +116,16 @@ export function useOracleStatus(marketId?: string) {
   useEffect(() => {
     fetchStatus();
 
-    const interval = setInterval(fetchStatus, 10_000); // 10s poll
+    const pollMsRaw = process.env.NEXT_PUBLIC_ORACLE_POLL_INTERVAL_MS ?? "0";
+    const pollMs = Number.parseInt(pollMsRaw, 10);
+    if (!Number.isFinite(pollMs) || pollMs <= 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void fetchStatus();
+    }, pollMs);
     return () => clearInterval(interval);
   }, [fetchStatus]);
 

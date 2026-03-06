@@ -87,12 +87,16 @@ export function useSocialFeeds() {
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const hasLoadedRef = useRef(false);
+  const inFlightRef = useRef(false);
 
   /* ------------------------------------------------------------------ */
   /* FETCH FEEDS */
   /* ------------------------------------------------------------------ */
 
   const fetchFeeds = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     const initialLoad = !hasLoadedRef.current;
     if (initialLoad) {
       setIsLoading(true);
@@ -111,11 +115,23 @@ export function useSocialFeeds() {
       }
 
       const data = await res.json();
-      setFeeds(data.feeds ?? data);
+      const incoming = Array.isArray(data?.feeds)
+        ? (data.feeds as SocialFeedItem[])
+        : Array.isArray(data)
+        ? (data as SocialFeedItem[])
+        : [];
+      setFeeds((prev) => {
+        // Keep prior feed list if a refresh temporarily returns empty.
+        if (!initialLoad && incoming.length === 0 && prev.length > 0) {
+          return prev;
+        }
+        return incoming;
+      });
       setError(null);
     } catch (err) {
       setError(err as Error);
     } finally {
+      inFlightRef.current = false;
       hasLoadedRef.current = true;
       if (initialLoad) {
         setIsLoading(false);
@@ -128,7 +144,16 @@ export function useSocialFeeds() {
   useEffect(() => {
     fetchFeeds();
 
-    const interval = setInterval(fetchFeeds, 15_000);
+    const pollMsRaw = process.env.NEXT_PUBLIC_SOCIAL_POLL_INTERVAL_MS ?? "0";
+    const pollMs = Number.parseInt(pollMsRaw, 10);
+    if (!Number.isFinite(pollMs) || pollMs <= 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void fetchFeeds();
+    }, pollMs);
     return () => clearInterval(interval);
   }, [fetchFeeds]);
 
