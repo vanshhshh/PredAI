@@ -295,7 +295,7 @@ class MarketRepository:
         *,
         user_address: str,
         limit: int | None = None,
-    ) -> list[bool]:
+    ) -> List[bool]:
         """
         Return ordered correctness outcomes for settled bets by wallet.
         """
@@ -326,7 +326,7 @@ class MarketRepository:
             return outcomes
 
     @staticmethod
-    async def list_unique_bettors(market_id: str) -> list[str]:
+    async def list_unique_bettors(market_id: str) -> List[str]:
         """
         Return distinct wallet addresses that placed bets in a market.
         """
