@@ -21,10 +21,14 @@ DESIGN RULES (from docs)
 - Fail closed on ambiguity
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import hashlib
+import json
 import time
 
+import httpx
+
+from backend.core.config import settings
 from backend.security.invariants import InvariantViolation
 from backend.services.market_service import MarketService
 from backend.persistence.repositories.social_repo import SocialRepository
@@ -54,6 +58,136 @@ def _extract_market_prompts(content: str) -> List[str]:
 
 
 class SocialService:
+    _MIN_MARKET_ELIGIBLE_BPS = 5500
+
+    @staticmethod
+    def heuristic_signal_score(
+        *,
+        content: str,
+        metadata: Dict[str, Any] | None = None,
+    ) -> Tuple[int, bool]:
+        """
+        Deterministic fallback scoring for social signal confidence.
+        Returns (confidence_bps, market_eligible).
+        """
+        text = (content or "").strip().lower()
+        meta = metadata or {}
+        if not text:
+            return 0, False
+
+        score = 2500
+
+        predictive_markers = (
+            "will ",
+            "would ",
+            "expected",
+            "forecast",
+            "odds",
+            "chance",
+            "probability",
+            "by ",
+        )
+        if "?" in text or any(marker in text for marker in predictive_markers):
+            score += 1800
+
+        market_markers = (
+            "bitcoin",
+            "btc",
+            "eth",
+            "ethereum",
+            "sol",
+            "rate",
+            "inflation",
+            "cpi",
+            "fed",
+            "election",
+            "sec",
+            "gdp",
+            "jobs",
+            "unemployment",
+        )
+        matches = sum(1 for marker in market_markers if marker in text)
+        score += min(2200, matches * 400)
+
+        digits = sum(ch.isdigit() for ch in text)
+        if digits >= 3:
+            score += 900
+
+        social_velocity = int(meta.get("velocity", 0) or 0)
+        social_volume = int(meta.get("volume", 0) or 0)
+        score += min(1200, max(0, social_velocity // 10) + max(0, social_volume // 20))
+
+        normalized = max(0, min(10_000, int(score)))
+        return normalized, normalized >= SocialService._MIN_MARKET_ELIGIBLE_BPS
+
+    @staticmethod
+    async def score_event_signal(
+        *,
+        content: str,
+        metadata: Dict[str, Any] | None = None,
+    ) -> Tuple[int, bool]:
+        """
+        AI-first confidence scoring with deterministic fallback.
+        """
+        fallback_bps, fallback_eligible = SocialService.heuristic_signal_score(
+            content=content,
+            metadata=metadata,
+        )
+        if not settings.OPENAI_API_KEY:
+            return fallback_bps, fallback_eligible
+
+        prompt = (content or "").strip()
+        if not prompt:
+            return 0, False
+
+        system = (
+            "You score social posts for prediction-market usefulness. "
+            "Return strict JSON: {\"confidence_bps\": int, \"market_eligible\": bool}. "
+            "confidence_bps must be between 0 and 10000."
+        )
+        user_message = json.dumps(
+            {
+                "content": prompt,
+                "metadata": metadata or {},
+            }
+        )
+        payload = {
+            "model": settings.AI_MODEL,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_message},
+            ],
+            "temperature": 0.0,
+            "max_tokens": 80,
+            "response_format": {"type": "json_object"},
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                resp = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+                resp.raise_for_status()
+                raw = (
+                    resp.json()
+                    .get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "{}")
+                )
+                parsed = json.loads(raw)
+
+            confidence_bps = int(parsed.get("confidence_bps", fallback_bps))
+            market_eligible = bool(parsed.get("market_eligible", fallback_eligible))
+            confidence_bps = max(0, min(10_000, confidence_bps))
+            return confidence_bps, market_eligible
+        except Exception:
+            return fallback_bps, fallback_eligible
+
     # ------------------------------------------------------------------
     # INGESTION
     # ------------------------------------------------------------------
@@ -91,6 +225,11 @@ class SocialService:
             source, external_id
         )
 
+        signal_score_bps, market_eligible = await SocialService.score_event_signal(
+            content=content,
+            metadata=metadata,
+        )
+
         return await SocialRepository.create_event(
             event_id=event_id,
             source=source,
@@ -99,6 +238,8 @@ class SocialService:
             content=content,
             timestamp=timestamp,
             metadata=metadata,
+            signal_score_bps=signal_score_bps,
+            market_eligible=market_eligible,
         )
 
     # ------------------------------------------------------------------

@@ -16,6 +16,7 @@ from backend.core.config import settings
 from backend.persistence.repositories.social_repo import SocialRepository
 from backend.security.invariants import InvariantViolation
 from backend.services.market_service import MarketService
+from backend.services.social_service import SocialService
 
 
 router = APIRouter()
@@ -46,36 +47,49 @@ class IngestRequest(BaseModel):
 @router.post("/ingest", status_code=status.HTTP_201_CREATED)
 async def ingest_feed(req: IngestRequest):
     event_id = hashlib.sha256(f"{req.source}:{req.external_id}".encode()).hexdigest()
-    if await SocialRepository.exists(req.source, req.external_id):
-        return {"event_id": event_id, "status": "duplicate"}
+    try:
+        created = await SocialService.ingest_event(
+            source=req.source,
+            external_id=req.external_id,
+            author=req.author,
+            content=req.content,
+            timestamp=req.timestamp,
+            metadata=req.metadata,
+        )
+    except InvariantViolation as exc:
+        raise HTTPException(status_code=400, detail=exc.to_dict())
 
-    created = await SocialRepository.create_event(
-        event_id=event_id,
-        source=req.source,
-        external_id=req.external_id,
-        author=req.author,
-        content=req.content,
-        timestamp=req.timestamp,
-        metadata=req.metadata,
-    )
+    if not created:
+        return {"event_id": event_id, "status": "duplicate"}
     return {"event_id": created.event_id, "status": "ingested"}
 
 
 @router.get("/feeds")
 async def list_feeds():
     events = await SocialRepository.list_recent_events(limit=200)
-    feeds = [
-        {
-            "id": row.event_id,
-            "source": row.source,
-            "author": row.author,
-            "content": row.content,
-            "timestamp": int(row.timestamp),
-            "signalScore": round(int(row.signal_score_bps) / 10_000, 4),
-            "marketEligible": bool(row.market_eligible),
-        }
-        for row in events
-    ]
+    feeds = []
+    for row in events:
+        stored_bps = int(row.signal_score_bps or 0)
+        if stored_bps > 0:
+            confidence_bps = stored_bps
+            market_eligible = bool(row.market_eligible)
+        else:
+            confidence_bps, market_eligible = SocialService.heuristic_signal_score(
+                content=row.content,
+                metadata=row.metadata_json or {},
+            )
+
+        feeds.append(
+            {
+                "id": row.event_id,
+                "source": row.source,
+                "author": row.author,
+                "content": row.content,
+                "timestamp": int(row.timestamp),
+                "signalScore": round(confidence_bps / 10_000, 4),
+                "marketEligible": market_eligible,
+            }
+        )
     return {"feeds": feeds}
 
 

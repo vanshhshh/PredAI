@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 
 import { contractAddresses, sendContractTx, toWeiAmount } from "../lib/evmTx";
@@ -78,6 +78,14 @@ export function useAgents() {
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { address } = useWallet();
+  const pollIntervalMs = useMemo(() => {
+    const raw = process.env.NEXT_PUBLIC_AGENTS_POLL_INTERVAL_MS ?? "30000";
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 0;
+    }
+    return parsed;
+  }, []);
 
   // ------------------------------------------------------------------
   // FETCH ALL AGENT DATA
@@ -125,7 +133,16 @@ export function useAgents() {
 
   useEffect(() => {
     fetchAgents();
-  }, [fetchAgents]);
+    if (pollIntervalMs <= 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void fetchAgents();
+    }, pollIntervalMs);
+    return () => clearInterval(interval);
+  }, [fetchAgents, pollIntervalMs]);
 
   // ------------------------------------------------------------------
   // DERIVED HELPERS

@@ -34,6 +34,8 @@ class SocialRepository:
         content: str,
         timestamp: int,
         metadata: dict,
+        signal_score_bps: int = 0,
+        market_eligible: bool = True,
     ):
         async with AsyncSessionLocal() as session:
             async with session.begin():
@@ -45,6 +47,8 @@ class SocialRepository:
                     content=content,
                     timestamp=timestamp,
                     metadata_json=metadata or {},
+                    signal_score_bps=int(signal_score_bps),
+                    market_eligible=bool(market_eligible),
                 )
                 session.add(row)
                 await session.flush()
@@ -106,4 +110,24 @@ class SocialRepository:
 
                 boost_bps = min(2000, max(0, int(amount // 10)))
                 event.signal_score_bps = min(10_000, int(event.signal_score_bps) + boost_bps)
+                return event
+
+    @staticmethod
+    async def update_signal_score(
+        *,
+        event_id: str,
+        signal_score_bps: int,
+        market_eligible: bool,
+    ) -> Optional[SocialEvent]:
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                event = await session.scalar(
+                    select(SocialEvent).where(SocialEvent.event_id == event_id)
+                )
+                if not event:
+                    return None
+
+                event.signal_score_bps = max(0, min(10_000, int(signal_score_bps)))
+                event.market_eligible = bool(market_eligible)
+                await session.flush()
                 return event

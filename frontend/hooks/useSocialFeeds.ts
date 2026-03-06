@@ -88,6 +88,14 @@ export function useSocialFeeds() {
   const [error, setError] = useState<Error | null>(null);
   const hasLoadedRef = useRef(false);
   const inFlightRef = useRef(false);
+  const pollIntervalMs = useMemo(() => {
+    const raw = process.env.NEXT_PUBLIC_SOCIAL_POLL_INTERVAL_MS ?? "0";
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 0;
+    }
+    return parsed;
+  }, []);
 
   /* ------------------------------------------------------------------ */
   /* FETCH FEEDS */
@@ -144,18 +152,16 @@ export function useSocialFeeds() {
   useEffect(() => {
     fetchFeeds();
 
-    const pollMsRaw = process.env.NEXT_PUBLIC_SOCIAL_POLL_INTERVAL_MS ?? "0";
-    const pollMs = Number.parseInt(pollMsRaw, 10);
-    if (!Number.isFinite(pollMs) || pollMs <= 0) {
+    if (pollIntervalMs <= 0) {
       return;
     }
 
     const interval = setInterval(() => {
       if (document.visibilityState !== "visible") return;
       void fetchFeeds();
-    }, pollMs);
+    }, pollIntervalMs);
     return () => clearInterval(interval);
-  }, [fetchFeeds]);
+  }, [fetchFeeds, pollIntervalMs]);
 
   /* ------------------------------------------------------------------ */
   /* DERIVED: ARGUMENT FEED */
@@ -274,6 +280,7 @@ export function useSocialFeeds() {
     isRefreshing,
     isSpawning,
     isCompiling,
+    pollIntervalMs,
     error,
 
     refetch: fetchFeeds,

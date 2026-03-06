@@ -19,7 +19,8 @@ export default function SocialFeedsPage() {
 
 function SocialFeedsContent() {
   const { isConnected } = useWallet();
-  const { feeds, isLoading, isRefreshing, error, spawnMarketFromFeed } = useSocialFeeds();
+  const { feeds, isLoading, isRefreshing, error, spawnMarketFromFeed, pollIntervalMs } =
+    useSocialFeeds();
 
   if (isLoading && !feeds?.length) {
     return (
@@ -63,7 +64,11 @@ function SocialFeedsContent() {
           high-signal narratives.
         </p>
         <p className="mt-3 text-xs text-slate-400">
-          {isRefreshing ? "Refreshing feed..." : "Live polling every 15 seconds."}
+          {isRefreshing
+            ? "Refreshing feed..."
+            : pollIntervalMs > 0
+            ? `Live polling every ${formatPollInterval(pollIntervalMs)}.`
+            : "Polling is disabled for this deployment."}
         </p>
       </header>
 
@@ -100,6 +105,14 @@ function SocialFeedsContent() {
       </section>
     </main>
   );
+}
+
+function formatPollInterval(ms: number): string {
+  if (ms < 60_000) {
+    return `${Math.max(1, Math.round(ms / 1000))} seconds`;
+  }
+  const minutes = Math.max(1, Math.round(ms / 60_000));
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
