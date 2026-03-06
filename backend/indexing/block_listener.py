@@ -25,6 +25,11 @@ from web3.exceptions import TransactionNotFound
 
 from backend.security.invariants import InvariantViolation
 
+try:
+    from web3.middleware import geth_poa_middleware as _poa_middleware
+except ImportError:  # web3>=7
+    from web3.middleware import ExtraDataToPOAMiddleware as _poa_middleware
+
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +120,7 @@ class _ChainClient:
             raise InvariantViolation("CHAIN_SIGNER_PRIVATE_KEY_NOT_CONFIGURED")
 
         self.w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 30}))
+        self.w3.middleware_onion.inject(_poa_middleware, layer=0)
         if not self.w3.is_connected():
             raise InvariantViolation("RPC_UNREACHABLE")
         if int(self.w3.eth.chain_id) != self.chain_id:
