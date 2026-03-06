@@ -150,6 +150,25 @@ class AgentRepository:
                     raise InvariantViolation("AGENT_NOT_FOUND")
 
     @staticmethod
+    async def sync_state(*, agent_id: str, stake: int, active: bool) -> Agent:
+        """
+        Synchronize off-chain agent state from authoritative on-chain values.
+        """
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                result = await session.execute(
+                    update(Agent)
+                    .where(Agent.agent_id == agent_id)
+                    .values(stake=int(stake), active=bool(active))
+                )
+                if result.rowcount == 0:
+                    raise InvariantViolation("AGENT_NOT_FOUND")
+
+                return await session.scalar(
+                    select(Agent).where(Agent.agent_id == agent_id)
+                )
+
+    @staticmethod
     async def unstake(*, agent_id: str, amount: int) -> Agent:
         async with AsyncSessionLocal() as session:
             async with session.begin():

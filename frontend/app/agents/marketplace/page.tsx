@@ -17,7 +17,7 @@ export default function AgentMarketplacePage() {
 }
 
 function MarketplaceContent() {
-  const { address, isConnected } = useWallet();
+  const { isConnected } = useWallet();
   const { marketplaceAgents, isLoading, error } = useAgents();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"performance" | "newest">("performance");
@@ -128,12 +128,7 @@ function MarketplaceContent() {
       </section>
 
       <section>
-        <AgentDashboard
-          agents={filteredAgents}
-          showActions
-          walletAddress={address}
-          isConnected={isConnected}
-        />
+        <AgentDashboard agents={filteredAgents} showActions />
       </section>
     </main>
   );

@@ -24,18 +24,21 @@ export function StakingControls({
   isPending = false,
   error,
 }: StakingControlsProps) {
-  const [amount, setAmount] = useState<number>(0);
+  const [amountInput, setAmountInput] = useState<string>("");
+
+  const amount = Number(amountInput);
+  const hasValidAmount = Number.isFinite(amount) && amount > 0;
 
   async function handleStake() {
-    if (amount <= 0) return;
+    if (!hasValidAmount) return;
     await onStake(amount);
-    setAmount(0);
+    setAmountInput("");
   }
 
   async function handleUnstake() {
-    if (amount <= 0 || amount > currentStake) return;
+    if (!hasValidAmount || amount > currentStake) return;
     await onUnstake(amount);
-    setAmount(0);
+    setAmountInput("");
   }
 
   return (
@@ -48,22 +51,27 @@ export function StakingControls({
       <div className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2 text-sm">
         <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Current Stake</p>
         <p className="mt-1 text-lg font-semibold text-slate-100">
-          {currentStake.toLocaleString()}
+          {currentStake.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 4,
+          })}{" "}
+          POL
         </p>
       </div>
 
       <div>
         <label htmlFor="stake-amount" className="ui-label">
-          Amount
+          Amount (POL)
         </label>
         <input
           id="stake-amount"
           type="number"
           min={0}
-          value={amount}
-          onChange={(event) => setAmount(Number(event.target.value))}
+          step="0.0001"
+          value={amountInput}
+          onChange={(event) => setAmountInput(event.target.value)}
           className="ui-input"
-          placeholder="Enter amount"
+          placeholder="Enter POL amount"
         />
       </div>
 
@@ -71,7 +79,7 @@ export function StakingControls({
         <button
           type="button"
           onClick={() => void handleStake()}
-          disabled={isPending || amount <= 0}
+          disabled={isPending || !hasValidAmount}
           className="ui-btn ui-btn-primary"
         >
           Stake
@@ -79,7 +87,7 @@ export function StakingControls({
         <button
           type="button"
           onClick={() => void handleUnstake()}
-          disabled={isPending || active || amount <= 0 || amount > currentStake}
+          disabled={isPending || active || !hasValidAmount || amount > currentStake}
           className="ui-btn ui-btn-secondary"
         >
           Unstake

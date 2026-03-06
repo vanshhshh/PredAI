@@ -12,7 +12,7 @@ type BackendAgent = {
   agent_id: string;
   owner: string;
   active: boolean;
-  stake: number;
+  stake: number | string;
   score: number;
   metadata_uri: string;
   pnl?: number | null;
@@ -24,13 +24,58 @@ function normalizeAddress(address: string | null | undefined): string {
   return (address ?? "").trim().toLowerCase();
 }
 
+function weiToTokenAmount(raw: number | string | null | undefined): number {
+  try {
+    const value = BigInt(String(raw ?? "0"));
+    const whole = value / 10n ** 18n;
+    const fractional = value % 10n ** 18n;
+    const fractional4 = fractional.toString().padStart(18, "0").slice(0, 4);
+    const asString =
+      fractional4 === "0000"
+        ? whole.toString()
+        : `${whole.toString()}.${fractional4}`;
+    const parsed = Number(asString);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function parseWeiAmount(value: unknown): string | null {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    if (!/^[0-9]+$/.test(normalized)) {
+      return null;
+    }
+    try {
+      const wei = BigInt(normalized);
+      return wei > 0n ? wei.toString() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    if (!Number.isInteger(value)) {
+      return null;
+    }
+    try {
+      return BigInt(value).toString();
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 function normalizeAgent(raw: BackendAgent) {
   const createdAt = raw.created_at ? Date.parse(raw.created_at) : Date.now();
   return {
     agentId: raw.agent_id,
     owner: raw.owner,
     active: Boolean(raw.active),
-    stake: Number(raw.stake ?? 0),
+    stake: weiToTokenAmount(raw.stake),
     accuracy: Number(raw.score ?? 0) > 1 ? Number(raw.score) / 100 : Number(raw.score ?? 0),
     pnl: raw.pnl == null ? null : Number(raw.pnl),
     trades: raw.trades == null ? null : Number(raw.trades),
@@ -128,9 +173,9 @@ export async function POST(req: NextRequest) {
 
   if (action === "STAKE_AGENT") {
     const agentId = String(payload.agentId ?? "").trim();
-    const amount = Number(payload.amount ?? 0);
+    const amount = parseWeiAmount(payload.amount);
     const txHash = String(payload.txHash ?? "").trim();
-    if (!agentId || amount <= 0 || !txHash) {
+    if (!agentId || !amount || !txHash) {
       return NextResponse.json({ error: "Invalid stake payload" }, { status: 400 });
     }
 
@@ -186,9 +231,9 @@ export async function POST(req: NextRequest) {
 
   if (action === "UNSTAKE_AGENT") {
     const agentId = String(payload.agentId ?? "").trim();
-    const amount = Number(payload.amount ?? 0);
+    const amount = parseWeiAmount(payload.amount);
     const txHash = String(payload.txHash ?? "").trim();
-    if (!agentId || amount <= 0 || !txHash) {
+    if (!agentId || !amount || !txHash) {
       return NextResponse.json({ error: "Invalid unstake payload" }, { status: 400 });
     }
 

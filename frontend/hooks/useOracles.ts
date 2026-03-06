@@ -38,13 +38,6 @@ const ORACLE_CONSENSUS_ABI = [
   "function submitOutcome(address market, bool outcome)",
 ];
 
-function toSafeAmount(value: bigint): number {
-  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error("Amount exceeds MAX_SAFE_INTEGER for API payload");
-  }
-  return Number(value);
-}
-
 export function useOracles() {
   const [oracles, setOracles] = useState<Oracle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -144,7 +137,7 @@ export function useOracles() {
           body: JSON.stringify({
             action: "STAKE_ORACLE",
             payload: {
-              amount: toSafeAmount(amountWei),
+              amount: amountWei.toString(),
               txHash,
             },
           }),
@@ -212,4 +205,3 @@ export function useOracles() {
     submitOutcome,
   };
 }
-

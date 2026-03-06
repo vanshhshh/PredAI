@@ -62,13 +62,6 @@ function encodeDataJson(payload: Record<string, unknown>): string {
   return `data:application/json;base64,${btoa(binary)}`;
 }
 
-function toSafeAmount(value: bigint): number {
-  if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error("Amount exceeds MAX_SAFE_INTEGER for API payload");
-  }
-  return Number(value);
-}
-
 export function useAgents() {
   // ------------------------------------------------------------------
   // STATE
@@ -229,7 +222,7 @@ export function useAgents() {
             action: "STAKE_AGENT",
             payload: {
               agentId: input.agentId,
-              amount: toSafeAmount(amountWei),
+              amount: amountWei.toString(),
               txHash,
             },
           }),
@@ -272,7 +265,7 @@ export function useAgents() {
             action: "UNSTAKE_AGENT",
             payload: {
               agentId: input.agentId,
-              amount: toSafeAmount(amountWei),
+              amount: amountWei.toString(),
               txHash,
             },
           }),

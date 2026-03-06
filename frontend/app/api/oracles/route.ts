@@ -12,16 +12,61 @@ type BackendOracle = {
   oracle_id: string;
   address: string;
   active: boolean;
-  stake: number;
+  stake: number | string;
   metadata_uri: string;
 };
+
+function weiToTokenAmount(raw: number | string | null | undefined): number {
+  try {
+    const value = BigInt(String(raw ?? "0"));
+    const whole = value / 10n ** 18n;
+    const fractional = value % 10n ** 18n;
+    const fractional4 = fractional.toString().padStart(18, "0").slice(0, 4);
+    const asString =
+      fractional4 === "0000"
+        ? whole.toString()
+        : `${whole.toString()}.${fractional4}`;
+    const parsed = Number(asString);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function parseWeiAmount(value: unknown): string | null {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    if (!/^[0-9]+$/.test(normalized)) {
+      return null;
+    }
+    try {
+      const wei = BigInt(normalized);
+      return wei > 0n ? wei.toString() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    if (!Number.isInteger(value)) {
+      return null;
+    }
+    try {
+      return BigInt(value).toString();
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
 
 function normalizeOracle(item: BackendOracle) {
   return {
     oracleId: item.oracle_id,
     address: item.address,
     active: Boolean(item.active),
-    stake: Number(item.stake ?? 0),
+    stake: weiToTokenAmount(item.stake),
     metadataUri: item.metadata_uri,
   };
 }
@@ -100,9 +145,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "STAKE_ORACLE") {
-    const amount = Number(payload.amount ?? 0);
+    const amount = parseWeiAmount(payload.amount);
     const txHash = String(payload.txHash ?? "").trim();
-    if (amount <= 0 || !txHash) {
+    if (!amount || !txHash) {
       return NextResponse.json({ error: "Invalid stake payload" }, { status: 400 });
     }
 
@@ -170,4 +215,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
 }
-

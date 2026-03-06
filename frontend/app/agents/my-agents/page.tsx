@@ -99,7 +99,13 @@ function MyAgentsContent() {
       <section className="grid gap-3 md:grid-cols-4">
         <StatCard label="Agents Owned" value={myAgents.length.toString()} />
         <StatCard label="Active Agents" value={activeAgents.toString()} />
-        <StatCard label="Total Stake" value={`$${totalStake.toLocaleString()}`} />
+        <StatCard
+          label="Total Stake"
+          value={`${totalStake.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 4,
+          })} POL`}
+        />
         <StatCard
           label="Total PnL"
           value={hasPnLData ? `$${totalPnL.toLocaleString()}` : "N/A"}

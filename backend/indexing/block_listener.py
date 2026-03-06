@@ -39,6 +39,13 @@ _REVERT_SELECTOR_ERRORS: Dict[str, str] = {
     "0x3f504f14": "MARKET_DURATION_OUT_OF_BOUNDS",
     "0xb8475905": "MARKET_EXPOSURE_OUT_OF_BOUNDS",
     "0x5a483ae3": "INSUFFICIENT_CREATION_BOND",
+    "0xe098d3ee": "AGENT_ALREADY_REGISTERED_ON_CHAIN",
+    "0x83bcfb47": "AGENT_NOT_REGISTERED_ON_CHAIN",
+    "0xba32abe1": "AGENT_ALREADY_INACTIVE_ON_CHAIN",
+    "0xd280225c": "AGENT_STILL_ACTIVE_ON_CHAIN",
+    "0xbcecb64a": "INVALID_AGENT_METADATA_ON_CHAIN",
+    "0x9d749a92": "INVALID_AGENT_STAKE_ON_CHAIN",
+    "0xf1bc94d2": "INSUFFICIENT_AGENT_STAKE_ON_CHAIN",
 }
 
 _INSUFFICIENT_FUNDS_MARKERS = (
@@ -108,6 +115,7 @@ AGENT_REGISTRY_ABI = [
     {"type": "function", "name": "stakeAndActivate", "stateMutability": "payable", "inputs": [], "outputs": []},
     {"type": "function", "name": "deactivate", "stateMutability": "nonpayable", "inputs": [], "outputs": []},
     {"type": "function", "name": "unstake", "stateMutability": "nonpayable", "inputs": [{"name": "amount", "type": "uint256"}], "outputs": []},
+    {"type": "function", "name": "getAgent", "stateMutability": "view", "inputs": [{"name": "agent", "type": "address"}], "outputs": [{"name": "agentId", "type": "bytes32"}, {"name": "metadataURI", "type": "string"}, {"name": "stake", "type": "uint256"}, {"name": "active", "type": "bool"}]},
     {"type": "event", "name": "AgentRegistered", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}, {"name": "agentId", "type": "bytes32", "indexed": True}, {"name": "metadataURI", "type": "string", "indexed": False}]},
     {"type": "event", "name": "AgentActivated", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}]},
     {"type": "event", "name": "AgentDeactivated", "anonymous": False, "inputs": [{"name": "agent", "type": "address", "indexed": True}]},
@@ -409,6 +417,20 @@ class ChainReader:
         c = ChainReader._c()
         contract = c.contract(c.env_address("AGENT_REGISTRY_ADDRESS"), AGENT_REGISTRY_ABI)
         return await asyncio.to_thread(c.verify_call, tx_hash=tx_hash, contract=contract, expected_from=owner, expected_fn="unstake", expected_value_wei=0, expected_args={"amount": int(amount)})
+
+    @staticmethod
+    async def get_agent_state(*, owner: str) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("AGENT_REGISTRY_ADDRESS"), AGENT_REGISTRY_ABI)
+
+        def _read_state() -> Dict[str, Any]:
+            _, _, stake, active = contract.functions.getAgent(c.checksum(owner)).call()
+            return {"stake": int(stake), "active": bool(active)}
+
+        try:
+            return await asyncio.to_thread(_read_state)
+        except Exception as exc:
+            raise InvariantViolation("AGENT_STATE_READ_FAILED", str(exc)) from exc
 
     @staticmethod
     async def verify_oracle_registration_tx(*, tx_hash: str, oracle_address: str, oracle_id: str, metadata_uri: str) -> Dict[str, Any]:

@@ -20,15 +20,11 @@ interface Agent {
 interface AgentDashboardProps {
   agents: Agent[];
   showActions?: boolean;
-  walletAddress?: string;
-  isConnected?: boolean;
 }
 
 export function AgentDashboard({
   agents,
   showActions = false,
-  walletAddress,
-  isConnected = false,
 }: AgentDashboardProps) {
   const usernames = useResolvedUsernames(agents.map((agent) => agent.owner));
 
@@ -43,8 +39,6 @@ export function AgentDashboard({
   return (
     <div className="space-y-3">
       {agents.map((agent) => {
-        const isOwner =
-          walletAddress && walletAddress.toLowerCase() === agent.owner.toLowerCase();
         const ownerDisplay =
           usernames[agent.owner.toLowerCase()] ?? shortenAddress(agent.owner);
 
@@ -80,11 +74,6 @@ export function AgentDashboard({
                   <Link href={`/agents/${agent.agentId}`} className="ui-btn ui-btn-secondary">
                     View
                   </Link>
-                  {isConnected && !isOwner && (
-                    <button type="button" className="ui-btn ui-btn-primary">
-                      Delegate
-                    </button>
-                  )}
                 </div>
               )}
             </div>

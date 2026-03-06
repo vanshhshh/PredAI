@@ -38,7 +38,7 @@ function parseChainIdNumber(): number {
 
 const CHAIN_DEFAULT_ADDRESSES: Record<number, AddressConfig> = {
   80002: {
-    agentRegistry: "0x588140A031aDA47e67BB54667d2caAF70Bc04b6C",
+    agentRegistry: "0x1379459f7345B10E5Ec2d25708375790DB241f4A",
     agentStaking: "0x8E6db4E8FB0E940045261f65c52842dCF8aCE1e5",
     oracleRegistry: "0x553a86753c4064D94C8235c62C0860323e26848c",
     oracleStaking: "0x14ea6585d695568c6bBa26cE6515f8B9cD080317",
@@ -191,12 +191,25 @@ function normalizeAddress(label: string, value: string): string {
   return ethers.getAddress(value);
 }
 
-export function toWeiAmount(amount: number): bigint {
-  const normalized = Math.floor(Number(amount));
-  if (!Number.isFinite(normalized) || normalized <= 0) {
-    throw new Error("Amount must be a positive integer");
+export function toWeiAmount(amount: number | string): bigint {
+  const raw =
+    typeof amount === "number" ? amount.toString() : String(amount ?? "").trim();
+  if (!raw) {
+    throw new Error("Amount is required");
   }
-  return BigInt(normalized);
+
+  let parsed: bigint;
+  try {
+    parsed = ethers.parseEther(raw);
+  } catch {
+    throw new Error("Amount must be a valid decimal value");
+  }
+
+  if (parsed <= 0n) {
+    throw new Error("Amount must be greater than zero");
+  }
+
+  return parsed;
 }
 
 export async function sendContractTx(input: ContractTxInput): Promise<string> {

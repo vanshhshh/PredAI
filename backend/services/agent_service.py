@@ -131,9 +131,11 @@ class AgentService:
             amount=amount,
         )
 
-        updated = await AgentRepository.activate(
+        on_chain = await ChainReader.get_agent_state(owner=owner_address)
+        updated = await AgentRepository.sync_state(
             agent_id=agent_id,
-            stake=int(agent.stake) + amount,
+            stake=int(on_chain["stake"]),
+            active=bool(on_chain["active"]),
         )
 
         return updated
@@ -176,7 +178,12 @@ class AgentService:
             owner=owner_address,
         )
 
-        return await AgentRepository.deactivate(agent_id=agent_id)
+        on_chain = await ChainReader.get_agent_state(owner=owner_address)
+        return await AgentRepository.sync_state(
+            agent_id=agent_id,
+            stake=int(on_chain["stake"]),
+            active=bool(on_chain["active"]),
+        )
 
     @staticmethod
     async def unstake_agent(
@@ -220,7 +227,12 @@ class AgentService:
             amount=amount,
         )
 
-        return await AgentRepository.unstake(agent_id=agent_id, amount=amount)
+        on_chain = await ChainReader.get_agent_state(owner=owner_address)
+        return await AgentRepository.sync_state(
+            agent_id=agent_id,
+            stake=int(on_chain["stake"]),
+            active=bool(on_chain["active"]),
+        )
 
     # ------------------------------------------------------------------
     # READ OPERATIONS
