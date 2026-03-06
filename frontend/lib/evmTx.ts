@@ -103,18 +103,22 @@ function parseExpectedChainId(): bigint | null {
   return BigInt(value);
 }
 
+async function readWalletChainId(
+  ethereum: ethers.Eip1193Provider
+): Promise<bigint> {
+  const chainIdHex = (await ethereum.request({
+    method: "eth_chainId",
+  })) as string;
+  return BigInt(chainIdHex);
+}
+
 async function ensureExpectedChain(
-  provider: ethers.BrowserProvider,
+  ethereum: ethers.Eip1193Provider,
   expectedChainId: bigint
 ): Promise<void> {
-  const network = await provider.getNetwork();
-  if (network.chainId === expectedChainId) {
+  const currentChainId = await readWalletChainId(ethereum);
+  if (currentChainId === expectedChainId) {
     return;
-  }
-
-  const ethereum = (window as { ethereum?: ethers.Eip1193Provider }).ethereum;
-  if (!ethereum) {
-    throw new Error("Wallet not detected");
   }
 
   const chainHex = `0x${expectedChainId.toString(16)}`;
@@ -147,8 +151,8 @@ async function ensureExpectedChain(
     }
   }
 
-  const updated = await provider.getNetwork();
-  if (updated.chainId !== expectedChainId) {
+  const updatedChainId = await readWalletChainId(ethereum);
+  if (updatedChainId !== expectedChainId) {
     throw new Error(
       `Wrong network connected (expected chain ${expectedChainId.toString()})`
     );
@@ -179,12 +183,13 @@ export async function sendContractTx(input: ContractTxInput): Promise<string> {
     throw new Error("Wallet not detected");
   }
 
-  const provider = new ethers.BrowserProvider(ethereum);
   const expectedChainId = parseExpectedChainId();
   if (expectedChainId !== null) {
-    await ensureExpectedChain(provider, expectedChainId);
+    await ensureExpectedChain(ethereum, expectedChainId);
   }
 
+  // Create provider after any potential chain switch to avoid stale-network race.
+  const provider = new ethers.BrowserProvider(ethereum);
   const signer = await provider.getSigner();
   const iface = new ethers.Interface(input.abi);
   const to = normalizeAddress(input.label, input.address);
