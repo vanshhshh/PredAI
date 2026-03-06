@@ -19,7 +19,7 @@ DESIGN RULES (from docs)
 - Fail closed on any inconsistency
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 import time
 
 from backend.indexing.block_listener import ChainReader
@@ -121,6 +121,20 @@ class MarketService:
         Paginated list of markets.
         """
         return await MarketRepository.list(limit=limit, offset=offset)
+
+    @staticmethod
+    async def get_market_pools(market_id: str) -> Tuple[int, int]:
+        """
+        Return cumulative YES/NO pools from persisted bets.
+        """
+        return await MarketRepository.get_market_pools(market_id)
+
+    @staticmethod
+    async def get_markets_pools(market_ids: List[str]) -> Dict[str, Tuple[int, int]]:
+        """
+        Return cumulative YES/NO pools keyed by market_id.
+        """
+        return await MarketRepository.get_markets_pools(market_ids)
 
     # ------------------------------------------------------------------
     # SETTLEMENT

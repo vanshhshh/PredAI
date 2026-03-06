@@ -52,6 +52,8 @@ class MarketResponse(BaseModel):
     metadata_uri: str
     settled: bool
     final_outcome: Optional[bool]
+    yes_pool: Optional[int] = None
+    no_pool: Optional[int] = None
 
 
 class MarketBetRequest(BaseModel):
@@ -65,6 +67,27 @@ class MarketBetResponse(BaseModel):
     side: str
     amount: int
     status: str
+
+
+def _to_market_response(
+    market,
+    *,
+    yes_pool: Optional[int] = None,
+    no_pool: Optional[int] = None,
+) -> MarketResponse:
+    return MarketResponse(
+        market_id=market.market_id,
+        address=market.address,
+        creator=market.creator,
+        start_time=int(market.start_time),
+        end_time=int(market.end_time),
+        max_exposure=int(market.max_exposure),
+        metadata_uri=market.metadata_uri,
+        settled=bool(market.settled),
+        final_outcome=market.final_outcome,
+        yes_pool=None if yes_pool is None else int(yes_pool),
+        no_pool=None if no_pool is None else int(no_pool),
+    )
 
 
 # -------------------------------------------------------------------
@@ -97,7 +120,7 @@ async def create_market(
             max_exposure=req.max_exposure,
             metadata_uri=req.metadata_uri,
         )
-        return market
+        return _to_market_response(market)
     except InvariantViolation as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -119,7 +142,12 @@ async def get_market(market_id: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Market not found",
         )
-    return market
+    yes_pool, no_pool = await MarketService.get_market_pools(market_id)
+    return _to_market_response(
+        market,
+        yes_pool=yes_pool,
+        no_pool=no_pool,
+    )
 
 
 @router.get(
@@ -133,7 +161,17 @@ async def list_markets(
     """
     Paginated list of markets.
     """
-    return await MarketService.list_markets(limit=limit, offset=offset)
+    markets = await MarketService.list_markets(limit=limit, offset=offset)
+    market_ids = [market.market_id for market in markets]
+    pools = await MarketService.get_markets_pools(market_ids)
+    return [
+        _to_market_response(
+            market,
+            yes_pool=pools.get(market.market_id, (0, 0))[0],
+            no_pool=pools.get(market.market_id, (0, 0))[1],
+        )
+        for market in markets
+    ]
 
 
 @router.post(

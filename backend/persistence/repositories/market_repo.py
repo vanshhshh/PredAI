@@ -10,7 +10,7 @@ Repository rules:
 
 from typing import List, Optional
 
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 
 from backend.persistence.db import AsyncSessionLocal
 from backend.persistence.repositories.models import Market, MarketBet
@@ -102,6 +102,74 @@ class MarketRepository:
                 .offset(offset)
             )
             return list(result)
+
+    @staticmethod
+    async def get_market_pools(market_id: str) -> tuple[int, int]:
+        async with AsyncSessionLocal() as session:
+            row = await session.execute(
+                select(
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (MarketBet.side == "YES", MarketBet.amount),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ),
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (MarketBet.side == "NO", MarketBet.amount),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ),
+                ).where(MarketBet.market_id == market_id)
+            )
+            yes_pool, no_pool = row.one()
+            return int(yes_pool or 0), int(no_pool or 0)
+
+    @staticmethod
+    async def get_markets_pools(market_ids: List[str]) -> dict[str, tuple[int, int]]:
+        if not market_ids:
+            return {}
+
+        async with AsyncSessionLocal() as session:
+            rows = await session.execute(
+                select(
+                    MarketBet.market_id,
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (MarketBet.side == "YES", MarketBet.amount),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ).label("yes_pool"),
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (MarketBet.side == "NO", MarketBet.amount),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ).label("no_pool"),
+                )
+                .where(MarketBet.market_id.in_(market_ids))
+                .group_by(MarketBet.market_id)
+            )
+
+            pools: dict[str, tuple[int, int]] = {}
+            for market_id, yes_pool, no_pool in rows.all():
+                pools[str(market_id)] = (
+                    int(yes_pool or 0),
+                    int(no_pool or 0),
+                )
+            return pools
 
     @staticmethod
     async def mark_settled(

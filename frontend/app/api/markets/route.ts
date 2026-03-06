@@ -46,14 +46,15 @@ function normalizeMarket(item: BackendMarket) {
   const settled = Boolean(item.settled);
   const yesPool = Number(item.yes_pool ?? 0);
   const noPool = Number(item.no_pool ?? 0);
-  const hasPoolData = yesPool > 0 || noPool > 0;
+  const totalPool = yesPool + noPool;
+  const hasPoolData = Number.isFinite(totalPool) && totalPool > 0;
   const yesOdds = settled
     ? item.final_outcome === true
       ? 1
       : 0
     : hasPoolData
-      ? yesPool / (yesPool + noPool)
-      : null;
+      ? yesPool / totalPool
+      : 0.5;
   return {
     marketId: item.market_id,
     address: item.address,
