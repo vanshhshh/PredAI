@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 
 import { contractAddresses, sendContractTx, toWeiAmount } from "../lib/evmTx";
+import { useWallet } from "./useWallet";
 
 export interface Agent {
   agentId: string;
@@ -84,6 +85,7 @@ export function useAgents() {
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { address } = useWallet();
 
   // ------------------------------------------------------------------
   // FETCH ALL AGENT DATA
@@ -94,7 +96,10 @@ export function useAgents() {
     setError(null);
 
     try {
-      const res = await fetch("/api/agents", {
+      const query = address
+        ? `?wallet=${encodeURIComponent(address)}`
+        : "";
+      const res = await fetch(`/api/agents${query}`, {
         method: "GET",
         cache: "no-store",
       });
@@ -124,7 +129,7 @@ export function useAgents() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [address]);
 
   useEffect(() => {
     fetchAgents();
