@@ -62,6 +62,8 @@ function normalizeMarket(item: BackendMarket) {
     description: meta.description,
     yesOdds,
     noOdds: yesOdds === null ? null : 1 - yesOdds,
+    yesPool,
+    noPool,
     liquidity: Number(item.max_exposure ?? 0),
     endTime: Number(item.end_time ?? 0) * 1000,
     settled,

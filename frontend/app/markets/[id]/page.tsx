@@ -158,6 +158,8 @@ function MarketContent() {
             marketId={market.marketId}
             yesOdds={market.yesOdds}
             noOdds={market.noOdds}
+            yesPool={market.yesPool}
+            noPool={market.noPool}
             isSettled={market.settled}
           />
         </aside>

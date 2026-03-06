@@ -14,6 +14,8 @@ export interface Market {
   description?: string;
   yesOdds: number | null;
   noOdds: number | null;
+  yesPool: number;
+  noPool: number;
   liquidity: number;
   endTime: number;
   settled: boolean;

@@ -10,10 +10,19 @@ interface BetFormProps {
   marketId: string;
   yesOdds: number | null;
   noOdds: number | null;
+  yesPool: number;
+  noPool: number;
   isSettled: boolean;
 }
 
-export function BetForm({ marketId, yesOdds, noOdds, isSettled }: BetFormProps) {
+export function BetForm({
+  marketId,
+  yesOdds,
+  noOdds,
+  yesPool,
+  noPool,
+  isSettled,
+}: BetFormProps) {
   const { isConnected } = useWallet();
   const { placeBet, isBetting, error } = useMarkets();
 
@@ -48,7 +57,13 @@ export function BetForm({ marketId, yesOdds, noOdds, isSettled }: BetFormProps) 
   }
 
   const selectedOdds = side === "YES" ? yesOdds : noOdds;
-  const payout = amount > 0 && selectedOdds !== null ? amount * selectedOdds : null;
+  const payout = estimateParimutuelPayout({
+    amount,
+    side,
+    yesPool,
+    noPool,
+  });
+  const profit = payout === null ? null : payout - amount;
 
   return (
     <form onSubmit={handleSubmit} className="ui-card space-y-5 p-5">
@@ -114,9 +129,16 @@ export function BetForm({ marketId, yesOdds, noOdds, isSettled }: BetFormProps) 
           <span>{selectedOdds === null ? "N/A" : `${(selectedOdds * 100).toFixed(2)}%`}</span>
         </div>
         <div className="mt-2 flex items-center justify-between font-semibold text-cyan-100">
-          <span>Estimated Payout</span>
+          <span>Estimated Payout*</span>
           <span>{payout === null ? "N/A" : payout.toFixed(4)}</span>
         </div>
+        <div className="mt-2 flex items-center justify-between text-slate-300">
+          <span>Estimated Profit*</span>
+          <span>{profit === null ? "N/A" : profit.toFixed(4)}</span>
+        </div>
+        <p className="mt-2 text-[11px] text-slate-400">
+          * Based on current YES/NO pools. Final payout changes as new bets arrive.
+        </p>
       </div>
 
       {error && <p className="text-sm text-rose-300">{error.message}</p>}
@@ -132,6 +154,29 @@ export function BetForm({ marketId, yesOdds, noOdds, isSettled }: BetFormProps) 
       {isBetting && <LoadingSpinner label="Broadcasting order..." size="sm" />}
     </form>
   );
+}
+
+function estimateParimutuelPayout({
+  amount,
+  side,
+  yesPool,
+  noPool,
+}: {
+  amount: number;
+  side: "YES" | "NO";
+  yesPool: number;
+  noPool: number;
+}): number | null {
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  const yes = Number.isFinite(yesPool) && yesPool > 0 ? yesPool : 0;
+  const no = Number.isFinite(noPool) && noPool > 0 ? noPool : 0;
+
+  const projectedTotalPool = yes + no + amount;
+  const projectedWinningPool = side === "YES" ? yes + amount : no + amount;
+  if (projectedWinningPool <= 0) return null;
+
+  return (amount * projectedTotalPool) / projectedWinningPool;
 }
 
 function OutcomeButton({
