@@ -58,12 +58,13 @@ def generate_market_specs(count: int = 100) -> List[MarketSpec]:
         "XRP": 2.5,
     }
     multipliers = [0.85, 0.95, 1.05, 1.15, 1.25]
-    month_offsets = [1, 2, 3, 4]
+    # Keep expiries safely within deployed factory max duration (30 days on Amoy).
+    day_offsets = [7, 14, 21, 28]
     out: list[MarketSpec] = []
 
     for asset, base in assets.items():
-        for month in month_offsets:
-            expiry = (now + timedelta(days=30 * month)).replace(hour=23, minute=59, second=0, microsecond=0)
+        for days in day_offsets:
+            expiry = (now + timedelta(days=days)).replace(hour=23, minute=59, second=0, microsecond=0)
             for multiplier in multipliers:
                 threshold = base * multiplier
                 threshold_label = f"{threshold:.4f}".rstrip("0").rstrip(".")
@@ -124,7 +125,7 @@ def create_market(
     max_exposure: int,
 ) -> dict:
     response = client.post(
-        f"{base_url}/markets",
+        f"{base_url}/markets/",
         headers={"Authorization": f"Bearer {token}"},
         json={
             "market_id": spec.market_id,
@@ -135,8 +136,17 @@ def create_market(
         },
         timeout=30,
     )
+    if response.status_code == 400 and "MARKET_ID_ALREADY_EXISTS" in response.text:
+        return {"market_id": spec.market_id, "address": None, "status": "exists"}
+    if response.status_code >= 400:
+        raise RuntimeError(
+            f"Failed creating market {spec.market_id}: "
+            f"{response.status_code} {response.text}"
+        )
     response.raise_for_status()
-    return response.json()
+    payload = response.json()
+    payload["status"] = "created"
+    return payload
 
 
 def send_bet_tx(
@@ -232,7 +242,10 @@ def main() -> None:
                 max_exposure=max_exposure,
             )
             created.append(created_market)
-            print(f"[{idx}/{len(specs)}] created {spec.market_id} -> {created_market.get('address')}")
+            print(
+                f"[{idx}/{len(specs)}] {created_market.get('status')} "
+                f"{spec.market_id} -> {created_market.get('address')}"
+            )
 
         if not seed_bets:
             print("Market creation complete (bet seeding disabled).")
@@ -244,7 +257,14 @@ def main() -> None:
             time.sleep(wait_seconds)
 
         print("Seeding YES/NO liquidity on each market...")
-        for idx, market in enumerate(created, start=1):
+        creatable = [market for market in created if market.get("address")]
+        if len(creatable) < len(created):
+            print(
+                f"Skipping liquidity seed for {len(created) - len(creatable)} existing markets "
+                f"without fresh addresses in this run."
+            )
+
+        for idx, market in enumerate(creatable, start=1):
             market_id = market["market_id"]
             address = market["address"]
             yes_hash = send_bet_tx(
@@ -280,7 +300,7 @@ def main() -> None:
                 amount_wei=bet_per_side,
                 tx_hash=no_hash,
             )
-            print(f"[{idx}/{len(created)}] seeded market {market_id}")
+            print(f"[{idx}/{len(creatable)}] seeded market {market_id}")
 
     print("Done.")
 
