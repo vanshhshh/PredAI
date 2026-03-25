@@ -47,8 +47,24 @@ def _cors_origins() -> list[str]:
     """
     Resolve CORS origins from env for frontend integration.
     """
-    raw = os.getenv("CORS_ORIGINS", "")
-    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+    origins: set[str] = set()
+
+    for raw in (
+        os.getenv("CORS_ORIGINS", ""),
+        os.getenv("FRONTEND_ORIGIN", ""),
+        os.getenv("APP_URL", ""),
+    ):
+        origins.update(
+            origin.strip()
+            for origin in raw.split(",")
+            if origin.strip()
+        )
+
+    env = (os.getenv("ENV") or "").strip().lower()
+    if not origins and env not in {"production", "prod"}:
+        origins.update({"http://localhost:3000", "http://127.0.0.1:3000"})
+
+    return sorted(origins)
 
 
 def _error_payload(

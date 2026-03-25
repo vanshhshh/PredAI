@@ -50,7 +50,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://predai:predai@db:5432/predai
       AI_SERVICE_URL: http://ai:9000
       AI_BASE_URL: http://ai:9000
-      CORS_ORIGINS: ${CORS_ORIGINS}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       JWT_SECRET: ${JWT_SECRET}
       SQL_ECHO: "false"
       DB_POOL_SIZE: "10"
@@ -76,17 +76,14 @@ services:
       context: .
       dockerfile: infra/docker/frontend.Dockerfile
       args:
-        BACKEND_BASE_URL: http://backend:8000
-        NEXT_PUBLIC_BACKEND_BASE_URL: http://backend:8000
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     container_name: predai-frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      BACKEND_BASE_URL: http://backend:8000
-      NEXT_PUBLIC_BACKEND_BASE_URL: http://backend:8000
-      NEXT_PUBLIC_BACKEND_URL: http://backend:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID}

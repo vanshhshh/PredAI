@@ -67,7 +67,7 @@ function AgentContent() {
     usernames[agent.owner.toLowerCase()] ?? shortenAddress(agent.owner);
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -107,9 +107,15 @@ function AgentContent() {
               agentId={agent.agentId}
               active={agent.active}
               currentStake={agent.stake}
-              onStake={(amount) => stakeAgent({ agentId: agent.agentId, amount })}
-              onUnstake={(amount) => unstakeAgent({ agentId: agent.agentId, amount })}
-              onDeactivate={() => toggleAgentActive(agent.agentId)}
+              onStake={async (amount) => {
+                await stakeAgent({ agentId: agent.agentId, amount });
+              }}
+              onUnstake={async (amount) => {
+                await unstakeAgent({ agentId: agent.agentId, amount });
+              }}
+              onDeactivate={async () => {
+                await toggleAgentActive(agent.agentId);
+              }}
               isPending={isMutating}
               error={mutationError}
             />

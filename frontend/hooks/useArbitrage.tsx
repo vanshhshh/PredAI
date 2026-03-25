@@ -1,7 +1,8 @@
-// frontend/hooks/useArbitrage.ts
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+import { fetchArbitrageOpportunities } from "@/lib/api";
 
 export interface ArbitrageOpportunity {
   opportunityId: string;
@@ -13,49 +14,23 @@ export interface ArbitrageOpportunity {
 }
 
 export function useArbitrage() {
-  const [feed, setFeed] = useState<ArbitrageOpportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    async function fetchFeed() {
-      setIsLoading(true);
-      try {
-        const res = await fetch("/api/yield/arbitrage", {
-          cache: "no-store",
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch arbitrage feed");
-        }
-
-        const raw = await res.json();
-
-        const normalized: ArbitrageOpportunity[] = raw.map(
-          (item: any): ArbitrageOpportunity => ({
-            opportunityId: item.opportunityId,
-            route: item.route ?? [],
-            spread: Number(item.spread),
-            confidence: Number(item.confidence),
-            status: item.status,
-            detectedAt: item.detectedAt ?? Date.now(),
-          })
-        );
-
-        setFeed(normalized);
-      } catch (err) {
-        setError(err as Error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchFeed();
-  }, []);
+  const query = useQuery({
+    queryKey: ["yield", "arbitrage"],
+    queryFn: fetchArbitrageOpportunities,
+  });
 
   return {
-    feed,
-    isLoading,
-    error,
+    feed: ((query.data ?? []) as Record<string, unknown>[]).map(
+      (item): ArbitrageOpportunity => ({
+        opportunityId: String(item.opportunityId ?? ""),
+        route: Array.isArray(item.route) ? item.route.map((value) => String(value)) : [],
+        spread: Number(item.spread ?? 0),
+        confidence: Number(item.confidence ?? 0),
+        status: (item.status as ArbitrageOpportunity["status"]) ?? "ACTIVE",
+        detectedAt: Number(item.detectedAt ?? Date.now()),
+      })
+    ),
+    isLoading: query.isLoading,
+    error: (query.error as Error | null) ?? null,
   };
 }

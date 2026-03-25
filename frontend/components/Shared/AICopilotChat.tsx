@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
+import { sendCopilotMessage } from "@/lib/api";
+
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface ChatMessage {
@@ -46,18 +48,11 @@ export function AICopilotChat({ context }: AICopilotChatProps) {
     abortRef.current = new AbortController();
 
     try {
-      const res = await fetch("/api/ai/copilot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userMessage.content,
-          context,
-        }),
+      const data = await sendCopilotMessage({
+        message: userMessage.content,
+        context,
         signal: abortRef.current.signal,
       });
-
-      if (!res.ok) throw new Error("Copilot failed");
-      const data = await res.json();
 
       setMessages((prev) => [
         ...prev,

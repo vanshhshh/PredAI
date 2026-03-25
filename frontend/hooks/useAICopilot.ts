@@ -22,6 +22,8 @@
 
 import { useCallback, useRef, useState } from "react";
 
+import { sendCopilotMessage } from "@/lib/api";
+
 export interface CopilotMessage {
   role: "user" | "assistant";
   content: string;
@@ -68,26 +70,11 @@ export function useAICopilot(context?: CopilotContext) {
       abortRef.current = new AbortController();
 
       try {
-        const res = await fetch("/api/ai/copilot", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: content,
-            context,
-          }),
+        const data = await sendCopilotMessage({
+          message: content,
+          context,
           signal: abortRef.current.signal,
         });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(
-            text || "Copilot request failed"
-          );
-        }
-
-        const data = await res.json();
 
         const assistantMessage: CopilotMessage = {
           role: "assistant",

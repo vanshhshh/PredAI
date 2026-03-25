@@ -1,26 +1,14 @@
-// File: frontend/hooks/useYield.ts
-
-/**
- * PURPOSE
- * -------
- * Yield ecosystem data + actions hook.
- *
- * This hook:
- * - fetches yield vaults and user portfolio state
- * - retrieves AI-optimized allocation recommendations
- * - triggers rebalance / allocation actions
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - No mock data
- * - Backend is the source of truth
- * - Deterministic, auditable actions
- * - Explicit separation of read vs write
- */
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  fetchYieldPortfolio,
+  fetchYieldVaults,
+  rebalanceYieldPortfolio,
+} from "@/lib/api";
+
+import { useWallet } from "./useWallet";
 
 export interface YieldVault {
   vaultId: string;
@@ -28,7 +16,7 @@ export interface YieldVault {
   description?: string;
   apy: number;
   tvl: number;
-  risk: number; // 0..1
+  risk: number;
 }
 
 export interface PortfolioAllocation {
@@ -45,120 +33,40 @@ export interface YieldPortfolio {
 }
 
 export function useYield() {
-  const [vaults, setVaults] = useState<YieldVault[]>([]);
-  const [portfolio, setPortfolio] =
-    useState<YieldPortfolio | null>(null);
+  const queryClient = useQueryClient();
+  const { address } = useWallet();
+  const vaultsQuery = useQuery({
+    queryKey: ["yield", "vaults"],
+    queryFn: fetchYieldVaults,
+  });
+  const portfolioQuery = useQuery({
+    queryKey: ["yield", "portfolio", address ?? null],
+    queryFn: fetchYieldPortfolio,
+  });
 
-  const [isLoading, setIsLoading] =
-    useState<boolean>(false);
-  const [isRebalancing, setIsRebalancing] =
-    useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(
-    null
-  );
+  const rebalanceMutation = useMutation({
+    mutationFn: async () => rebalanceYieldPortfolio(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["yield", "portfolio"] });
+    },
+  });
 
-  // ------------------------------------------------------------------
-  // FETCH VAULTS
-  // ------------------------------------------------------------------
-
-  const fetchVaults = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/yield/vaults", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch vaults");
-      }
-
-      const data = await res.json();
-      setVaults(data.vaults ?? data);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // ------------------------------------------------------------------
-  // FETCH PORTFOLIO
-  // ------------------------------------------------------------------
-
-  const fetchPortfolio = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/yield/portfolio", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch portfolio");
-      }
-
-      const data = await res.json();
-      setPortfolio(data);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchVaults();
-    fetchPortfolio();
-  }, [fetchVaults, fetchPortfolio]);
-
-  // ------------------------------------------------------------------
-  // REBALANCE
-  // ------------------------------------------------------------------
-
-  const rebalance = useCallback(async () => {
-    setIsRebalancing(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/yield/rebalance", {
-        method: "POST",
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(
-          text || "Failed to rebalance portfolio"
-        );
-      }
-
-      await fetchPortfolio();
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setIsRebalancing(false);
-    }
-  }, [fetchPortfolio]);
-
-  // ------------------------------------------------------------------
-  // PUBLIC API
-  // ------------------------------------------------------------------
+  const error =
+    (rebalanceMutation.error as Error | null) ??
+    (portfolioQuery.error as Error | null) ??
+    (vaultsQuery.error as Error | null) ??
+    null;
 
   return {
-    vaults,
-    portfolio,
-
-    isLoading,
-    isRebalancing,
+    vaults: (vaultsQuery.data ?? []) as YieldVault[],
+    portfolio: (portfolioQuery.data ?? null) as YieldPortfolio | null,
+    isLoading: vaultsQuery.isLoading || portfolioQuery.isLoading,
+    isRebalancing: rebalanceMutation.isPending,
     error,
-
-    refetchVaults: fetchVaults,
-    refetchPortfolio: fetchPortfolio,
-    rebalance,
+    refetchVaults: vaultsQuery.refetch,
+    refetchPortfolio: portfolioQuery.refetch,
+    rebalance: async () => {
+      await rebalanceMutation.mutateAsync();
+    },
   };
 }

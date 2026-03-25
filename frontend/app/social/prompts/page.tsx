@@ -5,6 +5,7 @@ import React, { useMemo, useState } from "react";
 
 import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
 import { useSocialFeeds } from "../../../hooks/useSocialFeeds";
+import { createMarket } from "../../../lib/api";
 
 type CompiledMarketSpec = {
   title: string;
@@ -43,22 +44,6 @@ function slugify(value: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || `market-${Date.now()}`
   );
-}
-
-async function readErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const payload = (await response.json()) as Record<string, unknown>;
-    const error = payload.error;
-    if (typeof error === "string" && error.trim()) {
-      return error;
-    }
-    if (typeof payload.message === "string" && payload.message.trim()) {
-      return payload.message;
-    }
-    return fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 export default function SocialPromptsPage() {
@@ -141,29 +126,14 @@ function PromptsContent() {
         `Compiler Confidence: ${(normalizedConfidence * 100).toFixed(1)}%`,
       ].join("\n");
 
-      const response = await fetch("/api/markets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "CREATE_MARKET",
-          payload: {
-            title: compiledSpec.title,
-            description: marketDescription,
-            marketId: slugify(compiledSpec.title),
-            endTime,
-            maxExposure: 10_000,
-          },
-        }),
+      const payload = await createMarket({
+        title: compiledSpec.title,
+        description: marketDescription,
+        marketId: slugify(compiledSpec.title),
+        endTime,
+        maxExposure: 10_000,
       });
-
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response, "Failed to deploy market"));
-      }
-
-      const payload = (await response.json()) as {
-        market?: { marketId?: string; market_id?: string };
-      };
-      const marketId = payload.market?.marketId ?? payload.market?.market_id;
+      const marketId = payload.market?.marketId;
       if (!marketId) {
         throw new Error("Market created but ID was not returned");
       }
@@ -184,7 +154,7 @@ function PromptsContent() {
   }
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Compiler Playground</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Prompt Compiler</h1>

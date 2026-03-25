@@ -1,11 +1,17 @@
-// File: frontend/hooks/useAgents.ts
-
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ethers } from "ethers";
 
-import { contractAddresses, sendContractTx, toWeiAmount } from "../lib/evmTx";
+import {
+  createAgentRecord,
+  fetchAgents,
+  stakeAgentRecord,
+  toggleAgentRecord,
+  unstakeAgentRecord,
+} from "@/lib/api";
+import { contractAddresses, sendContractTx, toWeiAmount } from "@/lib/evmTx";
+
 import { useWallet } from "./useWallet";
 
 export interface Agent {
@@ -13,7 +19,7 @@ export interface Agent {
   owner: string;
   active: boolean;
   stake: number;
-  accuracy: number; // 0..1
+  accuracy: number;
   pnl: number | null;
   trades: number | null;
   createdAt?: number;
@@ -46,9 +52,11 @@ function slugifyAgentId(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
   if (!slug) {
     throw new Error("Agent name must contain at least one alphanumeric character");
   }
+
   return slug;
 }
 
@@ -56,324 +64,163 @@ function encodeDataJson(payload: Record<string, unknown>): string {
   const json = JSON.stringify(payload);
   const encoded = new TextEncoder().encode(json);
   let binary = "";
+
   for (const byte of encoded) {
     binary += String.fromCharCode(byte);
   }
+
   return `data:application/json;base64,${btoa(binary)}`;
 }
 
+function getPollIntervalMs(): number | false {
+  const raw = process.env.NEXT_PUBLIC_AGENTS_POLL_INTERVAL_MS ?? "30000";
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : false;
+}
+
 export function useAgents() {
-  // ------------------------------------------------------------------
-  // STATE
-  // ------------------------------------------------------------------
-
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [marketplaceAgents, setMarketplaceAgents] =
-    useState<Agent[]>([]);
-  const [myAgents, setMyAgents] = useState<Agent[]>([]);
-  const [delegatedAgents, setDelegatedAgents] =
-    useState<Agent[]>([]);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMutating, setIsMutating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
   const { address } = useWallet();
-  const pollIntervalMs = useMemo(() => {
-    const raw = process.env.NEXT_PUBLIC_AGENTS_POLL_INTERVAL_MS ?? "30000";
-    const parsed = Number.parseInt(raw, 10);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      return 0;
-    }
-    return parsed;
-  }, []);
+  const agentsQuery = useQuery({
+    queryKey: ["agents", address ?? null],
+    queryFn: () => fetchAgents(address),
+    refetchInterval: getPollIntervalMs(),
+  });
 
-  // ------------------------------------------------------------------
-  // FETCH ALL AGENT DATA
-  // ------------------------------------------------------------------
+  const bucketed = agentsQuery.data ?? {
+    all: [],
+    marketplace: [],
+    mine: [],
+    delegated: [],
+  };
 
-  const fetchAgents = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const createAgentMutation = useMutation({
+    mutationFn: async (input: CreateAgentInput) => {
+      if (bucketed.mine.length > 0) {
+        throw new Error("Only one agent per wallet is currently supported.");
+      }
 
-    try {
-      const query = address
-        ? `?wallet=${encodeURIComponent(address)}`
-        : "";
-      const res = await fetch(`/api/agents${query}`, {
-        method: "GET",
-        cache: "no-store",
+      const agentId = slugifyAgentId(input.name);
+      const metadataUri =
+        input.metadataUri?.trim() ||
+        encodeDataJson({
+          agentId,
+          name: input.name.trim(),
+          riskTolerance: input.riskTolerance,
+          maxExposure: input.maxExposure,
+          schema: "moltmarket.agent.metadata.v1",
+        });
+
+      const txHash = await sendContractTx({
+        address: contractAddresses.agentRegistry,
+        abi: AGENT_REGISTRY_ABI,
+        functionName: "registerAgent",
+        args: [ethers.id(agentId), metadataUri],
+        label: "AgentRegistry",
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch agents");
-      }
-
-      const data = await res.json();
-
-      /**
-       * Expected backend response:
-       * {
-       *   all: Agent[],
-       *   marketplace: Agent[],
-       *   mine: Agent[],
-       *   delegated: Agent[]
-       * }
-       */
-
-      setAgents(data.all ?? []);
-      setMarketplaceAgents(data.marketplace ?? []);
-      setMyAgents(data.mine ?? []);
-      setDelegatedAgents(data.delegated ?? []);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [address]);
-
-  useEffect(() => {
-    fetchAgents();
-    if (pollIntervalMs <= 0) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      void fetchAgents();
-    }, pollIntervalMs);
-    return () => clearInterval(interval);
-  }, [fetchAgents, pollIntervalMs]);
-
-  // ------------------------------------------------------------------
-  // DERIVED HELPERS
-  // ------------------------------------------------------------------
-
-  const getAgentById = useCallback(
-    (agentId: string): Agent | undefined => {
-      return agents.find((a) => a.agentId === agentId);
+      return createAgentRecord({
+        agentId,
+        metadataUri,
+        txHash,
+      });
     },
-    [agents]
-  );
-
-  // ------------------------------------------------------------------
-  // CREATE AGENT
-  // ------------------------------------------------------------------
-
-  const createAgent = useCallback(
-    async (input: CreateAgentInput) => {
-      setIsMutating(true);
-      setError(null);
-
-      try {
-        if (myAgents.length > 0) {
-          throw new Error("Only one agent per wallet is currently supported.");
-        }
-
-        const agentId = slugifyAgentId(input.name);
-        const metadataUri =
-          input.metadataUri?.trim() ||
-          encodeDataJson({
-            agentId,
-            name: input.name.trim(),
-            riskTolerance: input.riskTolerance,
-            maxExposure: input.maxExposure,
-            schema: "moltmarket.agent.metadata.v1",
-          });
-
-        const txHash = await sendContractTx({
-          address: contractAddresses.agentRegistry,
-          abi: AGENT_REGISTRY_ABI,
-          functionName: "registerAgent",
-          args: [ethers.id(agentId), metadataUri],
-          label: "AgentRegistry",
-        });
-
-        const res = await fetch("/api/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "CREATE_AGENT",
-            payload: {
-              agentId,
-              metadataUri,
-              txHash,
-            },
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-
-        await fetchAgents();
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsMutating(false);
-      }
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["agents"] });
     },
-    [fetchAgents, myAgents]
-  );
+  });
 
-  // ------------------------------------------------------------------
-  // STAKE / UNSTAKE
-  // ------------------------------------------------------------------
+  const stakeAgentMutation = useMutation({
+    mutationFn: async (input: StakeInput) => {
+      const amountWei = toWeiAmount(input.amount);
+      const txHash = await sendContractTx({
+        address: contractAddresses.agentRegistry,
+        abi: AGENT_REGISTRY_ABI,
+        functionName: "stakeAndActivate",
+        args: [],
+        valueWei: amountWei,
+        label: "AgentRegistry",
+      });
 
-  const stakeAgent = useCallback(
-    async (input: StakeInput) => {
-      setIsMutating(true);
-      setError(null);
-
-      try {
-        const amountWei = toWeiAmount(input.amount);
-        const txHash = await sendContractTx({
-          address: contractAddresses.agentRegistry,
-          abi: AGENT_REGISTRY_ABI,
-          functionName: "stakeAndActivate",
-          args: [],
-          valueWei: amountWei,
-          label: "AgentRegistry",
-        });
-
-        const res = await fetch("/api/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "STAKE_AGENT",
-            payload: {
-              agentId: input.agentId,
-              amount: amountWei.toString(),
-              txHash,
-            },
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-
-        await fetchAgents();
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsMutating(false);
-      }
+      return stakeAgentRecord({
+        agentId: input.agentId,
+        amount: amountWei.toString(),
+        txHash,
+      });
     },
-    [fetchAgents]
-  );
-
-  const unstakeAgent = useCallback(
-    async (input: StakeInput) => {
-      setIsMutating(true);
-      setError(null);
-
-      try {
-        const amountWei = toWeiAmount(input.amount);
-        const txHash = await sendContractTx({
-          address: contractAddresses.agentRegistry,
-          abi: AGENT_REGISTRY_ABI,
-          functionName: "unstake",
-          args: [amountWei],
-          label: "AgentRegistry",
-        });
-
-        const res = await fetch("/api/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "UNSTAKE_AGENT",
-            payload: {
-              agentId: input.agentId,
-              amount: amountWei.toString(),
-              txHash,
-            },
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-
-        await fetchAgents();
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsMutating(false);
-      }
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["agents"] });
     },
-    [fetchAgents]
-  );
+  });
 
-  // ------------------------------------------------------------------
-  // TOGGLE ACTIVE
-  // ------------------------------------------------------------------
+  const unstakeAgentMutation = useMutation({
+    mutationFn: async (input: StakeInput) => {
+      const amountWei = toWeiAmount(input.amount);
+      const txHash = await sendContractTx({
+        address: contractAddresses.agentRegistry,
+        abi: AGENT_REGISTRY_ABI,
+        functionName: "unstake",
+        args: [amountWei],
+        label: "AgentRegistry",
+      });
 
-  const toggleAgentActive = useCallback(
-    async (agentId: string) => {
-      setIsMutating(true);
-      setError(null);
-
-      try {
-        const txHash = await sendContractTx({
-          address: contractAddresses.agentRegistry,
-          abi: AGENT_REGISTRY_ABI,
-          functionName: "deactivate",
-          args: [],
-          label: "AgentRegistry",
-        });
-
-        const res = await fetch("/api/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "TOGGLE_ACTIVE",
-            payload: { agentId, txHash },
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-
-        await fetchAgents();
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsMutating(false);
-      }
+      return unstakeAgentRecord({
+        agentId: input.agentId,
+        amount: amountWei.toString(),
+        txHash,
+      });
     },
-    [fetchAgents]
-  );
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["agents"] });
+    },
+  });
 
-  // ------------------------------------------------------------------
-  // PUBLIC API (STABLE CONTRACT)
-  // ------------------------------------------------------------------
+  const toggleAgentMutation = useMutation({
+    mutationFn: async (agentId: string) => {
+      const txHash = await sendContractTx({
+        address: contractAddresses.agentRegistry,
+        abi: AGENT_REGISTRY_ABI,
+        functionName: "deactivate",
+        args: [],
+        label: "AgentRegistry",
+      });
+
+      return toggleAgentRecord({
+        agentId,
+        txHash,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["agents"] });
+    },
+  });
+
+  const error =
+    (createAgentMutation.error as Error | null) ??
+    (stakeAgentMutation.error as Error | null) ??
+    (unstakeAgentMutation.error as Error | null) ??
+    (toggleAgentMutation.error as Error | null) ??
+    (agentsQuery.error as Error | null) ??
+    null;
 
   return {
-    // data
-    agents,
-    marketplaceAgents,
-    myAgents,
-    delegatedAgents,
-
-    // helpers
-    getAgentById,
-
-    // status
-    isLoading,
-    isMutating,
-    isCreating: isMutating,
+    agents: bucketed.all as Agent[],
+    marketplaceAgents: bucketed.marketplace as Agent[],
+    myAgents: bucketed.mine as Agent[],
+    delegatedAgents: bucketed.delegated as Agent[],
+    getAgentById: (agentId: string) => bucketed.all.find((agent) => agent.agentId === agentId),
+    isLoading: agentsQuery.isLoading,
+    isMutating:
+      createAgentMutation.isPending ||
+      stakeAgentMutation.isPending ||
+      unstakeAgentMutation.isPending ||
+      toggleAgentMutation.isPending,
+    isCreating: createAgentMutation.isPending,
     error,
-
-    // actions
-    refetch: fetchAgents,
-    createAgent,
-    stakeAgent,
-    unstakeAgent,
-    toggleAgentActive,
+    refetch: agentsQuery.refetch,
+    createAgent: createAgentMutation.mutateAsync,
+    stakeAgent: stakeAgentMutation.mutateAsync,
+    unstakeAgent: unstakeAgentMutation.mutateAsync,
+    toggleAgentActive: toggleAgentMutation.mutateAsync,
   };
 }

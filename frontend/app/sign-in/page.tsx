@@ -7,6 +7,14 @@ import { useConnect, useDisconnect, useSignMessage } from "wagmi";
 
 import { useWallet } from "@/hooks/useWallet";
 import {
+  checkUsernameAvailability,
+  requestWalletChallenge,
+  resolveUsernames,
+  updateMyProfile,
+  verifyWallet,
+  writeAccessToken,
+} from "@/lib/api";
+import {
   USERNAME_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
   WalletProvider,
@@ -17,23 +25,9 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type WalletChallengeResponse = {
-  message: string;
-  challenge_token: string;
-};
-
 type UsernameAvailabilityResponse = {
   available: boolean;
   username: string;
-};
-
-type UsersResolveResponse = {
-  usernames: Record<string, string>;
-};
-
-type UserProfileResponse = {
-  address: string;
-  username: string | null;
 };
 
 type PendingIdentity = {
@@ -55,27 +49,6 @@ const walletConnectProjectIdRaw =
 const walletConnectProjectId = /^[a-f0-9]{32}$/i.test(walletConnectProjectIdRaw)
   ? walletConnectProjectIdRaw
   : "";
-
-function parseApiError(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const maybeError = payload as { error?: unknown; detail?: unknown };
-  if (typeof maybeError.error === "string" && maybeError.error.trim()) {
-    return maybeError.error.trim();
-  }
-  if (typeof maybeError.detail === "string" && maybeError.detail.trim()) {
-    return maybeError.detail.trim();
-  }
-  return null;
-}
-
-async function readApiError(response: Response, fallback: string): Promise<string> {
-  try {
-    const payload = (await response.json()) as unknown;
-    return parseApiError(payload) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function getInjectedEthereumProviders(): Eip1193Provider[] {
   if (typeof window === "undefined") return [];
@@ -197,17 +170,12 @@ export default function SignInPage() {
   const isBusy = activeProvider !== null || isAuthenticating;
 
   const fetchExistingUsername = useCallback(async (address: string): Promise<string | null> => {
-    const response = await fetch("/api/users/resolve", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ addresses: [address] }),
-      cache: "no-store",
-    });
-    if (!response.ok) {
+    try {
+      const payload = await resolveUsernames([address]);
+      return payload.usernames?.[address] ?? null;
+    } catch {
       return null;
     }
-    const payload = (await response.json()) as UsersResolveResponse;
-    return payload.usernames?.[address] ?? null;
   }, []);
 
   const authenticateWallet = useCallback(
@@ -223,37 +191,20 @@ export default function SignInPage() {
       signMessage: (message: string) => Promise<string>;
     }) => {
       const normalizedAddress = normalizeAddress(address);
-      const challengeResponse = await fetch("/api/auth/challenge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: normalizedAddress,
-          chainId,
-          origin: typeof window !== "undefined" ? window.location.origin : undefined,
-        }),
+      const challenge = await requestWalletChallenge({
+        address: normalizedAddress,
+        chainId,
+        origin: typeof window !== "undefined" ? window.location.origin : undefined,
       });
-
-      if (!challengeResponse.ok) {
-        throw new Error(await readApiError(challengeResponse, "Failed to create wallet challenge"));
-      }
-
-      const challenge = (await challengeResponse.json()) as WalletChallengeResponse;
       const signature = await signMessage(challenge.message);
-
-      const verifyResponse = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: normalizedAddress,
-          signature,
-          message: challenge.message,
-          challengeToken: challenge.challenge_token,
-        }),
+      const verification = await verifyWallet({
+        address: normalizedAddress,
+        signature,
+        message: challenge.message,
+        challengeToken: challenge.challenge_token,
       });
 
-      if (!verifyResponse.ok) {
-        throw new Error(await readApiError(verifyResponse, "Wallet verification failed"));
-      }
+      writeAccessToken(verification.access_token);
 
       setExternalWallet(normalizedAddress, walletProvider);
 
@@ -412,21 +363,7 @@ export default function SignInPage() {
     const timeout = window.setTimeout(async () => {
       setIsCheckingUsername(true);
       try {
-        const params = new URLSearchParams({
-          username: normalized,
-          address: pendingIdentity.address,
-        });
-        const response = await fetch(`/api/users/username-availability?${params.toString()}`, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(await readApiError(response, "Failed to validate username availability"));
-        }
-
-        const payload = (await response.json()) as UsernameAvailabilityResponse;
+        const payload = (await checkUsernameAvailability(normalized, pendingIdentity.address, controller.signal)) as UsernameAvailabilityResponse;
         if (payload.available) {
           setUsernameAvailable(true);
           setUsernameError(null);
@@ -498,29 +435,18 @@ export default function SignInPage() {
 
       setIsSavingUsername(true);
       try {
-        const response = await fetch("/api/users/profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: normalized }),
-        });
-
-        if (!response.ok) {
-          const errorMessage = await readApiError(response, "Failed to save username");
-          if (errorMessage.includes("USERNAME_ALREADY_TAKEN")) {
-            setUsernameAvailable(false);
-            setUsernameError("Username already taken");
-            return;
-          }
-          throw new Error(errorMessage);
-        }
-
-        const payload = (await response.json()) as UserProfileResponse;
+        const payload = await updateMyProfile(normalized);
         const savedUsername = normalizeUsername(payload.username ?? normalized);
         setUsername(savedUsername);
         setPendingIdentity(null);
         router.replace("/dashboard");
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to save username";
+        if (message.includes("USERNAME_ALREADY_TAKEN")) {
+          setUsernameAvailable(false);
+          setUsernameError("Username already taken");
+          return;
+        }
         setUsernameError(message);
       } finally {
         setIsSavingUsername(false);
@@ -533,11 +459,11 @@ export default function SignInPage() {
 
   return (
     <>
-      <main className="page-container flex min-h-[calc(100vh-3rem)] items-center justify-center py-10">
+      <main className="page-container section-stack flex min-h-[calc(100vh-3rem)] items-center justify-center py-10">
         <section className="ui-card w-full max-w-xl p-6 sm:p-8">
           <header className="text-center">
             <p className="ui-kicker">Wallet Authentication</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">Connect To PredAI</h1>
+            <h1 className="mt-2 text-3xl font-semibold text-white">Connect To MoltMarket</h1>
             <p className="mt-2 text-sm text-slate-300">
               Wallet-only access. Choose MetaMask, Phantom, or WalletConnect.
             </p>

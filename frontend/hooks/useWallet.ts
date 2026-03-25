@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { clearAccessToken } from "@/lib/api";
 import { WalletProvider, normalizeAddress } from "@/lib/identity";
 import {
   clearIdentitySession,
@@ -87,12 +88,8 @@ export function useWallet() {
   const disconnect = useCallback(async () => {
     resetUser();
     clearIdentitySession();
+    clearAccessToken();
     setError(null);
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // no-op
-    }
   }, [resetUser]);
 
   useEffect(() => {

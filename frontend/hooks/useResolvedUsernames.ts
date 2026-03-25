@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { resolveUsernames } from "@/lib/api";
 import { normalizeAddress } from "@/lib/identity";
 
 type ResolveResponse = {
@@ -69,18 +70,7 @@ export function useResolvedUsernames(addresses: Array<string | null | undefined>
 
     async function load() {
       try {
-        const response = await fetch("/api/users/resolve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ addresses: unresolved }),
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const payload = (await response.json()) as ResolveResponse;
+        const payload = (await resolveUsernames(unresolved)) as ResolveResponse;
         const nextMap: Record<string, string> = {};
 
         for (const [address, username] of Object.entries(payload.usernames ?? {})) {
@@ -110,4 +100,3 @@ export function useResolvedUsernames(addresses: Array<string | null | undefined>
 
   return usernames;
 }
-

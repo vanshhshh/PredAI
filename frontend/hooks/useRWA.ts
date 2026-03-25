@@ -1,26 +1,8 @@
-// File: frontend/hooks/useRWA.ts
-
-/**
- * PURPOSE
- * -------
- * Real-World Asset (RWA) abstraction hook.
- *
- * This hook:
- * - fetches tokenized RWA instruments (outcomes, yield-backed assets)
- * - handles cross-chain wrapped outcomes
- * - exposes mint / burn / transfer–intent actions (no signing here)
- *
- * DESIGN PRINCIPLES
- * -----------------
- * - Backend + contracts are the source of truth
- * - No mock data
- * - Chain-agnostic interface (EVM first, extensible)
- * - Deterministic, auditable state
- */
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { burnRwaAsset, fetchRwaAssets, mintRwaAsset } from "@/lib/api";
 
 export interface RWAAsset {
   assetId: string;
@@ -44,131 +26,39 @@ export interface BurnRWAInput {
 }
 
 export function useRWA() {
-  const [assets, setAssets] = useState<RWAAsset[]>([]);
-  const [isLoading, setIsLoading] =
-    useState<boolean>(false);
-  const [isMutating, setIsMutating] =
-    useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(
-    null
-  );
+  const queryClient = useQueryClient();
+  const assetsQuery = useQuery({
+    queryKey: ["rwa", "assets"],
+    queryFn: fetchRwaAssets,
+  });
 
-  // ------------------------------------------------------------------
-  // FETCH ASSETS
-  // ------------------------------------------------------------------
-
-  const fetchAssets = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/rwa/assets", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch RWA assets");
-      }
-
-      const data = await res.json();
-      setAssets(data.assets ?? data);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAssets();
-  }, [fetchAssets]);
-
-  // ------------------------------------------------------------------
-  // MINT
-  // ------------------------------------------------------------------
-
-  const mint = useCallback(
-    async (input: MintRWAInput) => {
-      setIsMutating(true);
-      setError(null);
-
-      try {
-        const res = await fetch("/api/rwa/mint", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(input),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(
-            text || "Failed to mint RWA"
-          );
-        }
-
-        await fetchAssets();
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsMutating(false);
-      }
+  const mintMutation = useMutation({
+    mutationFn: async (input: MintRWAInput) => mintRwaAsset(input.assetId, input.amount),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["rwa", "assets"] });
     },
-    [fetchAssets]
-  );
+  });
 
-  // ------------------------------------------------------------------
-  // BURN
-  // ------------------------------------------------------------------
-
-  const burn = useCallback(
-    async (input: BurnRWAInput) => {
-      setIsMutating(true);
-      setError(null);
-
-      try {
-        const res = await fetch("/api/rwa/burn", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(input),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(
-            text || "Failed to burn RWA"
-          );
-        }
-
-        await fetchAssets();
-      } catch (err) {
-        setError(err as Error);
-        throw err;
-      } finally {
-        setIsMutating(false);
-      }
+  const burnMutation = useMutation({
+    mutationFn: async (input: BurnRWAInput) => burnRwaAsset(input.assetId, input.amount),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["rwa", "assets"] });
     },
-    [fetchAssets]
-  );
+  });
 
-  // ------------------------------------------------------------------
-  // PUBLIC API
-  // ------------------------------------------------------------------
+  const error =
+    (mintMutation.error as Error | null) ??
+    (burnMutation.error as Error | null) ??
+    (assetsQuery.error as Error | null) ??
+    null;
 
   return {
-    assets,
-
-    isLoading,
-    isMutating,
+    assets: (assetsQuery.data ?? []) as RWAAsset[],
+    isLoading: assetsQuery.isLoading,
+    isMutating: mintMutation.isPending || burnMutation.isPending,
     error,
-
-    refetch: fetchAssets,
-    mint,
-    burn,
+    refetch: assetsQuery.refetch,
+    mint: mintMutation.mutateAsync,
+    burn: burnMutation.mutateAsync,
   };
 }
