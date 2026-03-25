@@ -51,7 +51,7 @@ function VaultsContent() {
   const highestApy = Math.max(...vaults.map((vault) => vault.apy ?? 0));
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Yield Explorer</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Vault Directory</h1>

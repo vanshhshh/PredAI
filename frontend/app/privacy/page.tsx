@@ -51,7 +51,7 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Legal</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Privacy Policy</h1>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
           Last updated: {LAST_UPDATED}
         </p>
         <p className="mt-3 max-w-3xl text-sm text-slate-300">
-          PredAI is non-custodial. You retain control of wallets and assets at all times. This policy
+          MoltMarket is non-custodial. You retain control of wallets and assets at all times. This policy
           explains what limited information is processed and why.
         </p>
       </header>
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
       </section>
 
       <footer className="ui-card p-5 text-sm text-slate-300">
-        PredAI is a non-custodial interface. Trading decisions and wallet security are your
+        MoltMarket is a non-custodial interface. Trading decisions and wallet security are your
         responsibility.
       </footer>
     </main>

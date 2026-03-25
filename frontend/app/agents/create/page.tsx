@@ -59,7 +59,7 @@ export default function CreateAgentPage() {
   }
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Agent Provisioning</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Create AI Agent</h1>

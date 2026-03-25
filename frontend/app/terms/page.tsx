@@ -6,7 +6,7 @@ const EFFECTIVE_DATE = "March 6, 2026";
 
 export default function TermsPage() {
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Legal</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Terms of Service</h1>
@@ -14,7 +14,7 @@ export default function TermsPage() {
           Effective date: {EFFECTIVE_DATE}
         </p>
         <p className="mt-3 max-w-3xl text-sm text-slate-300">
-          PredAI is a non-custodial platform for prediction markets, AI agents, and capital allocation.
+          MoltMarket is a non-custodial platform for prediction markets, AI agents, and capital allocation.
           Using the platform means you accept these terms and the associated risks.
         </p>
       </header>
@@ -84,7 +84,7 @@ export default function TermsPage() {
       </section>
 
       <footer className="ui-card p-5 text-sm text-slate-300">
-        Continuing to use PredAI confirms your acceptance of these Terms of Service.
+        Continuing to use MoltMarket confirms your acceptance of these Terms of Service.
       </footer>
     </main>
   );

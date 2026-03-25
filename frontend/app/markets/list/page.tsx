@@ -43,7 +43,7 @@ function MarketListContent() {
   }
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Market Discovery</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Browse Prediction Markets</h1>
@@ -51,20 +51,37 @@ function MarketListContent() {
           Search live and historical markets, inspect probability spreads, and
           open individual trading detail views.
         </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Stat label="Total Markets" value={markets.length.toString()} />
+          <Stat label="Visible Results" value={filteredMarkets.length.toString()} />
+          <Stat label="Search Active" value={query.trim().length ? "Yes" : "No"} />
+        </div>
       </header>
 
       <section className="ui-card p-4">
-        <label htmlFor="market-search" className="ui-label">
-          Search Markets
-        </label>
-        <input
-          id="market-search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by title..."
-          className="ui-input"
-          aria-label="Search markets"
-        />
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[230px] flex-1">
+            <label htmlFor="market-search" className="ui-label">
+              Search Markets
+            </label>
+            <input
+              id="market-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by title..."
+              className="ui-input"
+              aria-label="Search markets"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            disabled={!query}
+            className="ui-btn ui-btn-secondary"
+          >
+            Clear
+          </button>
+        </div>
       </section>
 
       {!filteredMarkets.length ? (
@@ -80,5 +97,14 @@ function MarketListContent() {
         </section>
       )}
     </main>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="ui-stat py-3">
+      <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-100">{value}</p>
+    </article>
   );
 }

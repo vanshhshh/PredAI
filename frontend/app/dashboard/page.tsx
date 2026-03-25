@@ -70,7 +70,7 @@ function DashboardContent() {
   const portfolioValue = portfolio?.totalValue ?? 0;
 
   return (
-    <main className="page-container space-y-8 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card fade-in-up p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -168,6 +168,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <article className="ui-stat">
       <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
+      <p className="mt-1 text-xs text-slate-400">Live synchronized with your connected account.</p>
     </article>
   );
 }

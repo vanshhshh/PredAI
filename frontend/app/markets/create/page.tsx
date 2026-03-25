@@ -53,7 +53,7 @@ export default function CreateMarketPage() {
     (mode === "PROMPT" ? prompt.length > 10 : title.length > 5);
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Market Deployment</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Create a Prediction Market</h1>

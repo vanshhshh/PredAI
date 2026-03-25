@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { WalletConnectButton } from "./WalletConnectButton";
 
@@ -30,6 +30,10 @@ export function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   const isHidden = useMemo(() => {
     if (!pathname) return false;
     return pathname.startsWith("/sign-in") || pathname.startsWith("/auth");
@@ -40,18 +44,18 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgb(var(--bg-alt)/0.76)] backdrop-blur-xl">
-      <div className="page-container flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgb(var(--bg-alt)/0.78)] backdrop-blur-xl">
+      <div className="page-container flex h-[4.35rem] items-center justify-between gap-4">
         <Link href="/" className="group flex items-center gap-3">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-400/20 text-cyan-300">
-            M
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300/35 via-emerald-300/25 to-amber-300/25 text-cyan-100 shadow-[0_0_28px_rgba(34,197,167,0.24)]">
+            MM
           </span>
           <div>
-            <p className="text-sm font-semibold tracking-wide text-white group-hover:text-cyan-300">
+            <p className="text-sm font-semibold tracking-wide text-white transition group-hover:text-emerald-200">
               MoltMarket
             </p>
             <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-              Intelligence Finance
+              Market Intelligence Stack
             </p>
           </div>
         </Link>
@@ -68,7 +72,7 @@ export function Navbar() {
                 href={item.href}
                 className={`rounded-xl px-3 py-2 text-xs font-medium transition ${
                   active
-                    ? "bg-cyan-400/20 text-cyan-200"
+                    ? "bg-emerald-300/20 text-emerald-100"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -84,6 +88,9 @@ export function Navbar() {
           </Link>
           <Link href="/agents/create" className="ui-btn ui-btn-secondary">
             Create Agent
+          </Link>
+          <Link href="/dashboard" className="ui-btn ui-btn-primary">
+            Open Terminal
           </Link>
           <WalletConnectButton />
         </div>
@@ -101,7 +108,7 @@ export function Navbar() {
       </div>
 
       {menuOpen && (
-        <div id="mobile-nav" className="border-t border-white/10 lg:hidden">
+        <div id="mobile-nav" className="border-t border-white/10 bg-[rgb(var(--bg-alt)/0.9)] lg:hidden">
           <div className="page-container flex flex-col gap-3 py-4">
             {NAV_ITEMS.map((item) => {
               const active = isActiveRoute(pathname, item.match);
@@ -112,7 +119,7 @@ export function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
                     active
-                      ? "bg-cyan-400/20 text-cyan-200"
+                      ? "bg-emerald-300/20 text-emerald-100"
                       : "bg-white/5 text-slate-200 hover:bg-white/10"
                   }`}
                 >
@@ -121,7 +128,7 @@ export function Navbar() {
               );
             })}
 
-            <div className="mt-2 flex gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <Link
                 href="/markets/create"
                 onClick={() => setMenuOpen(false)}
@@ -137,6 +144,10 @@ export function Navbar() {
                 New Agent
               </Link>
             </div>
+
+            <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="ui-btn ui-btn-primary">
+              Open Terminal
+            </Link>
 
             <div className="pt-1">
               <WalletConnectButton />

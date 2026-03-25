@@ -51,7 +51,7 @@ function ProposalsContent() {
   const completed = proposals.filter((proposal) => proposal.status !== "ACTIVE");
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

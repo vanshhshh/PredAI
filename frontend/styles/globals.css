@@ -3,16 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --bg: 7 10 18;
-  --bg-alt: 11 17 29;
-  --surface: 16 24 40;
-  --surface-soft: 26 36 56;
-  --stroke: 104 132 178;
-  --text-primary: 234 243 255;
-  --text-secondary: 176 195 224;
-  --text-muted: 132 151 182;
-  --brand: 56 189 248;
-  --brand-strong: 14 165 233;
+  --bg: 8 12 20;
+  --bg-alt: 13 20 33;
+  --surface: 19 29 46;
+  --surface-soft: 31 43 67;
+  --stroke: 121 147 189;
+  --text-primary: 236 244 255;
+  --text-secondary: 186 206 235;
+  --text-muted: 141 162 194;
+  --brand: 34 197 167;
+  --brand-strong: 8 145 178;
+  --accent: 251 191 36;
   --success: 52 211 153;
   --warning: 250 204 21;
   --danger: 248 113 113;
@@ -35,10 +36,25 @@ body {
   font-family: var(--font-sans, "Space Grotesk", "Segoe UI", sans-serif);
   color: rgb(var(--text-primary));
   background:
-    radial-gradient(1200px 680px at 12% -18%, rgba(16, 185, 129, 0.16), transparent 58%),
-    radial-gradient(1100px 640px at 88% -14%, rgba(56, 189, 248, 0.15), transparent 54%),
+    radial-gradient(980px 620px at -8% -12%, rgba(20, 184, 166, 0.2), transparent 62%),
+    radial-gradient(960px 640px at 102% -8%, rgba(251, 191, 36, 0.14), transparent 58%),
+    radial-gradient(900px 500px at 50% 118%, rgba(6, 182, 212, 0.14), transparent 60%),
     linear-gradient(180deg, rgb(var(--bg-alt)) 0%, rgb(var(--bg)) 100%);
   line-height: 1.5;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  opacity: 0.11;
+  z-index: -1;
+  background-image:
+    linear-gradient(transparent 96%, rgba(180, 215, 255, 0.35) 97%),
+    linear-gradient(90deg, transparent 96%, rgba(180, 215, 255, 0.22) 97%);
+  background-size: 34px 34px;
 }
 
 code,
@@ -99,6 +115,19 @@ button:disabled {
   }
 }
 
+@keyframes glow-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.03);
+    opacity: 1;
+  }
+}
+
 @keyframes pulse-dot {
   0%,
   100% {
@@ -115,8 +144,19 @@ button:disabled {
 @layer components {
   .page-container {
     margin-inline: auto;
-    max-width: 1200px;
+    max-width: 1240px;
     padding-inline: 1rem;
+  }
+
+  .page-shell {
+    position: relative;
+    padding-block: clamp(1.4rem, 3.2vw, 2.2rem);
+    animation: rise-in 420ms ease both;
+  }
+
+  .section-stack {
+    display: grid;
+    gap: 1.35rem;
   }
 
   .ui-card {
@@ -124,11 +164,11 @@ button:disabled {
     background:
       linear-gradient(
         145deg,
-        rgb(var(--surface) / 0.96),
+        rgb(var(--surface) / 0.95),
         rgb(var(--surface-soft) / 0.7)
       );
     border-radius: var(--radius-xl);
-    box-shadow: 0 12px 48px rgba(5, 10, 20, 0.42);
+    box-shadow: 0 16px 52px rgba(3, 9, 19, 0.45);
     backdrop-filter: blur(14px);
   }
 
@@ -224,10 +264,11 @@ button:disabled {
     background: linear-gradient(
       135deg,
       rgb(var(--brand)),
-      rgb(var(--brand-strong))
+      rgb(var(--brand-strong)) 68%,
+      rgb(var(--accent))
     );
-    color: rgb(4 16 31);
-    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.35);
+    color: rgb(5 19 29);
+    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.32);
   }
 
   .ui-btn-primary:hover:not(:disabled) {
@@ -270,6 +311,52 @@ button:disabled {
     border-radius: var(--radius-lg);
     background: rgb(var(--surface) / 0.5);
     padding: 1rem;
+  }
+
+  .orb {
+    border-radius: 9999px;
+    filter: blur(38px);
+    position: absolute;
+    z-index: -1;
+    animation: glow-float 5.8s ease-in-out infinite;
+  }
+
+  .orb-a {
+    width: 240px;
+    height: 240px;
+    top: -80px;
+    left: -70px;
+    background: rgba(16, 185, 129, 0.26);
+  }
+
+  .orb-b {
+    width: 260px;
+    height: 260px;
+    right: -70px;
+    top: -50px;
+    background: rgba(251, 191, 36, 0.2);
+    animation-delay: 280ms;
+  }
+
+  .orb-c {
+    width: 300px;
+    height: 300px;
+    right: 8%;
+    bottom: -170px;
+    background: rgba(6, 182, 212, 0.2);
+    animation-delay: 460ms;
+  }
+
+  .skip-link {
+    left: 0.75rem;
+    position: fixed;
+    top: 0.75rem;
+    transform: translateY(-140%);
+    z-index: 70;
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
   }
 
   .fade-in-up {

@@ -55,7 +55,7 @@ function SocialFeedsContent() {
   ).length;
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Social Intelligence</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Signal Monitor</h1>
@@ -73,7 +73,7 @@ function SocialFeedsContent() {
       </header>
 
       {error && (
-        <section className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-100">
+        <section className="ui-card rounded-xl border-amber-300/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-100">
           Feed refresh failed: {error.message}. Showing last known data.
         </section>
       )}

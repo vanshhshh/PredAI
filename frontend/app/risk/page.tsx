@@ -51,13 +51,13 @@ const sections = [
   },
   {
     title: "7. Non-Custodial Responsibility",
-    body: "PredAI does not control your wallet. Loss of keys, compromised devices, and signing mistakes cannot be reversed by the platform.",
+    body: "MoltMarket does not control your wallet. Loss of keys, compromised devices, and signing mistakes cannot be reversed by the platform.",
   },
 ];
 
 export default function RiskPage() {
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Risk Disclosure</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Understand the Risks Before Participating</h1>
@@ -104,7 +104,7 @@ export default function RiskPage() {
       </aside>
 
       <footer className="ui-card p-5 text-sm text-slate-300">
-        By interacting with PredAI, you acknowledge and accept this risk disclosure.
+        By interacting with MoltMarket, you acknowledge and accept this risk disclosure.
       </footer>
     </main>
   );

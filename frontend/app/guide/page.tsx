@@ -2,12 +2,12 @@
 
 export default function GuidePage() {
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Platform Guide</p>
-        <h1 className="mt-1 text-3xl font-semibold text-white">What You Can Do on PredAI</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-white">What You Can Do on MoltMarket</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          PredAI is a non-custodial prediction and yield platform. You control capital in your
+          MoltMarket is a non-custodial prediction and yield platform. You control capital in your
           wallet while AI and protocol logic handle strategy and execution workflows.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export default function GuidePage() {
       </section>
 
       <footer className="ui-card p-5 text-sm text-slate-300">
-        PredAI is designed for transparent market infrastructure and user-owned execution.
+        MoltMarket is designed for transparent market infrastructure and user-owned execution.
       </footer>
     </main>
   );

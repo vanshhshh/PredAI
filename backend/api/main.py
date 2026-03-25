@@ -43,6 +43,13 @@ APP_NAME = "AI-Crypto Prediction Platform API"
 APP_VERSION = "1.0.0"
 
 
+def _normalize_origin(origin: str) -> str:
+    """
+    Normalize origins for strict CORS matching.
+    """
+    return origin.strip().rstrip("/")
+
+
 def _cors_origins() -> list[str]:
     """
     Resolve CORS origins from env for frontend integration.
@@ -54,14 +61,13 @@ def _cors_origins() -> list[str]:
         os.getenv("FRONTEND_ORIGIN", ""),
         os.getenv("APP_URL", ""),
     ):
-        origins.update(
-            origin.strip()
-            for origin in raw.split(",")
-            if origin.strip()
-        )
+        origins.update(_normalize_origin(origin) for origin in raw.split(",") if origin.strip())
+
+    # Keep a production-safe fallback for the primary deployed frontend.
+    origins.add("https://moltmarketai.vercel.app")
 
     env = (os.getenv("ENV") or "").strip().lower()
-    if not origins and env not in {"production", "prod"}:
+    if env not in {"production", "prod"}:
         origins.update({"http://localhost:3000", "http://127.0.0.1:3000"})
 
     return sorted(origins)

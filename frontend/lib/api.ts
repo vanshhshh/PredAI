@@ -742,7 +742,7 @@ export async function sendCopilotMessage(input: {
 }
 
 export async function fetchMarkets() {
-  const payload = await apiRequest<BackendMarket[]>("/markets?limit=200&offset=0", { auth: false });
+  const payload = await apiRequest<BackendMarket[]>("/markets/?limit=200&offset=0", { auth: false });
   return payload.map(normalizeMarket).sort((a, b) => b.endTime - a.endTime);
 }
 
@@ -767,7 +767,7 @@ export async function createMarket(input: CreateMarketInput) {
     );
   }
 
-  const created = await apiRequest<BackendMarket>("/markets", {
+  const created = await apiRequest<BackendMarket>("/markets/", {
     method: "POST",
     body: {
       market_id: marketId,
@@ -805,7 +805,7 @@ export async function placeBet(input: PlaceBetInput) {
 }
 
 export async function fetchAgents(walletAddress?: string) {
-  const payload = await apiRequest<BackendAgent[]>("/agents?limit=200&offset=0", { auth: false });
+  const payload = await apiRequest<BackendAgent[]>("/agents/?limit=200&offset=0", { auth: false });
   const all = payload.map(normalizeAgent).sort((a, b) => b.createdAt - a.createdAt);
   return buildAgentBuckets(all, walletAddress);
 }
@@ -872,7 +872,7 @@ export async function unstakeAgentRecord(payload: StakeAgentPayload) {
 }
 
 export async function fetchOracles() {
-  const payload = await apiRequest<BackendOracle[]>("/oracles?limit=200&offset=0", { auth: false });
+  const payload = await apiRequest<BackendOracle[]>("/oracles/?limit=200&offset=0", { auth: false });
   return payload.map(normalizeOracle);
 }
 

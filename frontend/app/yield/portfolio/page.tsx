@@ -72,7 +72,7 @@ function YieldPortfolioContent() {
   const identityLabel = formatIdentity(address, username);
 
   return (
-    <main className="page-container space-y-6 py-8">
+    <main className="page-container section-stack py-8">
       <header className="ui-card p-6">
         <p className="ui-kicker">Yield Portfolio</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Allocator Dashboard</h1>

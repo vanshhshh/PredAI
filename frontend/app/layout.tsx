@@ -36,9 +36,17 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} min-h-screen antialiased`}
       >
         <Providers>
-          <div className="flex min-h-screen flex-col">
+          <a href="#main-content" className="skip-link ui-btn ui-btn-secondary">
+            Skip to content
+          </a>
+          <div className="relative flex min-h-screen flex-col">
+            <span aria-hidden="true" className="orb orb-a" />
+            <span aria-hidden="true" className="orb orb-b" />
+            <span aria-hidden="true" className="orb orb-c" />
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main id="main-content" className="flex-1 page-shell">
+              {children}
+            </main>
             <Footer />
           </div>
         </Providers>
