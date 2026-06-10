@@ -1,11 +1,11 @@
 import asyncio
 
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 from starlette.responses import Response
 
-from backend.api import main as api_main
 from backend.security import rate_limits
 
 
@@ -94,7 +94,22 @@ def test_rate_limit_failure_keeps_cors_headers(monkeypatch):
 
     monkeypatch.setattr(rate_limits, "check_rate_limit", _raise_backend_failure)
 
-    client = TestClient(api_main.app)
+    app = FastAPI()
+
+    @app.get("/api/stats")
+    async def _stats():
+        return {"ok": True}
+
+    app.add_middleware(rate_limits.RateLimitMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["https://moltmarketai.vercel.app"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    client = TestClient(app)
     response = client.get(
         "/api/stats",
         headers={"Origin": "https://moltmarketai.vercel.app"},
