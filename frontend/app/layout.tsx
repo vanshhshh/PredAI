@@ -25,6 +25,8 @@ export const metadata = {
     "Non-custodial prediction markets on Polygon.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {
