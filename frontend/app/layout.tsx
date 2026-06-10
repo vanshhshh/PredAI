@@ -23,6 +23,9 @@ export const metadata = {
   title: "MoltMarket",
   description:
     "Non-custodial prediction markets on Polygon.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export const dynamic = "force-dynamic";

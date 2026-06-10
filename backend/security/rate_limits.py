@@ -19,7 +19,16 @@ DEFAULT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "100"))
 UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL", "").rstrip("/")
 UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
 UPSTASH_TIMEOUT_SECONDS = float(os.getenv("RATE_LIMIT_REDIS_TIMEOUT_SECONDS", "2.5"))
-RATE_LIMIT_FAIL_OPEN = os.getenv("RATE_LIMIT_FAIL_OPEN", "false").lower() == "true"
+
+
+def _rate_limit_fail_open_default() -> str:
+    env = os.getenv("ENV", "development").strip().lower()
+    return "false" if env in {"production", "prod"} else "true"
+
+
+RATE_LIMIT_FAIL_OPEN = (
+    os.getenv("RATE_LIMIT_FAIL_OPEN", _rate_limit_fail_open_default()).lower() == "true"
+)
 
 
 def _current_window() -> int:

@@ -144,6 +144,7 @@ async def structured_error_middleware(request: Request, call_next):
         return JSONResponse(status_code=500, content=payload)
 
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins(),
@@ -151,7 +152,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RateLimitMiddleware)
 
 
 app.include_router(markets_router, prefix="/markets", tags=["markets"])

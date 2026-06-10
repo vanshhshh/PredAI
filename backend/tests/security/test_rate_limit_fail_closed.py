@@ -1,9 +1,11 @@
 import asyncio
 
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from starlette.requests import Request
 from starlette.responses import Response
 
+from backend.api import main as api_main
 from backend.security import rate_limits
 
 
@@ -44,6 +46,20 @@ def test_check_rate_limit_propagates_backend_failure(monkeypatch):
         assert exc.detail == "RATE_LIMIT_BACKEND_UNAVAILABLE"
 
 
+def test_rate_limit_defaults_fail_open_outside_production(monkeypatch):
+    monkeypatch.delenv("RATE_LIMIT_FAIL_OPEN", raising=False)
+    monkeypatch.setenv("ENV", "staging")
+
+    assert rate_limits._rate_limit_fail_open_default() == "true"
+
+
+def test_rate_limit_defaults_fail_closed_in_production(monkeypatch):
+    monkeypatch.delenv("RATE_LIMIT_FAIL_OPEN", raising=False)
+    monkeypatch.setenv("ENV", "production")
+
+    assert rate_limits._rate_limit_fail_open_default() == "false"
+
+
 def test_middleware_returns_503_when_rate_limit_backend_is_down(monkeypatch):
     async def _raise_backend_failure(*, key: str, max_requests: int = 100):
         _ = key
@@ -69,3 +85,20 @@ def test_middleware_returns_503_when_rate_limit_backend_is_down(monkeypatch):
     assert response.status_code == 503
     assert called["value"] is False
 
+
+def test_rate_limit_failure_keeps_cors_headers(monkeypatch):
+    async def _raise_backend_failure(*, key: str, max_requests: int = 100):
+        _ = key
+        _ = max_requests
+        raise HTTPException(status_code=503, detail="RATE_LIMIT_BACKEND_UNAVAILABLE")
+
+    monkeypatch.setattr(rate_limits, "check_rate_limit", _raise_backend_failure)
+
+    client = TestClient(api_main.app)
+    response = client.get(
+        "/api/stats",
+        headers={"Origin": "https://moltmarketai.vercel.app"},
+    )
+
+    assert response.status_code == 503
+    assert response.headers["access-control-allow-origin"] == "https://moltmarketai.vercel.app"
