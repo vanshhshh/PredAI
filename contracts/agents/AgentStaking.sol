@@ -58,7 +58,7 @@ contract AgentStaking {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority
-    address public governance;
+    address public immutable governance;
 
     /// @notice Agent registry
     AgentRegistry public immutable agentRegistry;

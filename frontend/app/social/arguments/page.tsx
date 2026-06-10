@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { createWalletClient, custom, parseEther, type Address, type Chain, type Hex } from "viem";
+import { createWalletClient, custom, parseEther, type Address, type Hex } from "viem";
 import { polygon } from "viem/chains";
 
 import { ArgumentStaker } from "../../../components/Social/ArgumentStaker";
@@ -38,21 +38,6 @@ const AGENT_REGISTRY_STAKE_ABI = [
     outputs: [],
   },
 ] as const;
-
-const polygonAmoy: Chain = {
-  id: 80002,
-  name: "Polygon Amoy",
-  network: "polygon-amoy",
-  nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
-  rpcUrls: {
-    default: { http: [process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology"] },
-    public: { http: [process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology"] },
-  },
-  blockExplorers: {
-    default: { name: "PolygonScan", url: "https://amoy.polygonscan.com" },
-  },
-  testnet: true,
-};
 
 export default function SocialArgumentsPage() {
   return (
@@ -122,20 +107,7 @@ function ArgumentsContent() {
         throw new Error(`Wrong network connected (expected chain ${expectedChainId})`);
       }
 
-      if (expectedChainId === 80002) {
-        await provider.request({
-          method: "wallet_addEthereumChain",
-          params: [
-            {
-              chainId: "0x13882",
-              chainName: "Polygon Amoy",
-              nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
-              rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology"],
-              blockExplorerUrls: ["https://amoy.polygonscan.com"],
-            },
-          ],
-        });
-      } else if (expectedChainId === 137) {
+      if (expectedChainId === 137) {
         await provider.request({
           method: "wallet_addEthereumChain",
           params: [
@@ -168,9 +140,8 @@ function ArgumentsContent() {
     const expectedChainId = readConfiguredChainId();
     await ensureWalletChain(ethereum, expectedChainId);
 
-    const chain = expectedChainId === polygon.id ? polygon : polygonAmoy;
     const walletClient = createWalletClient({
-      chain,
+      chain: polygon,
       transport: custom(ethereum),
     });
     const [account] = await walletClient.requestAddresses();

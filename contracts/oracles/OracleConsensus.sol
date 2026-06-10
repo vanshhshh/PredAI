@@ -68,7 +68,7 @@ contract OracleConsensus {
                               STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public governance;
+    address public immutable governance;
     OracleRegistry public immutable oracleRegistry;
     OracleStaking public immutable oracleStaking;
 

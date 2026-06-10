@@ -102,7 +102,7 @@ function PromptsContent() {
     }
   }
 
-  async function handleDeployToTestnet() {
+  async function handleDeployMarket() {
     if (!compiledSpec) return;
 
     setIsDeploying(true);
@@ -258,9 +258,9 @@ function PromptsContent() {
               type="button"
               className="ui-btn ui-btn-primary"
               disabled={isDeploying}
-              onClick={() => void handleDeployToTestnet()}
+              onClick={() => void handleDeployMarket()}
             >
-              {isDeploying ? "Deploying..." : "Deploy to Testnet"}
+              {isDeploying ? "Deploying..." : "Deploy Market"}
             </button>
             <button type="button" className="ui-btn ui-btn-secondary" onClick={handleEditAsJson}>
               Edit

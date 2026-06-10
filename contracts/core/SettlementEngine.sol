@@ -60,7 +60,7 @@ contract SettlementEngine {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority (DAO / Timelock)
-    address public governance;
+    address public immutable governance;
 
     /// @notice Authorized oracle consensus contract
     address public oracleConsensus;

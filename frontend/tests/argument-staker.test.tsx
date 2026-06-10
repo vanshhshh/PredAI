@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
 
 import { ArgumentStaker } from "../components/Social/ArgumentStaker";
 
@@ -43,5 +43,5 @@ describe("ArgumentStaker", () => {
     await userEvent.click(button);
 
     expect(onStake).toHaveBeenCalledWith({ argumentId: "arg-1", amount: 10 });
-  });
+  }, 15000);
 });

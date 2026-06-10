@@ -341,15 +341,14 @@ class SocialService:
         if not normalized_wallet.startswith("0x") or len(normalized_wallet) != 42:
             raise InvariantViolation("INVALID_WALLET_ADDRESS")
 
-        if tx_hash:
-            normalized_hash = tx_hash.strip().lower()
-            if not normalized_hash.startswith("0x") or len(normalized_hash) != 66:
-                raise InvariantViolation("INVALID_TX_HASH")
+        if not tx_hash:
+            raise InvariantViolation("ARGUMENT_STAKE_TX_REQUIRED")
 
-        return await SocialRepository.apply_signal_stake(
-            event_id=argument_id,
-            amount=amount,
-        )
+        normalized_hash = tx_hash.strip().lower()
+        if not normalized_hash.startswith("0x") or len(normalized_hash) != 66:
+            raise InvariantViolation("INVALID_TX_HASH")
+
+        raise InvariantViolation("SOCIAL_ARGUMENT_STAKING_CONTRACT_NOT_CONFIGURED")
 
     # ------------------------------------------------------------------
     # HELPERS

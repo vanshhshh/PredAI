@@ -59,7 +59,7 @@ contract MarketRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority (DAO / Timelock)
-    address public governance;
+    address public immutable governance;
 
     /// @notice Authorized market factory
     address public marketFactory;

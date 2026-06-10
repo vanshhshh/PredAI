@@ -53,7 +53,7 @@ contract OracleStaking {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority
-    address public governance;
+    address public immutable governance;
 
     /// @notice Oracle registry
     OracleRegistry public immutable oracleRegistry;

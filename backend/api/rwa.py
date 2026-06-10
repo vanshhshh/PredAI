@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from backend.persistence.repositories.rwa_repo import RWARepository
-from backend.security.auth import get_current_user
+from backend.security.auth import require_governance
 from backend.security.invariants import InvariantViolation
 from backend.services.rwa_service import RWAService
 
@@ -21,11 +21,15 @@ class RegisterRWARequest(BaseModel):
     token_address: str
     metadata_uri: str
     max_supply: int = Field(..., ge=0)
+    tx_hash: str
+    active: bool = True
 
 
 class MintBurnRequest(BaseModel):
     asset_id: str
+    account: str
     amount: int = Field(..., gt=0)
+    tx_hash: str
 
 
 def _asset_payload(asset):
@@ -46,7 +50,7 @@ async def list_assets():
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register_rwa(req: RegisterRWARequest, user=Depends(get_current_user)):
+async def register_rwa(req: RegisterRWARequest, user=Depends(require_governance)):
     try:
         asset = await RWAService.register_rwa(
             rwa_id=req.rwa_id,
@@ -54,6 +58,8 @@ async def register_rwa(req: RegisterRWARequest, user=Depends(get_current_user)):
             metadata_uri=req.metadata_uri,
             max_supply=req.max_supply,
             creator=user.address,
+            tx_hash=req.tx_hash,
+            active=req.active,
         )
         return {"asset": _asset_payload(asset)}
     except InvariantViolation as exc:
@@ -61,11 +67,14 @@ async def register_rwa(req: RegisterRWARequest, user=Depends(get_current_user)):
 
 
 @router.post("/mint")
-async def mint_rwa(req: MintBurnRequest, user=Depends(get_current_user)):
+async def mint_rwa(req: MintBurnRequest, user=Depends(require_governance)):
     try:
-        asset = await RWARepository.mint(
-            rwa_id=req.asset_id,
+        asset = await RWAService.mint_rwa(
+            asset_id=req.asset_id,
+            account=req.account,
             amount=req.amount,
+            operator=user.address,
+            tx_hash=req.tx_hash,
         )
         return {"asset": _asset_payload(asset)}
     except InvariantViolation as exc:
@@ -73,11 +82,14 @@ async def mint_rwa(req: MintBurnRequest, user=Depends(get_current_user)):
 
 
 @router.post("/burn")
-async def burn_rwa(req: MintBurnRequest, user=Depends(get_current_user)):
+async def burn_rwa(req: MintBurnRequest, user=Depends(require_governance)):
     try:
-        asset = await RWARepository.burn(
-            rwa_id=req.asset_id,
+        asset = await RWAService.burn_rwa(
+            asset_id=req.asset_id,
+            account=req.account,
             amount=req.amount,
+            operator=user.address,
+            tx_hash=req.tx_hash,
         )
         return {"asset": _asset_payload(asset)}
     except InvariantViolation as exc:

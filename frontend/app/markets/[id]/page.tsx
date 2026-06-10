@@ -41,6 +41,8 @@ function MarketContent() {
     markets,
     isLoading: marketsLoading,
     error: marketsError,
+    claimWinnings,
+    isClaiming,
   } = useMarkets();
 
   const market = useMemo(() => {
@@ -162,6 +164,20 @@ function MarketContent() {
             noPool={market.noPool}
             isSettled={market.settled}
           />
+          {market.settled && (
+            <section className="ui-card p-5">
+              <p className="ui-kicker">Claim</p>
+              <h2 className="mt-1 text-lg font-semibold text-white">Settle Position</h2>
+              <button
+                type="button"
+                disabled={isClaiming}
+                onClick={() => void claimWinnings(market.marketId)}
+                className="ui-btn ui-btn-primary mt-4 w-full"
+              >
+                {isClaiming ? "Claiming..." : "Claim"}
+              </button>
+            </section>
+          )}
         </aside>
       </section>
     </main>

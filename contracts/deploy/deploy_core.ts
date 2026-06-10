@@ -18,9 +18,20 @@ function readIntEnv(name: string, fallback: number): number {
   return parsed;
 }
 
-function readEthEnv(name: string, fallback: string) {
+function readBigNumberEnv(name: string, fallback: string) {
   const raw = process.env[name]?.trim() || fallback;
-  return ethers.utils.parseEther(raw);
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`${name}_INVALID`);
+  }
+  return ethers.BigNumber.from(raw);
+}
+
+function requiredAddress(name: string): string {
+  const value = requiredEnv(name);
+  if (!ethers.utils.isAddress(value)) {
+    throw new Error(`${name}_INVALID`);
+  }
+  return ethers.utils.getAddress(value);
 }
 
 async function main() {
@@ -29,14 +40,10 @@ async function main() {
   console.log("Deploying core contracts with account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const governance = requiredEnv("GOVERNANCE_ADDRESS");
-  const oracleConsensus = requiredEnv("ORACLE_CONSENSUS_ADDRESS");
-  if (!ethers.utils.isAddress(governance)) {
-    throw new Error("GOVERNANCE_ADDRESS_INVALID");
-  }
-  if (!ethers.utils.isAddress(oracleConsensus)) {
-    throw new Error("ORACLE_CONSENSUS_ADDRESS_INVALID");
-  }
+  const governanceAddress = requiredAddress("GOVERNANCE_ADDRESS");
+  const oracleConsensusAddress = requiredAddress("ORACLE_CONSENSUS_ADDRESS");
+  const collateralTokenAddress = requiredAddress("COLLATERAL_TOKEN_ADDRESS");
+  const feeTreasuryAddress = requiredAddress("FEE_TREASURY_ADDRESS");
 
   const MIN_MARKET_DURATION = readIntEnv("MIN_MARKET_DURATION_SECONDS", 60 * 60);
   const MAX_MARKET_DURATION = readIntEnv("MAX_MARKET_DURATION_SECONDS", 60 * 60 * 24 * 30);
@@ -44,16 +51,22 @@ async function main() {
     throw new Error("MAX_MARKET_DURATION_SECONDS_INVALID");
   }
 
-  const MAX_MARKET_EXPOSURE = readEthEnv("MAX_MARKET_EXPOSURE_ETH", "1000000");
-  const MARKET_CREATION_BOND = readEthEnv("MARKET_CREATION_BOND_ETH", "0.1");
-
-  const governanceAddress = ethers.utils.getAddress(governance);
-  const oracleConsensusAddress = ethers.utils.getAddress(oracleConsensus);
+  const MAX_MARKET_EXPOSURE = readBigNumberEnv("MAX_MARKET_EXPOSURE_UNITS", "1000000000000");
+  const MARKET_CREATION_BOND = readBigNumberEnv("MARKET_CREATION_BOND_UNITS", "100000000");
+  const PROTOCOL_FEE_BPS = readIntEnv("PROTOCOL_FEE_BPS", 50);
+  const DISPUTE_WINDOW_SECONDS = readIntEnv("DISPUTE_WINDOW_SECONDS", 60 * 60);
+  if (PROTOCOL_FEE_BPS > 1_000) {
+    throw new Error("PROTOCOL_FEE_BPS_INVALID");
+  }
 
   const deployerNonce = await deployer.getTransactionCount();
   const predictedFactoryAddress = ethers.utils.getContractAddress({
     from: deployer.address,
     nonce: deployerNonce + 1,
+  });
+  const predictedSettlementEngineAddress = ethers.utils.getContractAddress({
+    from: deployer.address,
+    nonce: deployerNonce + 2,
   });
 
   const MarketRegistry = await ethers.getContractFactory("MarketRegistry");
@@ -71,7 +84,12 @@ async function main() {
     MIN_MARKET_DURATION,
     MAX_MARKET_DURATION,
     MAX_MARKET_EXPOSURE,
-    MARKET_CREATION_BOND
+    MARKET_CREATION_BOND,
+    predictedSettlementEngineAddress,
+    collateralTokenAddress,
+    feeTreasuryAddress,
+    PROTOCOL_FEE_BPS,
+    DISPUTE_WINDOW_SECONDS
   );
   await marketFactory.deployed();
   console.log("MarketFactory deployed at:", marketFactory.address);
@@ -89,6 +107,9 @@ async function main() {
   );
   await settlementEngine.deployed();
   console.log("SettlementEngine deployed at:", settlementEngine.address);
+  if (settlementEngine.address.toLowerCase() !== predictedSettlementEngineAddress.toLowerCase()) {
+    throw new Error("SETTLEMENT_ENGINE_WIRING_MISMATCH");
+  }
 
   console.log("=======================================");
   console.log(" CORE DEPLOYMENT COMPLETE");
@@ -96,6 +117,10 @@ async function main() {
   console.log("MarketRegistry  :", marketRegistry.address);
   console.log("MarketFactory   :", marketFactory.address);
   console.log("SettlementEngine:", settlementEngine.address);
+  console.log("CollateralToken :", collateralTokenAddress);
+  console.log("FeeTreasury     :", feeTreasuryAddress);
+  console.log("ProtocolFeeBps  :", PROTOCOL_FEE_BPS);
+  console.log("DisputeWindow   :", DISPUTE_WINDOW_SECONDS);
   console.log("Governance      :", governanceAddress);
   console.log("OracleConsensus :", oracleConsensusAddress);
   console.log("=======================================");
@@ -105,4 +130,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-

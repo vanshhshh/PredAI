@@ -7,6 +7,7 @@ import {
   fetchYieldVaults,
   rebalanceYieldPortfolio,
 } from "@/lib/api";
+import { yieldEnabled } from "@/lib/features";
 
 import { useWallet } from "./useWallet";
 
@@ -38,14 +39,21 @@ export function useYield() {
   const vaultsQuery = useQuery({
     queryKey: ["yield", "vaults"],
     queryFn: fetchYieldVaults,
+    enabled: yieldEnabled,
   });
   const portfolioQuery = useQuery({
     queryKey: ["yield", "portfolio", address ?? null],
     queryFn: fetchYieldPortfolio,
+    enabled: yieldEnabled,
   });
 
   const rebalanceMutation = useMutation({
-    mutationFn: async () => rebalanceYieldPortfolio(),
+    mutationFn: async () => {
+      if (!yieldEnabled) {
+        throw new Error("Yield routing is not enabled.");
+      }
+      return rebalanceYieldPortfolio();
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["yield", "portfolio"] });
     },
@@ -58,6 +66,7 @@ export function useYield() {
     null;
 
   return {
+    isEnabled: yieldEnabled,
     vaults: (vaultsQuery.data ?? []) as YieldVault[],
     portfolio: (portfolioQuery.data ?? null) as YieldPortfolio | null,
     isLoading: vaultsQuery.isLoading || portfolioQuery.isLoading,

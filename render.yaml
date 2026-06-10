@@ -1,0 +1,191 @@
+services:
+  - type: web
+    name: predai-backend
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    preDeployCommand: python -m alembic -c backend/alembic.ini upgrade head
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - fromGroup: moltmarket-staging
+
+  - type: worker
+    name: predai-polymarket-paper-worker
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: python scripts/polymarket_paper_worker.py
+    autoDeploy: true
+    envVars:
+      - fromGroup: moltmarket-staging
+      - key: PAPER_WORKER_ONCE
+        value: "false"
+      - key: PAPER_WORKER_INTERVAL_SECONDS
+        value: "900"
+      - key: PAPER_MARKET_LIMIT
+        value: "500"
+
+  - type: worker
+    name: predai-agent-runner-worker
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: python scripts/agent_runner_worker.py
+    autoDeploy: true
+    envVars:
+      - fromGroup: moltmarket-staging
+      - key: AGENT_RUNNER_ONCE
+        value: "false"
+      - key: AGENT_RUNNER_INTERVAL_SECONDS
+        value: "60"
+      - key: AGENT_RUNNER_MARKET_LIMIT
+        value: "25"
+      - key: AUTONOMOUS_AGENT_LIVE_TRADING
+        value: "false"
+
+  - type: worker
+    name: predai-social-ingest-worker
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: python scripts/social_ingest_worker.py
+    autoDeploy: true
+    envVars:
+      - fromGroup: moltmarket-staging
+      - key: BACKEND_API_URL
+        value: https://predai-backend.onrender.com
+      - key: SOCIAL_INGEST_ONESHOT
+        value: "false"
+      - key: SOCIAL_INGEST_INTERVAL_SECONDS
+        value: "300"
+      - key: SOCIAL_INGEST_ITEMS_PER_FEED
+        value: "10"
+
+envVarGroups:
+  - name: moltmarket-staging
+    envVars:
+      - key: ENV
+        value: staging
+      - key: BASE_URL
+        value: https://predai-backend.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_STRICT_STARTUP
+        value: "true"
+      - key: DB_AUTO_MIGRATE
+        value: "false"
+      - key: RATE_LIMIT_FAIL_OPEN
+        value: "false"
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://app.moltmarket.com
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: CHAIN_ID
+        value: "80002"
+      - key: ALLOW_TESTNET
+        value: "true"
+      - key: RPC_URL
+        sync: false
+      - key: ALCHEMY_API_KEY
+        sync: false
+      - key: MARKET_FACTORY_ADDRESS
+        sync: false
+      - key: MARKET_REGISTRY_ADDRESS
+        sync: false
+      - key: SETTLEMENT_ENGINE_ADDRESS
+        sync: false
+      - key: GOVERNANCE_ADDRESS
+        sync: false
+      - key: GOVERNANCE_DAO_ADDRESS
+        sync: false
+      - key: GOVERNANCE_SIGNER
+        sync: false
+      - key: COLLATERAL_TOKEN_ADDRESS
+        sync: false
+      - key: FEE_TREASURY_ADDRESS
+        sync: false
+      - key: OUTCOME_WRAPPER_ADDRESS
+        sync: false
+      - key: CROSS_CHAIN_ADAPTER_ADDRESS
+        sync: false
+      - key: RWA_REGISTRY_ADDRESS
+        sync: false
+      - key: AGENT_REGISTRY_ADDRESS
+        sync: false
+      - key: AGENT_STAKING_ADDRESS
+        sync: false
+      - key: AGENT_SCORING_ADDRESS
+        sync: false
+      - key: AGENT_NFT_ADDRESS
+        sync: false
+      - key: ORACLE_REGISTRY_ADDRESS
+        sync: false
+      - key: ORACLE_STAKING_ADDRESS
+        sync: false
+      - key: ORACLE_CONSENSUS_ADDRESS
+        sync: false
+      - key: ORACLE_SLASHING_ADDRESS
+        sync: false
+      - key: MARKET_CREATION_BOND_UNITS
+        value: "0"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gpt-4.1-mini
+      - key: AI_BASE_URL
+        sync: false
+      - key: AI_SERVICE_URL
+        sync: false
+      - key: AGENT_SIGNAL_ENDPOINTS
+        value: https://predai-backend.onrender.com/signals/market-probability
+      - key: AGENT_MIN_EDGE_BPS
+        value: "500"
+      - key: AGENT_MIN_CONFIDENCE_BPS
+        value: "900"
+      - key: AGENT_MAX_TRADE_WEI
+        value: "0"
+      - key: AGENT_MAX_MARKET_EXPOSURE_WEI
+        value: "0"
+      - key: AGENT_MAX_DAILY_EXPOSURE_WEI
+        value: "0"
+      - key: AGENT_MIN_SECONDS_TO_CLOSE
+        value: "3600"
+      - key: PAPER_AGENT_ID
+        value: moltmarket-paper-ai-v1
+      - key: PAPER_MIN_STAKE_CENTS
+        value: "100"
+      - key: PAPER_MAX_STAKE_CENTS
+        value: "1000"
+      - key: SOCIAL_FEED_URLS
+        value: https://www.coindesk.com/arc/outboundfeeds/rss/,https://cointelegraph.com/rss
+      - key: REOWN_PROJECT_ID
+        sync: false
+      - key: PHANTOM_CLIENT_ID
+        sync: false
+      - key: TRANSAK_API_KEY
+        sync: false
+      - key: TRANSAK_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: POSTHOG_API_KEY
+        sync: false
+      - key: POSTHOG_HOST
+        value: https://app.posthog.com

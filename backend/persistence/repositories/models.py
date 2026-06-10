@@ -81,6 +81,121 @@ class MarketBet(Base):
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AgentPrediction(Base):
+    __tablename__ = "agent_predictions"
+
+    prediction_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    agent_id = Column(String, ForeignKey("agents.agent_id"), nullable=False, index=True)
+    market_id = Column(String, ForeignKey("markets.market_id"), nullable=False, index=True)
+    owner = Column(String, nullable=False, index=True)
+    side = Column(String, nullable=False)
+    model_probability_bps = Column(Integer, nullable=False)
+    market_probability_bps = Column(Integer, nullable=False)
+    confidence_bps = Column(Integer, nullable=False)
+    edge_bps = Column(Integer, nullable=False)
+    stake_amount = Column(BigInteger, nullable=False, default=0)
+    status = Column(String, nullable=False, default="PAPER")
+    reason = Column(Text, nullable=False, default="")
+    tx_hash = Column(String, nullable=True)
+    source_snapshot = Column(JSON, nullable=False, default=dict)
+    metrics_json = Column("metrics", JSON, nullable=False, default=dict)
+    settled_outcome = Column(Boolean, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ProtocolEvent(Base):
+    __tablename__ = "protocol_events"
+
+    event_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    topic = Column(String, nullable=False, index=True)
+    event_key = Column(String, nullable=False, index=True)
+    event_type = Column(String, nullable=False, index=True)
+    payload_json = Column("payload", JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class PaperMarket(Base):
+    __tablename__ = "paper_markets"
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_paper_market_source_external"),
+    )
+
+    paper_market_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    source = Column(String, nullable=False, index=True)
+    external_id = Column(String, nullable=False, index=True)
+    slug = Column(String, nullable=False, index=True)
+    question = Column(Text, nullable=False)
+    description = Column(Text, nullable=False, default="")
+    category = Column(String, nullable=False, default="general", index=True)
+    image_url = Column(Text, nullable=True)
+    end_time = Column(DateTime, nullable=True, index=True)
+    active = Column(Boolean, nullable=False, default=True)
+    closed = Column(Boolean, nullable=False, default=False)
+    resolved = Column(Boolean, nullable=False, default=False)
+    final_outcome = Column(Boolean, nullable=True)
+    yes_price_bps = Column(Integer, nullable=False, default=5000)
+    no_price_bps = Column(Integer, nullable=False, default=5000)
+    liquidity = Column(BigInteger, nullable=False, default=0)
+    volume_24h = Column(BigInteger, nullable=False, default=0)
+    volume_total = Column(BigInteger, nullable=False, default=0)
+    clob_token_ids = Column(JSON, nullable=False, default=list)
+    raw_payload = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PaperPrediction(Base):
+    __tablename__ = "paper_predictions"
+    __table_args__ = (
+        UniqueConstraint("agent_id", "source", "external_market_id", name="uq_paper_prediction_agent_market"),
+    )
+
+    prediction_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    run_id = Column(String, nullable=False, index=True)
+    agent_id = Column(String, nullable=False, index=True)
+    source = Column(String, nullable=False, index=True)
+    external_market_id = Column(String, nullable=False, index=True)
+    question = Column(Text, nullable=False)
+    category = Column(String, nullable=False, default="general", index=True)
+    side = Column(String, nullable=False)
+    model_probability_bps = Column(Integer, nullable=False)
+    calibrated_probability_bps = Column(Integer, nullable=False)
+    market_probability_bps = Column(Integer, nullable=False)
+    confidence_bps = Column(Integer, nullable=False)
+    edge_bps = Column(Integer, nullable=False)
+    stake_cents = Column(Integer, nullable=False, default=0)
+    entry_price_bps = Column(Integer, nullable=False)
+    current_price_bps = Column(Integer, nullable=False)
+    exit_price_bps = Column(Integer, nullable=True)
+    status = Column(String, nullable=False, default="OPEN")
+    reason = Column(Text, nullable=False, default="")
+    features_json = Column("features", JSON, nullable=False, default=dict)
+    metrics_json = Column("metrics", JSON, nullable=False, default=dict)
+    final_outcome = Column(Boolean, nullable=True)
+    pnl_cents = Column(Integer, nullable=False, default=0)
+    opened_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    settled_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PaperModelCalibration(Base):
+    __tablename__ = "paper_model_calibration"
+    __table_args__ = (
+        UniqueConstraint("agent_id", "source", "category", name="uq_paper_calibration_agent_source_category"),
+    )
+
+    calibration_id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    agent_id = Column(String, nullable=False, index=True)
+    source = Column(String, nullable=False, index=True)
+    category = Column(String, nullable=False, default="general", index=True)
+    sample_count = Column(Integer, nullable=False, default=0)
+    bias_bps = Column(Integer, nullable=False, default=0)
+    brier_score = Column(Integer, nullable=False, default=0)
+    log_loss_bps = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Oracle(Base):
     __tablename__ = "oracles"
 

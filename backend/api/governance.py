@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 
 from backend.services.governance_service import GovernanceService
-from backend.security.auth import get_current_user, require_governance
+from backend.security.auth import get_current_user
 from backend.security.invariants import InvariantViolation
 
 
@@ -40,6 +40,7 @@ class ProposalCreateRequest(BaseModel):
     action_target: str = Field(..., description="Target contract address")
     action_data: str = Field(..., description="ABI-encoded calldata")
     execution_delay: int = Field(..., description="Timelock delay in seconds")
+    tx_hash: str = Field(..., description="On-chain DAO createProposal tx hash")
 
 
 class ProposalResponse(BaseModel):
@@ -58,7 +59,15 @@ class ProposalResponse(BaseModel):
 
 class VoteRequest(BaseModel):
     support: bool = Field(..., description="True=for, False=against")
-    weight: int = Field(..., description="Voting weight")
+    tx_hash: str = Field(..., description="On-chain DAO vote tx hash")
+
+
+class QueueRequest(BaseModel):
+    tx_hash: str = Field(..., description="On-chain DAO queueProposal tx hash")
+
+
+class ExecuteRequest(BaseModel):
+    tx_hash: str = Field(..., description="On-chain DAO executeProposal tx hash")
 
 
 # -------------------------------------------------------------------
@@ -72,15 +81,15 @@ class VoteRequest(BaseModel):
 )
 async def create_proposal(
     req: ProposalCreateRequest,
-    user=Depends(require_governance),
+    user=Depends(get_current_user),
 ):
     """
     Submit a new governance proposal.
 
     NOTE:
     -----
-    - Only governance-authorized users
-    - No execution here, only proposal creation
+    - Requires an on-chain DAO proposal transaction
+    - Execution remains timelocked
     """
     try:
         return await GovernanceService.create_proposal(
@@ -90,6 +99,7 @@ async def create_proposal(
             action_target=req.action_target,
             action_data=req.action_data,
             execution_delay=req.execution_delay,
+            tx_hash=req.tx_hash,
         )
     except InvariantViolation as e:
         raise HTTPException(
@@ -146,7 +156,7 @@ async def vote(
             proposal_id=proposal_id,
             voter=user.address,
             support=req.support,
-            weight=req.weight,
+            tx_hash=req.tx_hash,
         )
         return {"status": "voted"}
     except InvariantViolation as e:
@@ -162,14 +172,42 @@ async def vote(
 )
 async def queue_proposal(
     proposal_id: int,
-    user=Depends(require_governance),
+    req: QueueRequest,
+    user=Depends(get_current_user),
 ):
     """
     Queue a proposal into the timelock after voting ends.
     """
     try:
-        await GovernanceService.queue_proposal(proposal_id)
+        await GovernanceService.queue_proposal(
+            proposal_id=proposal_id,
+            caller=user.address,
+            tx_hash=req.tx_hash,
+        )
         return {"status": "queued"}
+    except InvariantViolation as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message,
+        )
+
+
+@router.post(
+    "/proposals/{proposal_id}/execute",
+    status_code=status.HTTP_200_OK,
+)
+async def execute_proposal(
+    proposal_id: int,
+    req: ExecuteRequest,
+    user=Depends(get_current_user),
+):
+    try:
+        await GovernanceService.execute_proposal(
+            proposal_id=proposal_id,
+            caller=user.address,
+            tx_hash=req.tx_hash,
+        )
+        return {"status": "executed"}
     except InvariantViolation as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

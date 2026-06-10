@@ -43,6 +43,7 @@ contract OutcomeWrapper {
     error InvalidMarket();
     error ZeroAddress();
     error ZeroAmount();
+    error PositionAlreadyMinted();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -52,6 +53,13 @@ contract OutcomeWrapper {
         address indexed market,
         address yesToken,
         address noToken
+    );
+
+    event PositionTokensMinted(
+        address indexed market,
+        address indexed user,
+        uint256 yesAmount,
+        uint256 noAmount
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -68,6 +76,7 @@ contract OutcomeWrapper {
 
     /// @notice Market address => wrapped outcome tokens
     mapping(address => WrappedOutcome) public wrappedOutcomes;
+    mapping(address => mapping(address => bool)) public positionMinted;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -106,6 +115,7 @@ contract OutcomeWrapper {
                 _tokenName(market, "YES"),
                 _tokenSymbol(market, "YES"),
                 market,
+                address(this),
                 true
             )
         );
@@ -115,6 +125,7 @@ contract OutcomeWrapper {
                 _tokenName(market, "NO"),
                 _tokenSymbol(market, "NO"),
                 market,
+                address(this),
                 false
             )
         );
@@ -126,6 +137,32 @@ contract OutcomeWrapper {
         });
 
         emit OutcomeWrapped(market, yesToken, noToken);
+    }
+
+    function mintPositionTokens(address market)
+        external
+        returns (uint256 yesAmount, uint256 noAmount)
+    {
+        WrappedOutcome memory w = wrappedOutcomes[market];
+        if (!w.exists) revert InvalidMarket();
+        if (positionMinted[market][msg.sender]) revert PositionAlreadyMinted();
+
+        PredictionMarket pm = PredictionMarket(market);
+        if (!pm.settled()) revert MarketNotFinalized();
+
+        (yesAmount, noAmount) = pm.getUserPosition(msg.sender);
+        if (yesAmount + noAmount == 0) revert ZeroAmount();
+
+        positionMinted[market][msg.sender] = true;
+
+        if (yesAmount > 0) {
+            OutcomeToken(w.yesToken).mint(msg.sender, yesAmount);
+        }
+        if (noAmount > 0) {
+            OutcomeToken(w.noToken).mint(msg.sender, noAmount);
+        }
+
+        emit PositionTokensMinted(market, msg.sender, yesAmount, noAmount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -187,33 +224,34 @@ contract OutcomeWrapper {
 
 contract OutcomeToken is ERC20 {
     address public immutable market;
+    address public immutable wrapper;
     bool public immutable outcomeSide;
-    bool private minted;
 
-    error AlreadyMinted();
+    error OnlyWrapper();
     error MarketNotSettled();
 
     constructor(
         string memory name_,
         string memory symbol_,
         address _market,
+        address _wrapper,
         bool _outcomeSide
     ) ERC20(name_, symbol_) {
         market = _market;
+        wrapper = _wrapper;
         outcomeSide = _outcomeSide;
     }
 
     /**
-     * @notice Mint tokens based on user position
-     * @dev One-time mint per market side
+     * @notice Mint tokens based on a user position verified by OutcomeWrapper.
      */
     function mint(address to, uint256 amount) external {
-        if (minted) revert AlreadyMinted();
+        if (msg.sender != wrapper) revert OnlyWrapper();
+        if (amount == 0) return;
 
         PredictionMarket pm = PredictionMarket(market);
         if (!pm.settled()) revert MarketNotSettled();
 
-        minted = true;
         _mint(to, amount);
     }
 }

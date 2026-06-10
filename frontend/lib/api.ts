@@ -1,8 +1,16 @@
 "use client";
 
-import { ApiError } from "./errors";
+import { ethers } from "ethers";
 
-const RENDER_API_URL = "https://predai-backend.onrender.com";
+import { ApiError } from "./errors";
+import {
+  contractAddresses,
+  fromCollateralUnits,
+  marketCreationBondUnits,
+  sendContractTx,
+  toCollateralUnits,
+} from "./evmTx";
+
 const LOCAL_API_URL = "http://localhost:8000";
 const AUTH_TOKEN_STORAGE_KEY = "predai.accessToken";
 const DEFAULT_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS ?? "20000");
@@ -24,7 +32,7 @@ function resolveApiBase(): string {
   }
 
   if (process.env.NODE_ENV === "production") {
-    return RENDER_API_URL;
+    return "";
   }
 
   return LOCAL_API_URL;
@@ -78,12 +86,12 @@ type BackendMarket = {
   creator: string;
   start_time: number;
   end_time: number;
-  max_exposure: number;
+  max_exposure: number | string;
   metadata_uri: string;
   settled: boolean;
   final_outcome: boolean | null;
-  yes_pool?: number | null;
-  no_pool?: number | null;
+  yes_pool?: number | string | null;
+  no_pool?: number | string | null;
 };
 
 type BackendAgent = {
@@ -96,6 +104,95 @@ type BackendAgent = {
   pnl?: number | null;
   trades?: number | null;
   created_at?: string | null;
+};
+
+export type BackendAgentPrediction = {
+  prediction_id: string;
+  agent_id: string;
+  market_id: string;
+  owner: string;
+  side: "YES" | "NO";
+  model_probability_bps: number;
+  market_probability_bps: number;
+  confidence_bps: number;
+  edge_bps: number;
+  stake_amount: number | string;
+  status: string;
+  reason: string;
+  tx_hash: string | null;
+  metrics: Record<string, unknown>;
+  settled_outcome: boolean | null;
+  created_at: string;
+};
+
+export type AgentPerformance = {
+  total_predictions: number;
+  scored_predictions: number;
+  executed_predictions: number;
+  paper_predictions: number;
+  hit_rate: number;
+  brier_score: number;
+  log_loss: number;
+  estimated_pnl_wei: number;
+  max_drawdown_wei: number;
+};
+
+export type PaperMarket = {
+  paper_market_id: string;
+  source: string;
+  external_id: string;
+  slug: string;
+  question: string;
+  description: string;
+  category: string;
+  image_url: string | null;
+  end_time: string | null;
+  active: boolean;
+  closed: boolean;
+  resolved: boolean;
+  final_outcome: boolean | null;
+  yes_price: number;
+  no_price: number;
+  liquidity: number;
+  volume_24h: number;
+  volume_total: number;
+  updated_at: string;
+};
+
+export type PaperPrediction = {
+  prediction_id: string;
+  agent_id: string;
+  external_market_id: string;
+  question: string;
+  category: string;
+  side: "YES" | "NO";
+  model_probability: number;
+  calibrated_probability: number;
+  market_probability: number;
+  confidence: number;
+  edge: number;
+  stake: number;
+  entry_price: number;
+  current_price: number;
+  status: string;
+  final_outcome: boolean | null;
+  pnl: number;
+  opened_at: string;
+  settled_at: string | null;
+};
+
+export type PaperPerformance = {
+  total_predictions: number;
+  open_predictions: number;
+  settled_predictions: number;
+  skipped_predictions: number;
+  hit_rate: number;
+  brier_score: number;
+  log_loss: number;
+  pnl_cents: number;
+  total_staked_cents: number;
+  roi: number;
+  max_drawdown_cents: number;
 };
 
 type BackendOracle = {
@@ -174,12 +271,16 @@ type CreateMarketInput = {
   endTime: number;
   maxExposure: number;
   marketId?: string;
+  txHash?: string;
+  startTimeSeconds?: number;
+  endTimeSeconds?: number;
+  metadataUri?: string;
 };
 
 type PlaceBetInput = {
   marketId: string;
   side: "YES" | "NO";
-  amount: number;
+  amount: number | string;
   txHash: string;
 };
 
@@ -226,7 +327,7 @@ type CreateProposalInput = {
 type VoteInput = {
   proposalId: string;
   support: "FOR" | "AGAINST";
-  weight: number;
+  txHash?: string;
 };
 
 type StakeArgumentInput = {
@@ -381,6 +482,10 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const timeout = window.setTimeout(() => controller.abort(), effectiveTimeoutMs);
   const abortListener = () => controller.abort();
 
+  if (!API_BASE) {
+    throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is required");
+  }
+
   if (signal) {
     if (signal.aborted) {
       controller.abort();
@@ -465,11 +570,21 @@ function normalizeAddress(address: string | null | undefined): string {
   return (address ?? "").trim().toLowerCase();
 }
 
+function slugifyIdentifier(value: string): string {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || `market-${Date.now()}`
+  );
+}
+
 function normalizeMarket(item: BackendMarket) {
   const meta = parseTitleDescription(item.metadata_uri);
   const settled = Boolean(item.settled);
-  const yesPool = Number(item.yes_pool ?? 0);
-  const noPool = Number(item.no_pool ?? 0);
+  const yesPool = fromCollateralUnits(item.yes_pool ?? 0);
+  const noPool = fromCollateralUnits(item.no_pool ?? 0);
   const totalPool = yesPool + noPool;
   const hasPoolData = Number.isFinite(totalPool) && totalPool > 0;
   const yesOdds = settled ? (item.final_outcome === true ? 1 : 0) : hasPoolData ? yesPool / totalPool : 0.5;
@@ -483,7 +598,7 @@ function normalizeMarket(item: BackendMarket) {
     noOdds: 1 - yesOdds,
     yesPool,
     noPool,
-    liquidity: Number(item.max_exposure ?? 0),
+    liquidity: fromCollateralUnits(item.max_exposure ?? 0),
     endTime: Number(item.end_time ?? 0) * 1000,
     settled,
     creator: item.creator,
@@ -749,12 +864,18 @@ export async function fetchMarkets() {
 export async function createMarket(input: CreateMarketInput) {
   const title = String(input.title ?? "").trim();
   const description = String(input.description ?? "").trim();
-  const marketId = String(input.marketId ?? title.toLowerCase().replace(/\s+/g, "-"));
+  const providedMarketId = String(input.marketId ?? "").trim();
+  const marketId = providedMarketId ? slugifyIdentifier(providedMarketId) : slugifyIdentifier(title);
   const endTime = Number(input.endTime ?? Date.now() + 7 * 24 * 60 * 60 * 1000);
   const maxExposure = Math.max(1, Number(input.maxExposure ?? 1000));
-  const startTimeSeconds = Math.floor(Date.now() / 1000) + MARKET_START_DELAY_SECONDS;
-  const endTimeSeconds = Math.floor((endTime < 1_000_000_000_000 ? endTime * 1000 : endTime) / 1000);
+  const maxExposureUnits = toCollateralUnits(maxExposure);
+  const startTimeSeconds =
+    input.startTimeSeconds ?? Math.floor(Date.now() / 1000) + MARKET_START_DELAY_SECONDS;
+  const endTimeSeconds =
+    input.endTimeSeconds ??
+    Math.floor((endTime < 1_000_000_000_000 ? endTime * 1000 : endTime) / 1000);
   const marketDurationSeconds = endTimeSeconds - startTimeSeconds;
+  const metadataUri = input.metadataUri ?? JSON.stringify({ title, description });
 
   if (
     !Number.isFinite(endTimeSeconds) ||
@@ -767,14 +888,45 @@ export async function createMarket(input: CreateMarketInput) {
     );
   }
 
+  let txHash = input.txHash;
+  if (!txHash) {
+    const creationBondUnits = marketCreationBondUnits();
+    if (creationBondUnits > 0n) {
+      await sendContractTx({
+        address: contractAddresses.collateralToken,
+        abi: ["function approve(address spender,uint256 amount) returns (bool)"],
+        functionName: "approve",
+        args: [contractAddresses.marketFactory, creationBondUnits],
+        label: "CollateralToken",
+      });
+    }
+
+    txHash = await sendContractTx({
+      address: contractAddresses.marketFactory,
+      abi: [
+        "function createMarket(bytes32 marketId,uint256 startTime,uint256 endTime,uint256 maxExposure,string metadataURI) returns (address)",
+      ],
+      functionName: "createMarket",
+      args: [
+        ethers.id(marketId),
+        BigInt(startTimeSeconds),
+        BigInt(endTimeSeconds),
+        maxExposureUnits,
+        metadataUri,
+      ],
+      label: "MarketFactory",
+    });
+  }
+
   const created = await apiRequest<BackendMarket>("/markets/", {
     method: "POST",
     body: {
       market_id: marketId,
       start_time: startTimeSeconds,
       end_time: endTimeSeconds,
-      max_exposure: maxExposure,
-      metadata_uri: JSON.stringify({ title, description }),
+      max_exposure: maxExposureUnits.toString(),
+      metadata_uri: metadataUri,
+      tx_hash: txHash,
     },
   });
 
@@ -808,6 +960,30 @@ export async function fetchAgents(walletAddress?: string) {
   const payload = await apiRequest<BackendAgent[]>("/agents/?limit=200&offset=0", { auth: false });
   const all = payload.map(normalizeAgent).sort((a, b) => b.createdAt - a.createdAt);
   return buildAgentBuckets(all, walletAddress);
+}
+
+export async function fetchAgentPredictions(agentId: string) {
+  return apiRequest<BackendAgentPrediction[]>(
+    `/agents/${encodeURIComponent(agentId)}/predictions?limit=50&offset=0`,
+    { auth: false }
+  );
+}
+
+export async function fetchAgentPerformance(agentId: string) {
+  return apiRequest<AgentPerformance>(
+    `/agents/${encodeURIComponent(agentId)}/performance`,
+    { auth: false }
+  );
+}
+
+export async function runAgentAutonomy(agentId: string, executeLive = false) {
+  return apiRequest<Record<string, unknown>>(`/agents/${encodeURIComponent(agentId)}/run`, {
+    method: "POST",
+    body: {
+      execute_live: executeLive,
+      market_limit: 25,
+    },
+  });
 }
 
 export async function createAgentRecord(payload: CreateAgentPayload) {
@@ -951,24 +1127,58 @@ export async function fetchVotingPower() {
 }
 
 export async function voteOnProposal(input: VoteInput) {
+  const txHash =
+    input.txHash ??
+    (await sendContractTx({
+      address: contractAddresses.governanceDao,
+      abi: ["function vote(uint256 proposalId,bool support)"],
+      functionName: "vote",
+      args: [BigInt(input.proposalId), input.support === "FOR"],
+      label: "GovernanceDAO",
+    }));
+
   return apiRequest<{ status: string }>(`/governance/proposals/${input.proposalId}/vote`, {
     method: "POST",
     body: {
       support: input.support === "FOR",
-      weight: input.weight,
+      tx_hash: txHash,
     },
   });
 }
 
 export async function createGovernanceProposal(input: CreateProposalInput) {
+  const actionTarget = String(input.payload.actionTarget ?? contractAddresses.governanceDao);
+  const actionData = String(
+    input.payload.actionData ??
+      input.payload.executionData ??
+      ethers.id("noop()").slice(0, 10)
+  );
+  if (!actionData.startsWith("0x")) {
+    throw new ApiError("VALIDATION_ERROR", "Calldata must start with 0x");
+  }
+  const executionDelay = Number(input.payload.executionDelay ?? 86_400);
+  const txHash = String(
+    input.payload.txHash ??
+      (await sendContractTx({
+        address: contractAddresses.governanceDao,
+        abi: [
+          "function createProposal(address target,bytes data,string description) returns (uint256 proposalId)",
+        ],
+        functionName: "createProposal",
+        args: [actionTarget, actionData, input.description],
+        label: "GovernanceDAO",
+      }))
+  );
+
   const created = await apiRequest<BackendProposal>("/governance/proposals", {
     method: "POST",
     body: {
       title: input.title,
       description: input.description,
-      action_target: String(input.payload.actionTarget ?? "0x0000000000000000000000000000000000000000"),
-      action_data: JSON.stringify(input.payload),
-      execution_delay: Number(input.payload.executionDelay ?? 86_400),
+      action_target: actionTarget,
+      action_data: actionData,
+      execution_delay: executionDelay,
+      tx_hash: txHash,
     },
   });
 
@@ -1057,22 +1267,65 @@ export async function fetchRwaAssets() {
   return Array.isArray(payload.assets) ? payload.assets.map(normalizeAsset) : [];
 }
 
-export async function mintRwaAsset(assetId: string, amount: number) {
+export async function mintRwaAsset(assetId: string, account: string, amount: number, txHash: string) {
   return apiRequest<Record<string, unknown>>("/rwa/mint", {
     method: "POST",
     body: {
       asset_id: assetId,
+      account,
       amount,
+      tx_hash: txHash,
     },
   });
 }
 
-export async function burnRwaAsset(assetId: string, amount: number) {
+export async function burnRwaAsset(assetId: string, account: string, amount: number, txHash: string) {
   return apiRequest<Record<string, unknown>>("/rwa/burn", {
     method: "POST",
     body: {
       asset_id: assetId,
+      account,
       amount,
+      tx_hash: txHash,
+    },
+  });
+}
+
+export async function fetchPaperMarkets() {
+  return apiRequest<PaperMarket[]>("/paper/polymarket/markets?limit=200&offset=0", {
+    auth: false,
+  });
+}
+
+export async function fetchPaperPredictions(agentId?: string) {
+  const query = agentId ? `?agent_id=${encodeURIComponent(agentId)}&limit=200` : "?limit=200";
+  return apiRequest<PaperPrediction[]>(`/paper/polymarket/predictions${query}`, {
+    auth: false,
+  });
+}
+
+export async function fetchPaperPerformance(agentId?: string) {
+  const query = agentId ? `?agent_id=${encodeURIComponent(agentId)}` : "";
+  return apiRequest<PaperPerformance>(`/paper/polymarket/performance${query}`, {
+    auth: false,
+  });
+}
+
+export async function ingestPolymarketPaper(limit = 500) {
+  return apiRequest<Record<string, unknown>>("/paper/polymarket/ingest", {
+    method: "POST",
+    body: { limit, page_size: 100 },
+    auth: false,
+  });
+}
+
+export async function runPolymarketPaper(agentId = "moltmarket-paper-ai-v1", marketLimit = 500) {
+  return apiRequest<Record<string, unknown>>("/paper/polymarket/run", {
+    method: "POST",
+    body: {
+      agent_id: agentId,
+      market_limit: marketLimit,
+      ingest_first: true,
     },
   });
 }

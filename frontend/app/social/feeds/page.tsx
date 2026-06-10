@@ -19,7 +19,7 @@ export default function SocialFeedsPage() {
 
 function SocialFeedsContent() {
   const { isConnected } = useWallet();
-  const { feeds, isLoading, isRefreshing, error, spawnMarketFromFeed, pollIntervalMs } =
+  const { feeds, isLoading, isRefreshing, error, pollIntervalMs } =
     useSocialFeeds();
 
   if (isLoading && !feeds?.length) {
@@ -60,8 +60,7 @@ function SocialFeedsContent() {
         <p className="ui-kicker">Social Intelligence</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Signal Monitor</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          Track live social events, inspect AI confidence, and spawn markets from
-          high-signal narratives.
+          Track social events and compile market ideas.
         </p>
         <p className="mt-3 text-xs text-slate-400">
           {isRefreshing
@@ -90,7 +89,7 @@ function SocialFeedsContent() {
           Feed events update continuously with confidence and eligibility status.
         </p>
         <div className="mt-4">
-          <FeedMonitor feeds={feeds} onSpawnMarket={isConnected ? spawnMarketFromFeed : undefined} />
+          <FeedMonitor feeds={feeds} />
         </div>
       </section>
 

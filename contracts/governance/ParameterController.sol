@@ -66,7 +66,7 @@ contract ParameterController {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority (Timelock)
-    address public governance;
+    address public immutable governance;
 
     /// @notice Address parameters
     mapping(bytes32 => address) public addressParams;

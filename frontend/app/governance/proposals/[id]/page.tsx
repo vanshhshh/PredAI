@@ -52,11 +52,10 @@ function ProposalDetailContent() {
   const quorumProgress =
     proposal.quorum > 0 ? Math.min(100, (totalVotes / proposal.quorum) * 100) : 0;
 
-  async function handleVote(payload: { support: "FOR" | "AGAINST"; weight: number }) {
+  async function handleVote(payload: { support: "FOR" | "AGAINST" }) {
     await vote({
       proposalId: proposalId!,
       support: payload.support,
-      weight: payload.weight,
     });
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Modal } from "../../../components/Shared/Modal";
 import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
@@ -10,12 +11,14 @@ import { useWallet } from "../../../hooks/useWallet";
 type ProposalType = "PARAMETER_CHANGE" | "UPGRADE" | "TEXT";
 
 export default function CreateGovernanceProposalPage() {
+  const router = useRouter();
   const { address, isConnected } = useWallet();
   const { createProposal, isSubmitting, error } = useGovernance();
 
   const [proposalType, setProposalType] = useState<ProposalType>("TEXT");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [actionTarget, setActionTarget] = useState("");
   const [executionData, setExecutionData] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -39,15 +42,20 @@ export default function CreateGovernanceProposalPage() {
   async function handleConfirm() {
     setShowConfirm(false);
 
-    await createProposal({
+    const created = await createProposal({
       title,
       description,
       payload: {
         type: proposalType,
-        executionData: proposalType === "TEXT" ? null : executionData,
+        actionTarget: proposalType === "TEXT" ? undefined : actionTarget,
+        actionData: proposalType === "TEXT" ? undefined : executionData,
         createdBy: address,
       },
     });
+
+    if (created.proposal?.proposalId) {
+      router.push(`/governance/proposals/${encodeURIComponent(created.proposal.proposalId)}`);
+    }
   }
 
   return (
@@ -112,23 +120,29 @@ export default function CreateGovernanceProposalPage() {
         </div>
 
         {proposalType !== "TEXT" && (
-          <div>
-            <label htmlFor="execution-payload" className="ui-label">
-              Execution Payload
-            </label>
-            <textarea
-              id="execution-payload"
-              value={executionData}
-              onChange={(event) => setExecutionData(event.target.value)}
-              required
-              rows={4}
-              className="ui-textarea font-mono text-xs"
-              placeholder="Encoded contract call data"
+          <>
+            <Input
+              id="action-target"
+              label="Target"
+              value={actionTarget}
+              onChange={setActionTarget}
+              placeholder="0x..."
             />
-            <p className="mt-1 text-xs text-slate-400">
-              Payload executes only if the proposal passes governance.
-            </p>
-          </div>
+            <div>
+              <label htmlFor="execution-payload" className="ui-label">
+                Calldata
+              </label>
+              <textarea
+                id="execution-payload"
+                value={executionData}
+                onChange={(event) => setExecutionData(event.target.value)}
+                required
+                rows={4}
+                className="ui-textarea font-mono text-xs"
+                placeholder="0x..."
+              />
+            </div>
+          </>
         )}
 
         {error && <p className="text-sm text-rose-300">{error.message}</p>}
@@ -181,6 +195,35 @@ function ProposalTypeCard({
       <h3 className="text-base font-semibold text-slate-100">{title}</h3>
       <p className="mt-1 text-sm text-slate-300">{description}</p>
     </button>
+  );
+}
+
+function Input({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="ui-label">
+        {label}
+      </label>
+      <input
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="ui-input"
+      />
+    </div>
   );
 }
 

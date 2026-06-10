@@ -11,6 +11,7 @@ import { PortfolioOptimizer } from "@/components/Yield/PortfolioOptimizer";
 import { useAgents } from "@/hooks/useAgents";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useYield } from "@/hooks/useYield";
+import { yieldEnabled } from "@/lib/features";
 
 export default function DashboardPage() {
   return (
@@ -56,7 +57,7 @@ function DashboardContent() {
     );
   }
 
-  if (yieldError) {
+  if (yieldEnabled && yieldError) {
     return (
       <section className="page-container py-14">
         <ErrorState title="Yield data unavailable" message={yieldError.message} />
@@ -74,11 +75,10 @@ function DashboardContent() {
       <header className="ui-card fade-in-up p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="ui-kicker">Command Center</p>
+            <p className="ui-kicker">Overview</p>
             <h1 className="mt-1 text-3xl font-semibold text-white">Portfolio Overview</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Track active markets, agent performance, and yield optimizer output
-              from one unified control surface.
+              Review markets and agent performance from one dashboard.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -92,11 +92,13 @@ function DashboardContent() {
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className={`grid gap-3 sm:grid-cols-2 ${yieldEnabled ? "xl:grid-cols-4" : "xl:grid-cols-2"}`}>
         <StatCard label="Active Markets" value={totalMarkets.toString()} />
         <StatCard label="Your Agents" value={totalAgents.toString()} />
-        <StatCard label="Portfolio Risk" value={portfolioRisk.toFixed(2)} />
-        <StatCard label="Portfolio Value" value={`$${portfolioValue.toLocaleString()}`} />
+        {yieldEnabled && <StatCard label="Portfolio Risk" value={portfolioRisk.toFixed(2)} />}
+        {yieldEnabled && (
+          <StatCard label="Portfolio Value" value={`$${portfolioValue.toLocaleString()}`} />
+        )}
       </section>
 
       <section className="space-y-4">
@@ -134,31 +136,33 @@ function DashboardContent() {
         )}
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">Yield Allocation</h2>
-          <Link href="/yield/portfolio" className="ui-btn ui-btn-ghost">
-            Open portfolio
-          </Link>
-        </div>
-        {portfolio ? (
-          <PortfolioOptimizer
-            allocations={portfolio.allocations.map((allocation) => ({
-              vaultId: allocation.vaultId,
-              name: allocation.vaultId,
-              currentWeight: allocation.currentWeight,
-              recommendedWeight: allocation.recommendedWeight,
-              expectedApy: allocation.expectedApy,
-            }))}
-            portfolioRisk={portfolio.risk}
-          />
-        ) : (
-          <EmptyState
-            title="No yield data"
-            message="Deposit funds into vaults to activate optimizer recommendations."
-          />
-        )}
-      </section>
+      {yieldEnabled && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white">Yield Allocation</h2>
+            <Link href="/yield/portfolio" className="ui-btn ui-btn-ghost">
+              Open portfolio
+            </Link>
+          </div>
+          {portfolio ? (
+            <PortfolioOptimizer
+              allocations={portfolio.allocations.map((allocation) => ({
+                vaultId: allocation.vaultId,
+                name: allocation.vaultId,
+                currentWeight: allocation.currentWeight,
+                recommendedWeight: allocation.recommendedWeight,
+                expectedApy: allocation.expectedApy,
+              }))}
+              portfolioRisk={portfolio.risk}
+            />
+          ) : (
+            <EmptyState
+              title="No yield data"
+              message="No portfolio data available."
+            />
+          )}
+        </section>
+      )}
     </main>
   );
 }
@@ -168,7 +172,6 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <article className="ui-stat">
       <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
-      <p className="mt-1 text-xs text-slate-400">Live synchronized with your connected account.</p>
     </article>
   );
 }

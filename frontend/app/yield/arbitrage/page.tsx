@@ -6,6 +6,7 @@ import { ArbitrageFeed } from "../../../components/Yield/ArbitrageFeed";
 import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
 import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useArbitrage } from "../../../hooks/useArbitrage";
+import { yieldEnabled } from "../../../lib/features";
 
 export default function ArbitragePage() {
   return (
@@ -59,6 +60,18 @@ function ArbitrageContent() {
       avgConfidence,
     };
   }, [feedForUI]);
+
+  if (!yieldEnabled) {
+    return (
+      <section className="page-container py-14">
+        <MessageCard
+          title="Yield unavailable"
+          message="On-chain yield routing must be enabled before this workspace opens."
+          tone="neutral"
+        />
+      </section>
+    );
+  }
 
   if (isLoading) {
     return (

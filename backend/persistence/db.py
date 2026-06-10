@@ -100,7 +100,9 @@ async def init_db() -> None:
     Schema management is migration-driven (Alembic). Optional automatic
     migration can be enabled with DB_AUTO_MIGRATE=true.
     """
-    strict_startup = os.getenv("DB_STRICT_STARTUP", "false").lower() == "true"
+    env = (os.getenv("ENV") or "").strip().lower()
+    strict_default = "true" if env in {"production", "prod"} else "false"
+    strict_startup = os.getenv("DB_STRICT_STARTUP", strict_default).lower() == "true"
 
     try:
         async with engine.begin() as conn:

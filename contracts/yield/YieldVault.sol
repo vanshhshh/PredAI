@@ -50,8 +50,8 @@ contract YieldVault {
                               STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public governance;
-    address public capitalRouter;
+    address public immutable governance;
+    address public immutable capitalRouter;
 
     /// @notice Total capital managed by vault
     uint256 public totalBalance;

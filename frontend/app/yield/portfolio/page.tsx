@@ -8,6 +8,7 @@ import { PortfolioOptimizer } from "../../../components/Yield/PortfolioOptimizer
 import { RiskGauge } from "../../../components/Yield/RiskGauge";
 import { useWallet } from "../../../hooks/useWallet";
 import { useYield } from "../../../hooks/useYield";
+import { yieldEnabled } from "../../../lib/features";
 import { formatIdentity } from "../../../lib/identity";
 
 export default function YieldPortfolioPage() {
@@ -21,6 +22,18 @@ export default function YieldPortfolioPage() {
 function YieldPortfolioContent() {
   const { address, username, isConnected } = useWallet();
   const { portfolio, isLoading, error, rebalance, isRebalancing } = useYield();
+
+  if (!yieldEnabled) {
+    return (
+      <section className="page-container py-14">
+        <MessageCard
+          title="Yield unavailable"
+          message="On-chain yield routing must be enabled before this workspace opens."
+          tone="neutral"
+        />
+      </section>
+    );
+  }
 
   if (!isConnected) {
     return (

@@ -38,6 +38,8 @@ contract Timelock {
     error ActionAlreadyExecuted();
     error ExecutionTooEarly();
     error InvalidTarget();
+    error DelayTooShort();
+    error ActionAlreadyQueued();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -59,7 +61,8 @@ contract Timelock {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice DAO authority
-    address public dao;
+    address public immutable dao;
+    uint256 public immutable minDelay;
 
     /// @notice actionId => execution timestamp
     mapping(bytes32 => uint256) public queuedActions;
@@ -80,9 +83,10 @@ contract Timelock {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _dao) {
+    constructor(address _dao, uint256 _minDelay) {
         require(_dao != address(0), "INVALID_DAO");
         dao = _dao;
+        minDelay = _minDelay;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -101,8 +105,10 @@ contract Timelock {
         uint256 delay
     ) external onlyDAO returns (bytes32 actionId) {
         if (target == address(0)) revert InvalidTarget();
+        if (delay < minDelay) revert DelayTooShort();
 
         actionId = keccak256(abi.encode(target, data, block.timestamp));
+        if (queuedActions[actionId] != 0) revert ActionAlreadyQueued();
 
         queuedActions[actionId] = block.timestamp + delay;
 
@@ -120,7 +126,7 @@ contract Timelock {
     ) external {
         uint256 executeAfter = queuedActions[actionId];
 
-        if (executeAfter == 0) revert ActionNotQueued();
+        if (executeAfter < 1) revert ActionNotQueued();
         if (executed[actionId]) revert ActionAlreadyExecuted();
         if (block.timestamp < executeAfter) revert ExecutionTooEarly();
 

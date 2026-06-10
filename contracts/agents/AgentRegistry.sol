@@ -37,6 +37,7 @@ contract AgentRegistry {
     error AgentNotRegistered();
     error AgentInactive();
     error AgentStillActive();
+    error InvalidAgentId();
     error InvalidMetadata();
     error InvalidStake();
     error InsufficientStake();
@@ -63,7 +64,7 @@ contract AgentRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority
-    address public governance;
+    address public immutable governance;
 
     /// @notice Minimum stake required for activation
     uint256 public minimumStake;
@@ -131,6 +132,7 @@ contract AgentRegistry {
         external
     {
         if (agents[msg.sender].exists) revert AgentAlreadyRegistered();
+        if (agentId == bytes32(0)) revert InvalidAgentId();
         if (bytes(metadataURI).length == 0) revert InvalidMetadata();
 
         agents[msg.sender] = Agent({

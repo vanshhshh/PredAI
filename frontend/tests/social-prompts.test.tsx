@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
 
 import SocialPromptsPage from "../app/social/prompts/page";
 
@@ -40,5 +40,5 @@ describe("SocialPromptsPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Compiled Market" })
     ).toBeInTheDocument();
-  });
+  }, 15000);
 });

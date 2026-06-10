@@ -42,7 +42,7 @@ export function AgentDashboard({
         const ownerDisplay =
           usernames[agent.owner.toLowerCase()] ?? shortenAddress(agent.owner);
 
-        const accuracyPercent = (agent.accuracy * 100).toFixed(1);
+        const scorePercent = (agent.accuracy * 100).toFixed(1);
         const pnlColor =
           agent.pnl === null ? "" : agent.pnl >= 0 ? "text-emerald-200" : "text-rose-200";
 
@@ -64,7 +64,7 @@ export function AgentDashboard({
               </div>
 
               <div className="grid grid-cols-3 gap-3 lg:min-w-[320px]">
-                <Metric label="Accuracy" value={`${accuracyPercent}%`} />
+                <Metric label="Score" value={`${scorePercent}%`} />
                 <Metric label="PnL" value={agent.pnl === null ? "N/A" : agent.pnl.toFixed(2)} valueClass={pnlColor} />
                 <Metric label="Trades" value={agent.trades === null ? "N/A" : agent.trades.toString()} />
               </div>

@@ -29,8 +29,11 @@ pragma solidity ^0.8.20;
 */
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract CrossChainAdapter {
+    using SafeERC20 for IERC20;
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -67,7 +70,7 @@ contract CrossChainAdapter {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority (Timelock)
-    address public governance;
+    address public immutable governance;
 
     /// @notice Approved bridge adapters
     mapping(address => bool) public approvedBridges;
@@ -129,8 +132,7 @@ contract CrossChainAdapter {
         if (amount == 0) revert ZeroAmount();
         if (targetChainId == 0) revert InvalidTargetChain();
 
-        // Pull tokens from user
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         transferId = keccak256(
             abi.encode(
@@ -172,12 +174,13 @@ contract CrossChainAdapter {
     ) external {
         if (!approvedBridges[msg.sender]) revert BridgeNotApproved();
         if (processedTransfers[transferId]) revert AlreadyProcessed();
+        if (token == address(0)) revert ZeroAddress();
         if (recipient == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
 
         processedTransfers[transferId] = true;
 
-        IERC20(token).transfer(recipient, amount);
+        IERC20(token).safeTransfer(recipient, amount);
 
         emit TransferFinalized(
             transferId,

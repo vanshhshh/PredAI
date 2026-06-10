@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchArbitrageOpportunities } from "@/lib/api";
+import { yieldEnabled } from "@/lib/features";
 
 export interface ArbitrageOpportunity {
   opportunityId: string;
@@ -17,9 +18,11 @@ export function useArbitrage() {
   const query = useQuery({
     queryKey: ["yield", "arbitrage"],
     queryFn: fetchArbitrageOpportunities,
+    enabled: yieldEnabled,
   });
 
   return {
+    isEnabled: yieldEnabled,
     feed: ((query.data ?? []) as Record<string, unknown>[]).map(
       (item): ArbitrageOpportunity => ({
         opportunityId: String(item.opportunityId ?? ""),

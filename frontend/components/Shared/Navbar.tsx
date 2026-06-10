@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
+import { yieldEnabled } from "@/lib/features";
+
 import { WalletConnectButton } from "./WalletConnectButton";
 
 type NavItem = {
@@ -15,8 +17,9 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", match: "/dashboard" },
   { href: "/markets/list", label: "Markets", match: "/markets" },
+  { href: "/paper", label: "Paper", match: "/paper" },
   { href: "/agents/my-agents", label: "Agents", match: "/agents" },
-  { href: "/yield/portfolio", label: "Yield", match: "/yield" },
+  ...(yieldEnabled ? [{ href: "/yield/portfolio", label: "Yield", match: "/yield" }] : []),
   {
     href: "/governance/proposals",
     label: "Governance",
@@ -44,25 +47,23 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgb(var(--bg-alt)/0.78)] backdrop-blur-xl">
-      <div className="page-container flex h-[4.35rem] items-center justify-between gap-4">
-        <Link href="/" className="group flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300/35 via-emerald-300/25 to-amber-300/25 text-cyan-100 shadow-[0_0_28px_rgba(34,197,167,0.24)]">
-            MM
-          </span>
+    <header className="app-header">
+      <div className="page-container app-header-inner">
+        <Link href="/" className="brand-link group">
+          <span className="brand-mark">M</span>
           <div>
-            <p className="text-sm font-semibold tracking-wide text-white transition group-hover:text-emerald-200">
+            <p className="text-sm font-semibold text-white transition group-hover:text-cyan-200">
               MoltMarket
             </p>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-              Market Intelligence Stack
+            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">
+              Polygon markets
             </p>
           </div>
         </Link>
 
         <nav
           aria-label="Primary"
-          className="hidden items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1 lg:flex"
+          className="nav-list"
         >
           {NAV_ITEMS.map((item) => {
             const active = isActiveRoute(pathname, item.match);
@@ -70,11 +71,7 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-xl px-3 py-2 text-xs font-medium transition ${
-                  active
-                    ? "bg-emerald-300/20 text-emerald-100"
-                    : "text-slate-300 hover:bg-white/10 hover:text-white"
-                }`}
+                className={`nav-link ${active ? "nav-link-active" : ""}`}
               >
                 {item.label}
               </Link>
@@ -83,14 +80,8 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Link href="/markets/create" className="ui-btn ui-btn-secondary">
+          <Link href="/markets/create" className="ui-btn ui-btn-primary">
             Create Market
-          </Link>
-          <Link href="/agents/create" className="ui-btn ui-btn-secondary">
-            Create Agent
-          </Link>
-          <Link href="/dashboard" className="ui-btn ui-btn-primary">
-            Open Terminal
           </Link>
           <WalletConnectButton />
         </div>
@@ -101,14 +92,18 @@ export function Navbar() {
           aria-controls="mobile-nav"
           aria-label="Toggle navigation menu"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="ui-btn ui-btn-secondary lg:hidden"
+          className="mobile-menu-button"
         >
-          Menu
+          <span className="menu-icon" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
         </button>
       </div>
 
       {menuOpen && (
-        <div id="mobile-nav" className="border-t border-white/10 bg-[rgb(var(--bg-alt)/0.9)] lg:hidden">
+        <div id="mobile-nav" className="mobile-nav-panel lg:hidden">
           <div className="page-container flex flex-col gap-3 py-4">
             {NAV_ITEMS.map((item) => {
               const active = isActiveRoute(pathname, item.match);
@@ -117,11 +112,7 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
-                    active
-                      ? "bg-emerald-300/20 text-emerald-100"
-                      : "bg-white/5 text-slate-200 hover:bg-white/10"
-                  }`}
+                  className={`nav-link ${active ? "nav-link-active" : ""}`}
                 >
                   {item.label}
                 </Link>
@@ -132,7 +123,7 @@ export function Navbar() {
               <Link
                 href="/markets/create"
                 onClick={() => setMenuOpen(false)}
-                className="ui-btn ui-btn-secondary flex-1"
+                className="ui-btn ui-btn-primary flex-1"
               >
                 New Market
               </Link>
@@ -144,10 +135,6 @@ export function Navbar() {
                 New Agent
               </Link>
             </div>
-
-            <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="ui-btn ui-btn-primary">
-              Open Terminal
-            </Link>
 
             <div className="pt-1">
               <WalletConnectButton />

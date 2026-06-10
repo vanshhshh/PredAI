@@ -65,7 +65,7 @@ contract AgentScoring {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority
-    address public governance;
+    address public immutable governance;
 
     /// @notice Agent registry
     AgentRegistry public immutable agentRegistry;
@@ -92,8 +92,18 @@ contract AgentScoring {
     }
 
     modifier onlyRegistered(address agent) {
-        (, , , bool active) = agentRegistry.getAgent(agent);
-        active; // silence unused warning
+        (
+            bytes32 agentId,
+            string memory metadataURI,
+            uint256 stake,
+            bool active
+        ) = agentRegistry.getAgent(agent);
+        if (
+            agentId == bytes32(0) ||
+            bytes(metadataURI).length == 0 ||
+            stake < 1 ||
+            !active
+        ) revert AgentNotRegistered();
         _;
     }
 
@@ -141,6 +151,7 @@ contract AgentScoring {
     function applyScoreDelta(address agent, int256 delta)
         external
         onlyGovernance
+        onlyRegistered(agent)
     {
         _applyDecay(agent);
 
@@ -159,13 +170,13 @@ contract AgentScoring {
     /**
      * @notice Apply time-based decay to agent score
      */
-    function applyDecay(address agent) external {
+    function applyDecay(address agent) external onlyRegistered(agent) {
         _applyDecay(agent);
     }
 
     function _applyDecay(address agent) internal {
         uint256 last = lastDecay[agent];
-        if (last == 0) {
+        if (last < 1) {
             lastDecay[agent] = block.timestamp;
             return;
         }

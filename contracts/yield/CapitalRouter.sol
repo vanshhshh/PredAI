@@ -53,7 +53,7 @@ contract CapitalRouter {
                               STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public governance;
+    address public immutable governance;
 
     /// @notice Approved yield vaults
     mapping(address => bool) public approvedVaults;

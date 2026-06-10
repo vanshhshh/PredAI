@@ -61,7 +61,7 @@ contract AgentNFT is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority
-    address public governance;
+    address public immutable governance;
 
     /// @notice Agent registry
     AgentRegistry public immutable agentRegistry;
@@ -112,8 +112,18 @@ contract AgentNFT is ERC721 {
     {
         if (agentTokenIds[agent] != 0) revert NFTAlreadyMinted();
 
-        // Will revert internally if agent is not registered
-        agentRegistry.getAgent(agent);
+        (
+            bytes32 agentId,
+            string memory metadataURI,
+            uint256 stake,
+            bool active
+        ) = agentRegistry.getAgent(agent);
+        if (
+            agentId == bytes32(0) ||
+            bytes(metadataURI).length == 0 ||
+            stake < 1 ||
+            !active
+        ) revert AgentNotRegistered();
 
         tokenId = nextTokenId++;
         agentTokenIds[agent] = tokenId;

@@ -29,7 +29,7 @@ export default function TermsPage() {
       <section className="space-y-4">
         <LegalSection title="1. No Financial Advice">
           <p>
-            Nothing in PredAI constitutes financial, legal, tax, or investment advice. Signals,
+            Nothing in MoltMarket constitutes financial, legal, tax, or investment advice. Signals,
             analytics, and AI outputs are informational only.
           </p>
           <p>You are solely responsible for your own decisions and risk assessment.</p>
@@ -56,28 +56,35 @@ export default function TermsPage() {
 
         <LegalSection title="3. Platform Rights">
           <p>
-            PredAI may review, reject, suspend, or remove markets, agents, and related content to
+            MoltMarket may review, reject, suspend, or remove markets, agents, and related content to
             protect platform integrity, prevent abuse, and address legal obligations.
           </p>
         </LegalSection>
 
         <LegalSection title="4. Non-Custodial Nature">
           <p>
-            PredAI does not custody user assets. You interact with smart contracts through your own
+            MoltMarket does not custody user assets. You interact with smart contracts through your own
             wallet and must secure your private keys and signing environment.
           </p>
         </LegalSection>
 
-        <LegalSection title="5. Experimental Software">
+        <LegalSection title="5. Eligibility">
+          <p>
+            You must be legally allowed to use prediction markets in your jurisdiction and be at least
+            18 years old. Do not use MoltMarket from restricted or sanctioned jurisdictions.
+          </p>
+        </LegalSection>
+
+        <LegalSection title="6. Experimental Software">
           <p>
             The service is provided as-is and may include downtime, defects, data delays, and
             unexpected behavior.
           </p>
         </LegalSection>
 
-        <LegalSection title="6. Limitation of Liability">
+        <LegalSection title="7. Limitation of Liability">
           <p>
-            To the maximum extent permitted by law, PredAI and contributors are not liable for direct
+            To the maximum extent permitted by law, MoltMarket and contributors are not liable for direct
             or indirect losses arising from platform usage.
           </p>
         </LegalSection>

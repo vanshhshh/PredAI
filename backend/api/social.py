@@ -5,8 +5,6 @@ Social signal endpoints (feeds, staking, prompt compilation, spawn).
 from __future__ import annotations
 
 import hashlib
-import json
-import time
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -17,7 +15,6 @@ from backend.core.config import settings
 from backend.persistence.repositories.social_repo import SocialRepository
 from backend.security.auth import get_current_user
 from backend.security.invariants import InvariantViolation
-from backend.services.market_service import MarketService
 from backend.services.social_service import SocialService
 
 
@@ -167,19 +164,12 @@ async def list_feeds():
 
 
 @router.post("/stake")
-async def stake_argument(req: StakeRequest):
-    updated = await SocialRepository.apply_signal_stake(
-        event_id=req.argumentId,
-        amount=req.amount,
+async def stake_argument(req: StakeRequest, user=Depends(get_current_user)):
+    _ = (req, user)
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="DB_ONLY_SIGNAL_STAKING_DISABLED",
     )
-    if not updated:
-        raise HTTPException(status_code=404, detail="ARGUMENT_NOT_FOUND")
-
-    return {
-        "status": "staked",
-        "argumentId": updated.event_id,
-        "signalScore": round(int(updated.signal_score_bps) / 10_000, 4),
-    }
 
 
 @router.post("/arguments/{argument_id}/stake")
@@ -214,38 +204,12 @@ async def stake_argument_for_market(
 
 
 @router.post("/spawn")
-async def spawn_market(req: SpawnRequest):
-    event = await SocialRepository.get_event(req.feedId)
-    if not event:
-        raise HTTPException(status_code=404, detail="FEED_NOT_FOUND")
-
-    now = int(time.time())
-    market_id = hashlib.sha256(
-        f"{event.source}:{event.external_id}:{event.content}".encode()
-    ).hexdigest()
-
-    try:
-        created = await MarketService.create_market(
-            creator="social-relayer",
-            market_id=market_id,
-            start_time=now + 300,
-            end_time=now + 30 * 24 * 60 * 60,
-            max_exposure=10_000,
-            metadata_uri=json.dumps(
-                {
-                    "title": event.content[:160],
-                    "description": f"Spawned from {event.source} by {event.author}",
-                    "social_event_id": event.event_id,
-                }
-            ),
-        )
-    except InvariantViolation as exc:
-        raise HTTPException(status_code=400, detail=exc.to_dict())
-
-    return {
-        "status": "spawned",
-        "marketId": created.market_id,
-    }
+async def spawn_market(req: SpawnRequest, user=Depends(get_current_user)):
+    _ = (req, user)
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="SOCIAL_RELAYER_DISABLED_USE_PROMPT_COMPILER",
+    )
 
 
 @router.post("/compile")

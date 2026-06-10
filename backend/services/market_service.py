@@ -27,10 +27,27 @@ from backend.indexing.block_listener import ChainReader
 from backend.indexing.event_handlers.market_events import MarketEventParser
 from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.user_repo import UserRepository
+from backend.realtime.publisher import publish_protocol_event
 from backend.security.invariants import InvariantViolation
 
 
 logger = logging.getLogger(__name__)
+
+
+def _market_payload(market, yes_pool: int = 0, no_pool: int = 0) -> dict:
+    return {
+        "market_id": market.market_id,
+        "address": market.address,
+        "creator": market.creator,
+        "start_time": int(market.start_time),
+        "end_time": int(market.end_time),
+        "max_exposure": int(market.max_exposure),
+        "metadata_uri": market.metadata_uri,
+        "settled": bool(market.settled),
+        "final_outcome": market.final_outcome,
+        "yes_pool": int(yes_pool),
+        "no_pool": int(no_pool),
+    }
 
 
 class MarketService:
@@ -47,6 +64,7 @@ class MarketService:
         end_time: int,
         max_exposure: int,
         metadata_uri: str,
+        tx_hash: str,
     ):
         """
         Create a new prediction market.
@@ -68,6 +86,8 @@ class MarketService:
 
         if max_exposure <= 0:
             raise InvariantViolation("INVALID_MAX_EXPOSURE")
+        if not tx_hash:
+            raise InvariantViolation("MARKET_CREATE_TX_HASH_REQUIRED")
 
         # Ensure creator exists (user auto-created on first use)
         await UserRepository.ensure_exists(creator)
@@ -77,7 +97,8 @@ class MarketService:
         if existing:
             raise InvariantViolation("MARKET_ID_ALREADY_EXISTS")
 
-        tx_hash = await ChainReader.create_market_on_chain(
+        receipt = await ChainReader.verify_market_create_tx(
+            tx_hash=tx_hash,
             creator=creator,
             market_id=market_id,
             start_time=start_time,
@@ -85,7 +106,6 @@ class MarketService:
             max_exposure=max_exposure,
             metadata_uri=metadata_uri,
         )
-        receipt = await ChainReader.wait_for_tx(tx_hash)
         market_address = MarketEventParser.extract_market_address(receipt)
         if not market_address:
             raise InvariantViolation("MARKET_CREATE_EVENT_MISSING")
@@ -104,6 +124,13 @@ class MarketService:
             metadata_uri=metadata_uri,
             settled=False,
             final_outcome=None,
+        )
+
+        await publish_protocol_event(
+            topic="markets",
+            event_type="market.created",
+            event_key=market.market_id,
+            payload=_market_payload(market),
         )
 
         return market
@@ -187,6 +214,31 @@ class MarketService:
             final_outcome=bool(final_outcome),
         )
 
+        settled_market = await MarketRepository.get_by_market_id(market_id)
+        yes_pool, no_pool = await MarketRepository.get_market_pools(market_id)
+
+        try:
+            from backend.persistence.repositories.agent_prediction_repo import AgentPredictionRepository
+
+            await AgentPredictionRepository.mark_market_settled(
+                market_id=market_id,
+                final_outcome=bool(final_outcome),
+            )
+        except Exception as exc:
+            logger.warning(
+                "agent prediction scoring failed after settlement for market %s: %s",
+                market_id,
+                str(exc),
+            )
+
+        if settled_market:
+            await publish_protocol_event(
+                topic="markets",
+                event_type="market.settled",
+                event_key=market_id,
+                payload=_market_payload(settled_market, yes_pool, no_pool),
+            )
+
         # Refresh performance signals for agents owned by impacted bettors.
         try:
             from backend.services.agent_service import AgentService
@@ -253,9 +305,36 @@ class MarketService:
 
         await UserRepository.ensure_exists(user_address)
 
-        return await MarketRepository.place_bet(
+        bet = await MarketRepository.place_bet(
             user_address=user_address,
             market_id=market_id,
             side=normalized_side,
             amount=amount,
         )
+
+        yes_pool, no_pool = await MarketRepository.get_market_pools(market_id)
+        updated_market = await MarketRepository.get_by_market_id(market_id)
+        await publish_protocol_event(
+            topic="markets",
+            event_type="trade.created",
+            event_key=market_id,
+            payload={
+                "market": _market_payload(updated_market, yes_pool, no_pool) if updated_market else None,
+                "trade": {
+                    "market_id": market_id,
+                    "user_address": user_address.strip().lower(),
+                    "side": normalized_side,
+                    "amount": int(amount),
+                    "tx_hash": tx_hash,
+                },
+            },
+        )
+        if updated_market:
+            await publish_protocol_event(
+                topic="markets",
+                event_type="market.updated",
+                event_key=market_id,
+                payload=_market_payload(updated_market, yes_pool, no_pool),
+            )
+
+        return bet

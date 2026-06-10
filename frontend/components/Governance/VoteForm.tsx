@@ -7,32 +7,27 @@ import { LoadingSpinner } from "../Shared/LoadingSpinner";
 interface VoteFormProps {
   proposalId: string;
   votingPower: number;
-  onVote: (payload: { support: "FOR" | "AGAINST"; weight: number }) => Promise<void>;
+  onVote: (payload: { support: "FOR" | "AGAINST" }) => Promise<void>;
   isSubmitting?: boolean;
   error?: Error | null;
 }
 
 export function VoteForm({
-  proposalId,
   votingPower,
   onVote,
   isSubmitting = false,
   error,
 }: VoteFormProps) {
   const [support, setSupport] = useState<"FOR" | "AGAINST">("FOR");
-  const [weight, setWeight] = useState<number>(0);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (weight <= 0 || weight > votingPower) return;
+    if (votingPower <= 0) return;
 
     await onVote({
       support,
-      weight,
     });
   }
-
-  const powerUsed = votingPower > 0 ? Math.min(100, (weight / votingPower) * 100) : 0;
 
   return (
     <form onSubmit={handleSubmit} className="ui-card space-y-5 p-5" aria-label="Vote form">
@@ -59,32 +54,10 @@ export function VoteForm({
         />
       </div>
 
-      <div>
-        <label htmlFor={`vote-weight-${proposalId}`} className="ui-label">
-          Vote Weight
-        </label>
-        <input
-          id={`vote-weight-${proposalId}`}
-          type="number"
-          min={0}
-          max={votingPower}
-          value={weight}
-          onChange={(event) => setWeight(Number(event.target.value))}
-          className="ui-input"
-          aria-label="Vote weight"
-        />
-      </div>
-
       <div className="rounded-xl border border-white/10 bg-slate-950/35 p-3">
         <div className="flex items-center justify-between text-xs text-slate-300">
-          <span>Voting Power Used</span>
-          <span>{powerUsed.toFixed(1)}%</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-950/45">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300"
-            style={{ width: `${powerUsed}%` }}
-          />
+          <span>Snapshot power</span>
+          <span>{votingPower.toLocaleString()}</span>
         </div>
       </div>
 
@@ -92,7 +65,7 @@ export function VoteForm({
 
       <button
         type="submit"
-        disabled={isSubmitting || weight <= 0 || weight > votingPower}
+        disabled={isSubmitting || votingPower <= 0}
         className="ui-btn ui-btn-primary w-full"
       >
         {isSubmitting ? "Submitting vote..." : "Submit Vote"}

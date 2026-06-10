@@ -66,6 +66,7 @@ COPY --from=deps /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=deps /usr/local/bin /usr/local/bin
 
 COPY backend /app/backend
+COPY scripts /app/scripts
 COPY --from=rust-build /rust/rust-core/target/release /app/rust-core
 
 RUN useradd -m appuser

@@ -57,7 +57,7 @@ contract OracleSlashing {
                               STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public governance;
+    address public immutable governance;
 
     OracleConsensus public immutable oracleConsensus;
     OracleStaking public immutable oracleStaking;

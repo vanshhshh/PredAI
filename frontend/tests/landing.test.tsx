@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 
 import LandingPage from "../app/page";
 

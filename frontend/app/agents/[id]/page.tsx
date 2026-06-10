@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 
 import { AgentDashboard } from "../../../components/Agent/AgentDashboard";
+import { AutonomyPanel } from "../../../components/Agent/AutonomyPanel";
 import { NFTViewer } from "../../../components/Agent/NFTViewer";
 import { StakingControls } from "../../../components/Agent/StakingControls";
 import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
@@ -98,6 +99,8 @@ function AgentContent() {
           <AgentDashboard agents={[agent]} />
         </div>
       </section>
+
+      <AutonomyPanel agentId={agent.agentId} isOwner={Boolean(isOwner)} />
 
       <section className="ui-card p-5">
         <h2 className="text-lg font-semibold text-white">Owner Controls</h2>

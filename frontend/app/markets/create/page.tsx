@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Modal } from "../../../components/Shared/Modal";
 import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
@@ -8,6 +9,7 @@ import { useMarkets } from "../../../hooks/useMarkets";
 import { useWallet } from "../../../hooks/useWallet";
 
 export default function CreateMarketPage() {
+  const router = useRouter();
   const { address, isConnected } = useWallet();
   const { createMarket, isCreating, error } = useMarkets();
 
@@ -38,13 +40,17 @@ export default function CreateMarketPage() {
   async function handleConfirm() {
     setShowConfirm(false);
 
-    await createMarket({
+    const created = await createMarket({
       title: mode === "PROMPT" ? prompt : title,
       description,
       endTime: new Date(endTime).getTime(),
       maxExposure,
       metadata: mode === "PROMPT" ? prompt : undefined,
     });
+
+    if (created.market?.marketId) {
+      router.push(`/markets/${encodeURIComponent(created.market.marketId)}`);
+    }
   }
 
   const isFormValid =

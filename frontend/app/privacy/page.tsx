@@ -33,7 +33,7 @@ const sections = [
   },
   {
     title: "4. Third-Party Services",
-    body: "PredAI uses infrastructure providers for RPC access, telemetry, notifications, and on-ramp integrations. Those services process limited technical metadata under their own policies.",
+    body: "MoltMarket uses infrastructure providers for RPC access, telemetry, notifications, and on-ramp integrations. Those services process limited technical metadata under their own policies.",
   },
   {
     title: "5. Data Retention",

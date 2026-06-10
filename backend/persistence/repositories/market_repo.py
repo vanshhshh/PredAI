@@ -104,6 +104,35 @@ class MarketRepository:
             return list(result)
 
     @staticmethod
+    async def list_open(*, now: int, limit: int = 100) -> List[Market]:
+        async with AsyncSessionLocal() as session:
+            result = await session.scalars(
+                select(Market)
+                .where(
+                    Market.settled.is_(False),
+                    Market.start_time <= int(now),
+                    Market.end_time > int(now),
+                )
+                .order_by(Market.end_time.asc())
+                .limit(limit)
+            )
+            return list(result)
+
+    @staticmethod
+    async def list_settled(limit: int = 500) -> List[Market]:
+        async with AsyncSessionLocal() as session:
+            result = await session.scalars(
+                select(Market)
+                .where(
+                    Market.settled.is_(True),
+                    Market.final_outcome.is_not(None),
+                )
+                .order_by(Market.end_time.desc())
+                .limit(limit)
+            )
+            return list(result)
+
+    @staticmethod
     async def get_market_pools(market_id: str) -> tuple[int, int]:
         async with AsyncSessionLocal() as session:
             row = await session.execute(

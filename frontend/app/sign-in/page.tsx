@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useConnect, useDisconnect, useSignMessage } from "wagmi";
+import EthereumProvider from "@walletconnect/ethereum-provider";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useWallet } from "@/hooks/useWallet";
 import {
@@ -40,6 +40,10 @@ type Eip1193Provider = {
   isMetaMask?: boolean;
   isPhantom?: boolean;
   providers?: Eip1193Provider[];
+};
+
+type WalletConnectProvider = Eip1193Provider & {
+  disconnect?: () => Promise<void>;
 };
 
 const walletConnectProjectIdRaw =
@@ -84,24 +88,6 @@ function parseChainId(chainIdHex: unknown): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
-function extractConnectedAddress(result: unknown): string | null {
-  if (!result || typeof result !== "object") return null;
-  const maybe = result as { account?: unknown; accounts?: unknown };
-  if (typeof maybe.account === "string" && maybe.account.trim()) {
-    return maybe.account.trim();
-  }
-  if (Array.isArray(maybe.accounts) && typeof maybe.accounts[0] === "string") {
-    return maybe.accounts[0].trim();
-  }
-  return null;
-}
-
-function extractConnectedChainId(result: unknown): number | undefined {
-  if (!result || typeof result !== "object") return undefined;
-  const maybe = result as { chain?: { id?: unknown } };
-  return typeof maybe.chain?.id === "number" ? maybe.chain.id : undefined;
-}
-
 async function signMessageWithProvider(
   provider: Eip1193Provider,
   message: string,
@@ -138,10 +124,6 @@ export default function SignInPage() {
     disconnect: disconnectWalletSession,
   } = useWallet();
 
-  const { connectAsync, connectors } = useConnect();
-  const { disconnect: disconnectWagmi } = useDisconnect();
-  const { signMessageAsync } = useSignMessage();
-
   const [activeProvider, setActiveProvider] = useState<WalletProvider | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -155,6 +137,8 @@ export default function SignInPage() {
   const [isSavingUsername, setIsSavingUsername] = useState(false);
   const [metamaskInstalled, setMetamaskInstalled] = useState(false);
   const [phantomInstalled, setPhantomInstalled] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const walletConnectProviderRef = useRef<WalletConnectProvider | null>(null);
 
   useEffect(() => {
     if (isConnected && storedUsername) {
@@ -228,47 +212,12 @@ export default function SignInPage() {
     [fetchExistingUsername, setExternalWallet]
   );
 
-  const connectWithConnector = useCallback(
-    async (walletProvider: WalletProvider, connectorNameHint: string) => {
-      const connector = connectors.find((item) =>
-        item.name.toLowerCase().includes(connectorNameHint.toLowerCase())
-      );
-      if (!connector) {
-        setConnectionError(`${connectorNameHint} connector is not configured.`);
-        return;
-      }
-
-      setActiveProvider(walletProvider);
-      setConnectionError(null);
-      setIsAuthenticating(true);
-
-      try {
-        const result = await connectAsync({ connector });
-        const address = extractConnectedAddress(result);
-        if (!address) {
-          throw new Error("Wallet did not return an account");
-        }
-        const chainId = extractConnectedChainId(result);
-
-        await authenticateWallet({
-          address,
-          chainId,
-          walletProvider,
-          signMessage: (message) => signMessageAsync({ message }),
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Wallet connection failed";
-        setConnectionError(message);
-        disconnectWagmi();
-      } finally {
-        setIsAuthenticating(false);
-        setActiveProvider(null);
-      }
-    },
-    [authenticateWallet, connectAsync, connectors, disconnectWagmi, signMessageAsync]
-  );
-
   const connectMetaMask = useCallback(async () => {
+    if (!acceptedLegal) {
+      setConnectionError("Confirm eligibility before connecting.");
+      return;
+    }
+
     setActiveProvider("metamask");
     setConnectionError(null);
     setIsAuthenticating(true);
@@ -299,17 +248,68 @@ export default function SignInPage() {
       setIsAuthenticating(false);
       setActiveProvider(null);
     }
-  }, [authenticateWallet]);
+  }, [acceptedLegal, authenticateWallet]);
 
   const connectWalletConnect = useCallback(async () => {
+    if (!acceptedLegal) {
+      setConnectionError("Confirm eligibility before connecting.");
+      return;
+    }
+
     if (!walletConnectProjectId) {
       setConnectionError("WalletConnect is not configured. Set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID.");
       return;
     }
-    await connectWithConnector("walletconnect", "walletconnect");
-  }, [connectWithConnector]);
+
+    setActiveProvider("walletconnect");
+    setConnectionError(null);
+    setIsAuthenticating(true);
+
+    try {
+      const provider = (await EthereumProvider.init({
+        projectId: walletConnectProjectId,
+        chains: [137],
+        showQrModal: true,
+        rpcMap: {
+          137: process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://polygon-rpc.com",
+        },
+        metadata: {
+          name: "MoltMarket",
+          description: "Prediction markets on Polygon",
+          url: typeof window !== "undefined" ? window.location.origin : "https://moltmarket.com",
+          icons: [],
+        },
+      })) as WalletConnectProvider;
+      walletConnectProviderRef.current = provider;
+
+      const accounts = await provider.request({ method: "eth_requestAccounts" });
+      const address = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
+      if (!address) {
+        throw new Error("WalletConnect did not return an account");
+      }
+
+      const chainId = parseChainId(await provider.request({ method: "eth_chainId" }));
+      await authenticateWallet({
+        address,
+        chainId,
+        walletProvider: "walletconnect",
+        signMessage: (message) => signMessageWithProvider(provider, message, address),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "WalletConnect connection failed";
+      setConnectionError(message);
+    } finally {
+      setIsAuthenticating(false);
+      setActiveProvider(null);
+    }
+  }, [acceptedLegal, authenticateWallet]);
 
   const connectPhantom = useCallback(async () => {
+    if (!acceptedLegal) {
+      setConnectionError("Confirm eligibility before connecting.");
+      return;
+    }
+
     setActiveProvider("phantom");
     setConnectionError(null);
     setIsAuthenticating(true);
@@ -340,7 +340,7 @@ export default function SignInPage() {
       setIsAuthenticating(false);
       setActiveProvider(null);
     }
-  }, [authenticateWallet]);
+  }, [acceptedLegal, authenticateWallet]);
 
   useEffect(() => {
     if (!pendingIdentity) return;
@@ -402,7 +402,8 @@ export default function SignInPage() {
   }, [isCheckingUsername, isSavingUsername, pendingIdentity, usernameAvailable, usernameInput]);
 
   const disconnectAllWalletState = useCallback(async () => {
-    disconnectWagmi();
+    await walletConnectProviderRef.current?.disconnect?.();
+    walletConnectProviderRef.current = null;
     await disconnectWalletSession();
     setPendingIdentity(null);
     setUsernameInput("");
@@ -411,7 +412,7 @@ export default function SignInPage() {
     setConnectionError(null);
     setActiveProvider(null);
     setIsAuthenticating(false);
-  }, [disconnectWalletSession, disconnectWagmi]);
+  }, [disconnectWalletSession]);
 
   const handleSaveUsername = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -456,41 +457,53 @@ export default function SignInPage() {
   );
 
   const modalWalletLabel = pendingIdentity?.walletProvider ?? "";
+  const legalHint = acceptedLegal ? undefined : "Confirm eligibility first";
 
   return (
     <>
       <main className="page-container section-stack flex min-h-[calc(100vh-3rem)] items-center justify-center py-10">
         <section className="ui-card w-full max-w-xl p-6 sm:p-8">
           <header className="text-center">
-            <p className="ui-kicker">Wallet Authentication</p>
             <h1 className="mt-2 text-3xl font-semibold text-white">Connect To MoltMarket</h1>
             <p className="mt-2 text-sm text-slate-300">
-              Wallet-only access. Choose MetaMask, Phantom, or WalletConnect.
+              Wallet-only access.
             </p>
           </header>
+
+          <label className="mt-6 flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left text-sm text-slate-200">
+            <input
+              type="checkbox"
+              checked={acceptedLegal}
+              onChange={(event) => setAcceptedLegal(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-white/20 bg-slate-950"
+            />
+            <span>
+              I am 18+ and allowed to use this platform.
+            </span>
+          </label>
 
           <div className="mt-8 grid gap-3">
             <WalletButton
               label="Connect MetaMask"
-              hint={metamaskInstalled ? "EVM wallet" : "Install MetaMask extension"}
+              hint={legalHint ?? (metamaskInstalled ? "EVM wallet" : "Install MetaMask extension")}
               onClick={() => void connectMetaMask()}
-              disabled={isBusy || !metamaskInstalled}
+              disabled={isBusy || !metamaskInstalled || !acceptedLegal}
               active={activeProvider === "metamask"}
               icon={<WalletGlyph label="MM" />}
             />
             <WalletButton
               label="Connect Phantom"
-              hint={phantomInstalled ? "Phantom EVM" : "Install Phantom extension"}
+              hint={legalHint ?? (phantomInstalled ? "Phantom EVM" : "Install Phantom extension")}
               onClick={() => void connectPhantom()}
-              disabled={isBusy || !phantomInstalled}
+              disabled={isBusy || !phantomInstalled || !acceptedLegal}
               active={activeProvider === "phantom"}
               icon={<WalletGlyph label="PH" />}
             />
             <WalletButton
               label="Connect WalletConnect"
-              hint={walletConnectProjectId ? "Mobile + desktop" : "Set WalletConnect project ID"}
+              hint={legalHint ?? (walletConnectProjectId ? "Mobile + desktop" : "Set WalletConnect project ID")}
               onClick={() => void connectWalletConnect()}
-              disabled={isBusy || !walletConnectProjectId}
+              disabled={isBusy || !walletConnectProjectId || !acceptedLegal}
               active={activeProvider === "walletconnect"}
               icon={<WalletGlyph label="WC" />}
             />

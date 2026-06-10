@@ -43,6 +43,8 @@ class RWAService:
         metadata_uri: str,
         max_supply: int,
         creator: str,
+        tx_hash: str,
+        active: bool = True,
     ):
         """
         Register a new RWA token in the protocol index.
@@ -65,12 +67,23 @@ class RWAService:
 
         if max_supply < 0:
             raise InvariantViolation("INVALID_MAX_SUPPLY")
+        if not tx_hash:
+            raise InvariantViolation("RWA_REGISTRATION_TX_REQUIRED")
 
         await UserRepository.ensure_exists(creator)
 
         existing = await RWARepository.get_by_rwa_id(rwa_id)
         if existing:
             raise InvariantViolation("RWA_ALREADY_REGISTERED")
+
+        await ChainReader.verify_rwa_registration_tx(
+            tx_hash=tx_hash,
+            registrar=creator,
+            rwa_id=rwa_id,
+            token_address=token_address,
+            metadata_uri=metadata_uri,
+            active=active,
+        )
 
         rwa = await RWARepository.create(
             rwa_id=rwa_id,
@@ -81,6 +94,72 @@ class RWAService:
         )
 
         return rwa
+
+    @staticmethod
+    async def mint_rwa(
+        *,
+        asset_id: str,
+        account: str,
+        amount: int,
+        operator: str,
+        tx_hash: str,
+    ):
+        if amount <= 0:
+            raise InvariantViolation("INVALID_MINT_AMOUNT")
+        if not account:
+            raise InvariantViolation("INVALID_RWA_ACCOUNT")
+        if not tx_hash:
+            raise InvariantViolation("RWA_MINT_TX_REQUIRED")
+
+        asset = await RWARepository.get_by_rwa_id(asset_id)
+        if not asset:
+            raise InvariantViolation("RWA_NOT_FOUND")
+
+        await ChainReader.verify_rwa_mint_tx(
+            tx_hash=tx_hash,
+            operator=operator,
+            token_address=asset.token_address,
+            recipient=account,
+            amount=amount,
+        )
+
+        return await RWARepository.mint(
+            rwa_id=asset_id,
+            amount=amount,
+        )
+
+    @staticmethod
+    async def burn_rwa(
+        *,
+        asset_id: str,
+        account: str,
+        amount: int,
+        operator: str,
+        tx_hash: str,
+    ):
+        if amount <= 0:
+            raise InvariantViolation("INVALID_BURN_AMOUNT")
+        if not account:
+            raise InvariantViolation("INVALID_RWA_ACCOUNT")
+        if not tx_hash:
+            raise InvariantViolation("RWA_BURN_TX_REQUIRED")
+
+        asset = await RWARepository.get_by_rwa_id(asset_id)
+        if not asset:
+            raise InvariantViolation("RWA_NOT_FOUND")
+
+        await ChainReader.verify_rwa_burn_tx(
+            tx_hash=tx_hash,
+            operator=operator,
+            token_address=asset.token_address,
+            account=account,
+            amount=amount,
+        )
+
+        return await RWARepository.burn(
+            rwa_id=asset_id,
+            amount=amount,
+        )
 
     # ------------------------------------------------------------------
     # OUTCOME WRAPPING

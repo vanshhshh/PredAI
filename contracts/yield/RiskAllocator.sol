@@ -54,7 +54,7 @@ contract RiskAllocator {
                               STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public governance;
+    address public immutable governance;
 
     struct RiskProfile {
         bool approved;

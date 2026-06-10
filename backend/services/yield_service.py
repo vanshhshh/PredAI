@@ -21,6 +21,7 @@ DESIGN RULES (from docs)
 """
 from typing import List, Any
 
+from backend.indexing.block_listener import ChainReader
 from backend.persistence.repositories.yield_repo import YieldRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
@@ -147,9 +148,15 @@ class YieldService:
         if not normalized_positions:
             raise InvariantViolation("NO_VALID_ALLOCATION")
 
+        tx_hash = await ChainReader.execute_rebalance_on_chain(
+            user_address=user_address,
+            allocation={"positions": normalized_positions},
+        )
+        await ChainReader.wait_for_tx(tx_hash)
+
         await YieldRepository.apply_rebalance(
             user_address=user_address,
             new_positions=normalized_positions,
         )
 
-        return True
+        return {"status": "rebalanced", "tx_hash": tx_hash}

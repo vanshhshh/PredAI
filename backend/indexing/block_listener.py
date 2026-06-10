@@ -101,14 +101,29 @@ def _norm(value: Any) -> Any:
 
 
 MARKET_FACTORY_ABI = [
-    {"type": "function", "name": "createMarket", "stateMutability": "payable", "inputs": [{"name": "marketId", "type": "bytes32"}, {"name": "startTime", "type": "uint256"}, {"name": "endTime", "type": "uint256"}, {"name": "maxExposure", "type": "uint256"}, {"name": "metadataURI", "type": "string"}], "outputs": [{"name": "marketAddress", "type": "address"}]},
-    {"type": "event", "name": "MarketCreated", "anonymous": False, "inputs": [{"name": "creator", "type": "address", "indexed": True}, {"name": "market", "type": "address", "indexed": True}, {"name": "marketId", "type": "bytes32", "indexed": True}, {"name": "startTime", "type": "uint256", "indexed": False}, {"name": "endTime", "type": "uint256", "indexed": False}, {"name": "maxExposure", "type": "uint256", "indexed": False}, {"name": "metadataURI", "type": "string", "indexed": False}]},
+    {"type": "function", "name": "createMarket", "stateMutability": "nonpayable", "inputs": [{"name": "marketId", "type": "bytes32"}, {"name": "startTime", "type": "uint256"}, {"name": "endTime", "type": "uint256"}, {"name": "maxExposure", "type": "uint256"}, {"name": "metadataURI", "type": "string"}], "outputs": [{"name": "marketAddress", "type": "address"}]},
+    {"type": "event", "name": "MarketCreated", "anonymous": False, "inputs": [{"name": "creator", "type": "address", "indexed": True}, {"name": "market", "type": "address", "indexed": True}, {"name": "marketId", "type": "bytes32", "indexed": True}, {"name": "startTime", "type": "uint256", "indexed": False}, {"name": "endTime", "type": "uint256", "indexed": False}, {"name": "maxExposure", "type": "uint256", "indexed": False}, {"name": "collateralToken", "type": "address", "indexed": False}, {"name": "metadataURI", "type": "string", "indexed": False}]},
 ]
 PREDICTION_MARKET_ABI = [
-    {"type": "function", "name": "betYes", "stateMutability": "payable", "inputs": [], "outputs": []},
-    {"type": "function", "name": "betNo", "stateMutability": "payable", "inputs": [], "outputs": []},
+    {"type": "function", "name": "betYes", "stateMutability": "nonpayable", "inputs": [{"name": "amount", "type": "uint256"}], "outputs": []},
+    {"type": "function", "name": "betNo", "stateMutability": "nonpayable", "inputs": [{"name": "amount", "type": "uint256"}], "outputs": []},
     {"type": "function", "name": "settle", "stateMutability": "nonpayable", "inputs": [{"name": "outcome", "type": "bool"}], "outputs": []},
+    {"type": "function", "name": "claim", "stateMutability": "nonpayable", "inputs": [], "outputs": []},
+    {"type": "function", "name": "cancelMarket", "stateMutability": "nonpayable", "inputs": [], "outputs": []},
+    {"type": "event", "name": "BetPlaced", "anonymous": False, "inputs": [{"name": "bettor", "type": "address", "indexed": True}, {"name": "outcome", "type": "bool", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
     {"type": "event", "name": "MarketSettled", "anonymous": False, "inputs": [{"name": "outcome", "type": "bool", "indexed": False}, {"name": "totalYes", "type": "uint256", "indexed": False}, {"name": "totalNo", "type": "uint256", "indexed": False}]},
+    {"type": "event", "name": "PayoutClaimed", "anonymous": False, "inputs": [{"name": "bettor", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
+    {"type": "event", "name": "RefundClaimed", "anonymous": False, "inputs": [{"name": "bettor", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
+    {"type": "event", "name": "MarketCanceledEvent", "anonymous": False, "inputs": []},
+]
+ERC20_ABI = [
+    {"type": "function", "name": "approve", "stateMutability": "nonpayable", "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}], "outputs": [{"name": "", "type": "bool"}]},
+    {"type": "function", "name": "allowance", "stateMutability": "view", "inputs": [{"name": "owner", "type": "address"}, {"name": "spender", "type": "address"}], "outputs": [{"name": "", "type": "uint256"}]},
+    {"type": "function", "name": "balanceOf", "stateMutability": "view", "inputs": [{"name": "account", "type": "address"}], "outputs": [{"name": "", "type": "uint256"}]},
+]
+SETTLEMENT_ENGINE_ABI = [
+    {"type": "function", "name": "governanceSettleMarket", "stateMutability": "nonpayable", "inputs": [{"name": "market", "type": "address"}, {"name": "outcome", "type": "bool"}], "outputs": []},
+    {"type": "event", "name": "MarketSettlementExecuted", "anonymous": False, "inputs": [{"name": "market", "type": "address", "indexed": True}, {"name": "outcome", "type": "bool", "indexed": False}]},
 ]
 AGENT_REGISTRY_ABI = [
     {"type": "function", "name": "registerAgent", "stateMutability": "nonpayable", "inputs": [{"name": "agentId", "type": "bytes32"}, {"name": "metadataURI", "type": "string"}], "outputs": []},
@@ -147,6 +162,29 @@ XCHAIN_ADAPTER_ABI = [
     {"type": "event", "name": "TransferInitiated", "anonymous": False, "inputs": [{"name": "user", "type": "address", "indexed": True}, {"name": "token", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}, {"name": "targetChainId", "type": "uint256", "indexed": False}, {"name": "targetAddress", "type": "bytes", "indexed": False}, {"name": "transferId", "type": "bytes32", "indexed": False}]},
     {"type": "event", "name": "TransferFinalized", "anonymous": False, "inputs": [{"name": "transferId", "type": "bytes32", "indexed": True}, {"name": "token", "type": "address", "indexed": True}, {"name": "recipient", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
 ]
+RWA_REGISTRY_ABI = [
+    {"type": "function", "name": "registerAsset", "stateMutability": "nonpayable", "inputs": [{"name": "assetId", "type": "bytes32"}, {"name": "token", "type": "address"}, {"name": "metadataURI", "type": "string"}, {"name": "active", "type": "bool"}], "outputs": []},
+    {"type": "function", "name": "setAssetActive", "stateMutability": "nonpayable", "inputs": [{"name": "assetId", "type": "bytes32"}, {"name": "active", "type": "bool"}], "outputs": []},
+    {"type": "event", "name": "AssetRegistered", "anonymous": False, "inputs": [{"name": "assetId", "type": "bytes32", "indexed": True}, {"name": "token", "type": "address", "indexed": True}, {"name": "metadataURI", "type": "string", "indexed": False}, {"name": "active", "type": "bool", "indexed": False}]},
+]
+RWA_TOKEN_ABI = [
+    {"type": "function", "name": "mint", "stateMutability": "nonpayable", "inputs": [{"name": "to", "type": "address"}, {"name": "amount", "type": "uint256"}], "outputs": []},
+    {"type": "function", "name": "burn", "stateMutability": "nonpayable", "inputs": [{"name": "from", "type": "address"}, {"name": "amount", "type": "uint256"}], "outputs": []},
+    {"type": "event", "name": "Minted", "anonymous": False, "inputs": [{"name": "to", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
+    {"type": "event", "name": "Burned", "anonymous": False, "inputs": [{"name": "from", "type": "address", "indexed": True}, {"name": "amount", "type": "uint256", "indexed": False}]},
+]
+DAO_ABI = [
+    {"type": "function", "name": "createProposal", "stateMutability": "nonpayable", "inputs": [{"name": "target", "type": "address"}, {"name": "data", "type": "bytes"}, {"name": "description", "type": "string"}], "outputs": [{"name": "proposalId", "type": "uint256"}]},
+    {"type": "function", "name": "vote", "stateMutability": "nonpayable", "inputs": [{"name": "proposalId", "type": "uint256"}, {"name": "support", "type": "bool"}], "outputs": []},
+    {"type": "function", "name": "queueProposal", "stateMutability": "nonpayable", "inputs": [{"name": "proposalId", "type": "uint256"}, {"name": "delay", "type": "uint256"}], "outputs": []},
+    {"type": "function", "name": "executeProposal", "stateMutability": "nonpayable", "inputs": [{"name": "proposalId", "type": "uint256"}], "outputs": []},
+    {"type": "function", "name": "quorum", "stateMutability": "view", "inputs": [], "outputs": [{"name": "", "type": "uint256"}]},
+    {"type": "function", "name": "getProposal", "stateMutability": "view", "inputs": [{"name": "proposalId", "type": "uint256"}], "outputs": [{"name": "proposer", "type": "address"}, {"name": "target", "type": "address"}, {"name": "data", "type": "bytes"}, {"name": "description", "type": "string"}, {"name": "startBlock", "type": "uint256"}, {"name": "endBlock", "type": "uint256"}, {"name": "forVotes", "type": "uint256"}, {"name": "againstVotes", "type": "uint256"}, {"name": "queued", "type": "bool"}, {"name": "executed", "type": "bool"}, {"name": "executeAfter", "type": "uint256"}, {"name": "actionId", "type": "bytes32"}]},
+    {"type": "event", "name": "ProposalCreated", "anonymous": False, "inputs": [{"name": "proposalId", "type": "uint256", "indexed": True}, {"name": "proposer", "type": "address", "indexed": True}, {"name": "target", "type": "address", "indexed": True}, {"name": "dataHash", "type": "bytes32", "indexed": False}, {"name": "description", "type": "string", "indexed": False}]},
+    {"type": "event", "name": "VoteCast", "anonymous": False, "inputs": [{"name": "proposalId", "type": "uint256", "indexed": True}, {"name": "voter", "type": "address", "indexed": True}, {"name": "support", "type": "bool", "indexed": False}, {"name": "weight", "type": "uint256", "indexed": False}]},
+    {"type": "event", "name": "ProposalQueued", "anonymous": False, "inputs": [{"name": "proposalId", "type": "uint256", "indexed": True}, {"name": "actionId", "type": "bytes32", "indexed": True}, {"name": "executeAfter", "type": "uint256", "indexed": False}]},
+    {"type": "event", "name": "ProposalExecuted", "anonymous": False, "inputs": [{"name": "proposalId", "type": "uint256", "indexed": True}, {"name": "actionId", "type": "bytes32", "indexed": True}]},
+]
 
 
 class _ChainClient:
@@ -164,9 +202,6 @@ class _ChainClient:
             os.getenv("CHAIN_SIGNER_PRIVATE_KEY", "").strip()
             or os.getenv("GOVERNANCE_SIGNER", "").strip()
         )
-        if not signer_key:
-            raise InvariantViolation("CHAIN_SIGNER_PRIVATE_KEY_NOT_CONFIGURED")
-
         self.w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 30}))
         self.w3.middleware_onion.inject(_poa_middleware, layer=0)
         if not self.w3.is_connected():
@@ -174,15 +209,18 @@ class _ChainClient:
         if int(self.w3.eth.chain_id) != self.chain_id:
             raise InvariantViolation("CHAIN_ID_MISMATCH")
 
-        try:
-            self.account = Account.from_key(signer_key)
-        except Exception as exc:
-            raise InvariantViolation("INVALID_CHAIN_SIGNER_PRIVATE_KEY", str(exc)) from exc
-        self.signer = to_checksum_address(self.account.address)
+        self.account = None
+        self.signer = None
+        if signer_key:
+            try:
+                self.account = Account.from_key(signer_key)
+            except Exception as exc:
+                raise InvariantViolation("INVALID_CHAIN_SIGNER_PRIVATE_KEY", str(exc)) from exc
+            self.signer = to_checksum_address(self.account.address)
         self.confirmations = max(1, int(os.getenv("CHAIN_CONFIRMATIONS", "1")))
         self.poll_s = max(0.5, float(os.getenv("CHAIN_TX_POLL_SECONDS", "2")))
         self.timeout_s = max(30, int(os.getenv("CHAIN_TX_TIMEOUT_SECONDS", "240")))
-        self.market_creation_bond_wei = max(0, int(os.getenv("MARKET_CREATION_BOND_WEI", "0")))
+        self.market_creation_bond_units = max(0, int(os.getenv("MARKET_CREATION_BOND_UNITS", "0")))
         self._nonce_lock = threading.Lock()
 
     @staticmethod
@@ -217,6 +255,8 @@ class _ChainClient:
         try:
             fn = getattr(contract.functions, fn_name)(*args)
             with self._nonce_lock:
+                if self.account is None or self.signer is None:
+                    raise InvariantViolation("CHAIN_SIGNER_PRIVATE_KEY_NOT_CONFIGURED")
                 nonce = self.w3.eth.get_transaction_count(self.signer, "pending")
                 tx = fn.build_transaction({"from": self.signer, "nonce": nonce, "chainId": self.chain_id, "value": int(value_wei), **self._fee_fields()})
                 try:
@@ -256,6 +296,37 @@ class _ChainClient:
                 raise InvariantViolation(_REVERT_SELECTOR_ERRORS[selector]) from exc
             raise InvariantViolation("CHAIN_TX_SUBMIT_FAILED", str(exc)) from exc
 
+    def send_with_account(self, account: Any, contract: Contract, fn_name: str, args: list[Any], value_wei: int = 0) -> str:
+        try:
+            signer = self.checksum(account.address)
+            fn = getattr(contract.functions, fn_name)(*args)
+            with self._nonce_lock:
+                nonce = self.w3.eth.get_transaction_count(signer, "pending")
+                tx = fn.build_transaction({"from": signer, "nonce": nonce, "chainId": self.chain_id, "value": int(value_wei), **self._fee_fields()})
+                try:
+                    gas = self.w3.eth.estimate_gas(tx)
+                    tx["gas"] = max(gas + 50_000, int(gas * 1.2))
+                except Exception:
+                    tx["gas"] = 1_500_000
+
+                gas_price = int(tx.get("maxFeePerGas") or tx.get("gasPrice") or 0)
+                required_wei = int(value_wei) + int(tx["gas"]) * gas_price
+                signer_balance = int(self.w3.eth.get_balance(signer))
+                if signer_balance < required_wei:
+                    raise InvariantViolation("AUTONOMOUS_AGENT_INSUFFICIENT_GAS")
+
+                signed = self.w3.eth.account.sign_transaction(tx, private_key=account.key)
+                return self.w3.eth.send_raw_transaction(signed.rawTransaction).hex()
+        except InvariantViolation:
+            raise
+        except Exception as exc:
+            if _contains_insufficient_funds_error(exc):
+                raise InvariantViolation("AUTONOMOUS_AGENT_INSUFFICIENT_FUNDS") from exc
+            selector = _extract_revert_selector(exc)
+            if selector and selector in _REVERT_SELECTOR_ERRORS:
+                raise InvariantViolation(_REVERT_SELECTOR_ERRORS[selector]) from exc
+            raise InvariantViolation("AUTONOMOUS_AGENT_TX_SUBMIT_FAILED", str(exc)) from exc
+
     def wait(self, tx_hash: str) -> Dict[str, Any]:
         deadline = time.time() + self.timeout_s
         receipt = None
@@ -278,7 +349,8 @@ class _ChainClient:
     def _decode_events(self, receipt: Dict[str, Any]) -> list[dict[str, Any]]:
         specs: list[tuple[Optional[str], list[dict], list[str]]] = [
             (os.getenv("MARKET_FACTORY_ADDRESS"), MARKET_FACTORY_ABI, ["MarketCreated"]),
-            (None, PREDICTION_MARKET_ABI, ["MarketSettled"]),
+            (os.getenv("SETTLEMENT_ENGINE_ADDRESS"), SETTLEMENT_ENGINE_ABI, ["MarketSettlementExecuted"]),
+            (None, PREDICTION_MARKET_ABI, ["BetPlaced", "MarketSettled", "PayoutClaimed", "RefundClaimed", "MarketCanceledEvent"]),
             (os.getenv("AGENT_REGISTRY_ADDRESS"), AGENT_REGISTRY_ABI, ["AgentRegistered", "AgentActivated", "AgentDeactivated", "AgentStakeWithdrawn"]),
             (os.getenv("AGENT_STAKING_ADDRESS"), AGENT_STAKING_ABI, ["StakeWithdrawn"]),
             (os.getenv("ORACLE_REGISTRY_ADDRESS"), ORACLE_REGISTRY_ABI, ["OracleRegistered"]),
@@ -286,6 +358,8 @@ class _ChainClient:
             (os.getenv("ORACLE_CONSENSUS_ADDRESS"), ORACLE_CONSENSUS_ABI, ["OracleSubmitted"]),
             (os.getenv("OUTCOME_WRAPPER_ADDRESS"), OUTCOME_WRAPPER_ABI, ["OutcomeWrapped"]),
             (os.getenv("CROSS_CHAIN_ADAPTER_ADDRESS"), XCHAIN_ADAPTER_ABI, ["TransferInitiated", "TransferFinalized"]),
+            (os.getenv("RWA_REGISTRY_ADDRESS"), RWA_REGISTRY_ABI, ["AssetRegistered"]),
+            (os.getenv("GOVERNANCE_DAO_ADDRESS"), DAO_ABI, ["ProposalCreated", "VoteCast", "ProposalQueued", "ProposalExecuted"]),
         ]
         out: list[dict[str, Any]] = []
         for addr, abi, names in specs:
@@ -377,22 +451,137 @@ class ChainReader:
     async def create_market_on_chain(*, creator: str, market_id: str, start_time: int, end_time: int, max_exposure: int, metadata_uri: str) -> str:
         c = ChainReader._c()
         _ = creator
+        if os.getenv("ALLOW_BACKEND_MARKET_CREATION_RELAYER", "false").lower() != "true":
+            raise InvariantViolation("BACKEND_MARKET_CREATION_RELAYER_DISABLED")
         factory = c.contract(c.env_address("MARKET_FACTORY_ADDRESS"), MARKET_FACTORY_ABI)
-        return await ChainReader._submit(factory, "createMarket", [c.id_hash(market_id), int(start_time), int(end_time), int(max_exposure), metadata_uri], c.market_creation_bond_wei)
+        return await ChainReader._submit(factory, "createMarket", [c.id_hash(market_id), int(start_time), int(end_time), int(max_exposure), metadata_uri], 0)
+
+    @staticmethod
+    async def verify_market_create_tx(
+        *,
+        tx_hash: str,
+        creator: str,
+        market_id: str,
+        start_time: int,
+        end_time: int,
+        max_exposure: int,
+        metadata_uri: str,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        factory = c.contract(c.env_address("MARKET_FACTORY_ADDRESS"), MARKET_FACTORY_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=factory,
+            expected_from=creator,
+            expected_fn="createMarket",
+            expected_value_wei=0,
+            expected_args={
+                "marketId": c.id_hash(market_id),
+                "startTime": int(start_time),
+                "endTime": int(end_time),
+                "maxExposure": int(max_exposure),
+                "metadataURI": metadata_uri,
+            },
+        )
 
     @staticmethod
     async def settle_market_on_chain(*, market_address: str, outcome: bool, caller: str) -> str:
         c = ChainReader._c()
         _ = caller
-        market = c.contract(market_address, PREDICTION_MARKET_ABI)
-        return await ChainReader._submit(market, "settle", [bool(outcome)])
+        if os.getenv("ALLOW_BACKEND_GOVERNANCE_TX", "false").lower() != "true":
+            raise InvariantViolation("BACKEND_GOVERNANCE_TX_DISABLED")
+        settlement = c.contract(c.env_address("SETTLEMENT_ENGINE_ADDRESS"), SETTLEMENT_ENGINE_ABI)
+        return await ChainReader._submit(
+            settlement,
+            "governanceSettleMarket",
+            [c.checksum(market_address), bool(outcome)],
+        )
 
     @staticmethod
     async def verify_market_bet_tx(*, tx_hash: str, user_address: str, market_address: str, side: str, amount: int) -> Dict[str, Any]:
         c = ChainReader._c()
         market = c.contract(market_address, PREDICTION_MARKET_ABI)
         fn_name = "betYes" if side.upper() == "YES" else "betNo"
-        return await asyncio.to_thread(c.verify_call, tx_hash=tx_hash, contract=market, expected_from=user_address, expected_fn=fn_name, expected_value_wei=int(amount), expected_args={})
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=market,
+            expected_from=user_address,
+            expected_fn=fn_name,
+            expected_value_wei=0,
+            expected_args={"amount": int(amount)},
+        )
+
+    @staticmethod
+    async def autonomous_trader_address() -> Optional[str]:
+        key = os.getenv("AUTONOMOUS_AGENT_PRIVATE_KEY", "").strip()
+        if not key:
+            return None
+        try:
+            return _ChainClient.checksum(Account.from_key(key).address)
+        except Exception as exc:
+            raise InvariantViolation("INVALID_AUTONOMOUS_AGENT_PRIVATE_KEY", str(exc)) from exc
+
+    @staticmethod
+    async def place_autonomous_agent_bet(
+        *,
+        market_address: str,
+        side: str,
+        amount: int,
+    ) -> str:
+        if os.getenv("AUTONOMOUS_AGENT_LIVE_TRADING", "false").lower() != "true":
+            raise InvariantViolation("AUTONOMOUS_AGENT_LIVE_TRADING_DISABLED")
+        if amount <= 0:
+            raise InvariantViolation("INVALID_AUTONOMOUS_AGENT_BET_AMOUNT")
+
+        max_tx = int(os.getenv("AUTONOMOUS_AGENT_MAX_TX_WEI", "0") or "0")
+        if max_tx <= 0:
+            raise InvariantViolation("AUTONOMOUS_AGENT_MAX_TX_WEI_REQUIRED")
+        if int(amount) > max_tx:
+            raise InvariantViolation("AUTONOMOUS_AGENT_MAX_TX_EXCEEDED")
+
+        key = os.getenv("AUTONOMOUS_AGENT_PRIVATE_KEY", "").strip()
+        if not key:
+            raise InvariantViolation("AUTONOMOUS_AGENT_PRIVATE_KEY_NOT_CONFIGURED")
+
+        c = ChainReader._c()
+        account = Account.from_key(key)
+        signer = c.checksum(account.address)
+        collateral = c.contract(c.env_address("COLLATERAL_TOKEN_ADDRESS"), ERC20_ABI)
+        market = c.contract(market_address, PREDICTION_MARKET_ABI)
+        market_checksum = c.checksum(market_address)
+
+        def _has_allowance_and_balance() -> tuple[int, int]:
+            allowance = collateral.functions.allowance(signer, market_checksum).call()
+            balance = collateral.functions.balanceOf(signer).call()
+            return int(allowance), int(balance)
+
+        allowance, balance = await asyncio.to_thread(_has_allowance_and_balance)
+        if balance < int(amount):
+            raise InvariantViolation("AUTONOMOUS_AGENT_COLLATERAL_BALANCE_LOW")
+        if allowance < int(amount):
+            approve_tx = await asyncio.to_thread(
+                c.send_with_account,
+                account,
+                collateral,
+                "approve",
+                [market_checksum, int(amount)],
+                0,
+            )
+            await asyncio.to_thread(c.wait, approve_tx)
+
+        fn_name = "betYes" if side.upper() == "YES" else "betNo"
+        tx_hash = await asyncio.to_thread(
+            c.send_with_account,
+            account,
+            market,
+            fn_name,
+            [int(amount)],
+            0,
+        )
+        await asyncio.to_thread(c.wait, tx_hash)
+        return tx_hash
 
     @staticmethod
     async def verify_agent_registration_tx(*, tx_hash: str, owner: str, agent_id: str, metadata_uri: str) -> Dict[str, Any]:
@@ -474,3 +663,195 @@ class ChainReader:
         contract = c.contract(c.env_address("CROSS_CHAIN_ADAPTER_ADDRESS"), XCHAIN_ADAPTER_ABI)
         transfer = HexBytes(transfer_id if transfer_id.startswith("0x") else "0x" + transfer_id)
         return await ChainReader._submit(contract, "finalizeTransfer", [transfer, c.checksum(token_address), c.checksum(recipient), int(amount)])
+
+    @staticmethod
+    async def verify_rwa_registration_tx(
+        *,
+        tx_hash: str,
+        registrar: str,
+        rwa_id: str,
+        token_address: str,
+        metadata_uri: str,
+        active: bool = True,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("RWA_REGISTRY_ADDRESS"), RWA_REGISTRY_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=registrar,
+            expected_fn="registerAsset",
+            expected_value_wei=0,
+            expected_args={
+                "assetId": c.id_hash(rwa_id),
+                "token": c.checksum(token_address),
+                "metadataURI": metadata_uri,
+                "active": bool(active),
+            },
+        )
+
+    @staticmethod
+    async def verify_rwa_mint_tx(
+        *,
+        tx_hash: str,
+        operator: str,
+        token_address: str,
+        recipient: str,
+        amount: int,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(token_address, RWA_TOKEN_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=operator,
+            expected_fn="mint",
+            expected_value_wei=0,
+            expected_args={"to": c.checksum(recipient), "amount": int(amount)},
+        )
+
+    @staticmethod
+    async def verify_rwa_burn_tx(
+        *,
+        tx_hash: str,
+        operator: str,
+        token_address: str,
+        account: str,
+        amount: int,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(token_address, RWA_TOKEN_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=operator,
+            expected_fn="burn",
+            expected_value_wei=0,
+            expected_args={"from": c.checksum(account), "amount": int(amount)},
+        )
+
+    @staticmethod
+    async def verify_governance_create_tx(
+        *,
+        tx_hash: str,
+        proposer: str,
+        target: str,
+        action_data: str,
+        description: str,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("GOVERNANCE_DAO_ADDRESS"), DAO_ABI)
+        data = HexBytes(action_data if action_data.startswith("0x") else "0x" + action_data)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=proposer,
+            expected_fn="createProposal",
+            expected_value_wei=0,
+            expected_args={
+                "target": c.checksum(target),
+                "data": bytes(data),
+                "description": description,
+            },
+        )
+
+    @staticmethod
+    async def verify_governance_vote_tx(
+        *,
+        tx_hash: str,
+        voter: str,
+        proposal_id: int,
+        support: bool,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("GOVERNANCE_DAO_ADDRESS"), DAO_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=voter,
+            expected_fn="vote",
+            expected_value_wei=0,
+            expected_args={"proposalId": int(proposal_id), "support": bool(support)},
+        )
+
+    @staticmethod
+    async def verify_governance_queue_tx(
+        *,
+        tx_hash: str,
+        caller: str,
+        proposal_id: int,
+        delay: int,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("GOVERNANCE_DAO_ADDRESS"), DAO_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=caller,
+            expected_fn="queueProposal",
+            expected_value_wei=0,
+            expected_args={"proposalId": int(proposal_id), "delay": int(delay)},
+        )
+
+    @staticmethod
+    async def verify_governance_execute_tx(
+        *,
+        tx_hash: str,
+        caller: str,
+        proposal_id: int,
+    ) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("GOVERNANCE_DAO_ADDRESS"), DAO_ABI)
+        return await asyncio.to_thread(
+            c.verify_call,
+            tx_hash=tx_hash,
+            contract=contract,
+            expected_from=caller,
+            expected_fn="executeProposal",
+            expected_value_wei=0,
+            expected_args={"proposalId": int(proposal_id)},
+        )
+
+    @staticmethod
+    async def get_governance_proposal(*, proposal_id: int) -> Dict[str, Any]:
+        c = ChainReader._c()
+        contract = c.contract(c.env_address("GOVERNANCE_DAO_ADDRESS"), DAO_ABI)
+
+        def _read() -> Dict[str, Any]:
+            (
+                proposer,
+                target,
+                data,
+                description,
+                start_block,
+                end_block,
+                for_votes,
+                against_votes,
+                _queued,
+                executed,
+                execute_after,
+                action_id,
+            ) = contract.functions.getProposal(int(proposal_id)).call()
+            quorum = contract.functions.quorum().call()
+            return {
+                "proposer": c.checksum(proposer),
+                "target": c.checksum(target),
+                "data": HexBytes(data).hex(),
+                "description": description,
+                "start_block": int(start_block),
+                "end_block": int(end_block),
+                "for_votes": int(for_votes),
+                "against_votes": int(against_votes),
+                "executed": bool(executed),
+                "execute_after": int(execute_after) or None,
+                "action_id": HexBytes(action_id).hex(),
+                "quorum": int(quorum),
+            }
+
+        return await asyncio.to_thread(_read)

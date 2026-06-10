@@ -1,5 +1,7 @@
 "use client";
 
+import { yieldEnabled } from "@/lib/features";
+
 const sections = [
   {
     title: "1. Market Risk",
@@ -37,20 +39,24 @@ const sections = [
       "You are responsible for selecting risk parameters.",
     ],
   },
+  ...(yieldEnabled
+    ? [
+        {
+          title: "5. Yield and Allocation Risk",
+          points: [
+            "Yield routes may result in loss of principal.",
+            "Rebalancing decisions can amplify drawdowns.",
+            "Vault and pool integrations add counterparty and execution risk.",
+          ],
+        },
+      ]
+    : []),
   {
-    title: "5. Yield and Allocation Risk",
-    points: [
-      "Yield routes may result in loss of principal.",
-      "Rebalancing decisions can amplify drawdowns.",
-      "Vault and pool integrations add counterparty and execution risk.",
-    ],
-  },
-  {
-    title: "6. Regulatory and Legal Risk",
+    title: yieldEnabled ? "6. Regulatory and Legal Risk" : "5. Regulatory and Legal Risk",
     body: "Prediction market and digital asset regulations vary by jurisdiction and may change without notice. You are responsible for local legal compliance.",
   },
   {
-    title: "7. Non-Custodial Responsibility",
+    title: yieldEnabled ? "7. Non-Custodial Responsibility" : "6. Non-Custodial Responsibility",
     body: "MoltMarket does not control your wallet. Loss of keys, compromised devices, and signing mistakes cannot be reversed by the platform.",
   },
 ];
@@ -62,8 +68,7 @@ export default function RiskPage() {
         <p className="ui-kicker">Risk Disclosure</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">Understand the Risks Before Participating</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          Prediction markets, AI-driven execution, and DeFi primitives involve material financial,
-          technical, and legal risk. Review this disclosure fully before trading or deploying agents.
+          Prediction markets and AI execution involve financial, technical, and legal risk.
         </p>
       </header>
 

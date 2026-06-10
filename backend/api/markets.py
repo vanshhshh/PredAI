@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 
 from backend.services.market_service import MarketService
-from backend.security.auth import get_current_user
+from backend.security.auth import get_current_user, require_governance
 from backend.security.invariants import InvariantViolation
 
 
@@ -38,8 +38,9 @@ class MarketCreateRequest(BaseModel):
     market_id: str = Field(..., description="Deterministic market identifier")
     start_time: int = Field(..., description="Unix timestamp")
     end_time: int = Field(..., description="Unix timestamp")
-    max_exposure: int = Field(..., description="Max exposure in wei")
+    max_exposure: int = Field(..., description="Max ERC20 collateral exposure")
     metadata_uri: str = Field(..., description="IPFS / Arweave metadata URI")
+    tx_hash: str = Field(..., description="On-chain user tx hash for market creation")
 
 
 class MarketResponse(BaseModel):
@@ -119,6 +120,7 @@ async def create_market(
             end_time=req.end_time,
             max_exposure=req.max_exposure,
             metadata_uri=req.metadata_uri,
+            tx_hash=req.tx_hash,
         )
         return _to_market_response(market)
     except InvariantViolation as e:
@@ -181,7 +183,7 @@ async def list_markets(
 async def settle_market(
     market_id: str,
     outcome: bool,
-    user=Depends(get_current_user),
+    user=Depends(require_governance),
 ):
     """
     Trigger settlement for a market.

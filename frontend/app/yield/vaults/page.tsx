@@ -6,6 +6,7 @@ import { VaultCard } from "../../../components/Yield/VaultCard";
 import { ErrorBoundary } from "../../../components/Shared/ErrorBoundary";
 import { LoadingSpinner } from "../../../components/Shared/LoadingSpinner";
 import { useYield } from "../../../hooks/useYield";
+import { yieldEnabled } from "../../../lib/features";
 
 export default function YieldVaultsPage() {
   return (
@@ -17,6 +18,18 @@ export default function YieldVaultsPage() {
 
 function VaultsContent() {
   const { vaults, isLoading, error } = useYield();
+
+  if (!yieldEnabled) {
+    return (
+      <section className="page-container py-14">
+        <MessageCard
+          title="Yield unavailable"
+          message="On-chain yield routing must be enabled before this workspace opens."
+          tone="neutral"
+        />
+      </section>
+    );
+  }
 
   if (isLoading) {
     return (

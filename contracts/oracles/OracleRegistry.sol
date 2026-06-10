@@ -55,7 +55,7 @@ contract OracleRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Governance authority
-    address public governance;
+    address public immutable governance;
 
     struct Oracle {
         bytes32 oracleId;

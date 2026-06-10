@@ -102,11 +102,11 @@ async def rebalance_portfolio(
     - Execution respects RiskAllocator constraints
     """
     try:
-        await YieldService.rebalance(
+        result = await YieldService.rebalance(
             user_address=user.address,
             target_risk_score=req.target_risk_score,
         )
-        return {"status": "rebalanced"}
+        return result
     except InvariantViolation as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

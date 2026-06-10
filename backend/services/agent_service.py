@@ -23,6 +23,7 @@ from typing import Optional, List
 
 from backend.indexing.block_listener import ChainReader
 from backend.persistence.repositories.agent_repo import AgentRepository
+from backend.persistence.repositories.agent_prediction_repo import AgentPredictionRepository
 from backend.persistence.repositories.market_repo import MarketRepository
 from backend.persistence.repositories.user_repo import UserRepository
 from backend.security.invariants import InvariantViolation
@@ -273,9 +274,21 @@ class AgentService:
         if not agent:
             raise InvariantViolation("AGENT_NOT_FOUND")
 
-        outcomes = await MarketRepository.list_settled_bet_correctness_by_user(
-            user_address=agent.owner,
-        )
+        predictions = await AgentPredictionRepository.list_by_agent(agent_id, limit=1000)
+        scored_predictions = [
+            prediction
+            for prediction in predictions
+            if prediction.settled_outcome is not None and prediction.metrics_json
+        ]
+        if scored_predictions:
+            outcomes = [
+                bool((prediction.metrics_json or {}).get("correct"))
+                for prediction in scored_predictions
+            ]
+        else:
+            outcomes = await MarketRepository.list_settled_bet_correctness_by_user(
+                user_address=agent.owner,
+            )
         total_predictions = len(outcomes)
         correct_predictions = sum(1 for outcome in outcomes if outcome)
 

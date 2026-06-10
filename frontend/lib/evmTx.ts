@@ -12,6 +12,9 @@ type ContractTxInput = {
 };
 
 type AddressConfig = {
+  marketFactory: string;
+  collateralToken: string;
+  governanceDao: string;
   agentRegistry: string;
   agentStaking: string;
   oracleRegistry: string;
@@ -19,57 +22,68 @@ type AddressConfig = {
   oracleConsensus: string;
 };
 
-function readEnvAddress(...keys: string[]): string {
+const publicEnv = {
+  NEXT_PUBLIC_MARKET_FACTORY_ADDRESS: process.env.NEXT_PUBLIC_MARKET_FACTORY_ADDRESS,
+  NEXT_PUBLIC_MARKET_FACTORY: process.env.NEXT_PUBLIC_MARKET_FACTORY,
+  NEXT_PUBLIC_COLLATERAL_TOKEN_ADDRESS: process.env.NEXT_PUBLIC_COLLATERAL_TOKEN_ADDRESS,
+  NEXT_PUBLIC_COLLATERAL_TOKEN: process.env.NEXT_PUBLIC_COLLATERAL_TOKEN,
+  NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS: process.env.NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS,
+  NEXT_PUBLIC_DAO_ADDRESS: process.env.NEXT_PUBLIC_DAO_ADDRESS,
+  NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS: process.env.NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS,
+  NEXT_PUBLIC_AGENT_REGISTRY: process.env.NEXT_PUBLIC_AGENT_REGISTRY,
+  NEXT_PUBLIC_AGENT_STAKING_ADDRESS: process.env.NEXT_PUBLIC_AGENT_STAKING_ADDRESS,
+  NEXT_PUBLIC_AGENT_STAKING: process.env.NEXT_PUBLIC_AGENT_STAKING,
+  NEXT_PUBLIC_ORACLE_REGISTRY_ADDRESS: process.env.NEXT_PUBLIC_ORACLE_REGISTRY_ADDRESS,
+  NEXT_PUBLIC_ORACLE_REGISTRY: process.env.NEXT_PUBLIC_ORACLE_REGISTRY,
+  NEXT_PUBLIC_ORACLE_STAKING_ADDRESS: process.env.NEXT_PUBLIC_ORACLE_STAKING_ADDRESS,
+  NEXT_PUBLIC_ORACLE_STAKING: process.env.NEXT_PUBLIC_ORACLE_STAKING,
+  NEXT_PUBLIC_ORACLE_CONSENSUS_ADDRESS: process.env.NEXT_PUBLIC_ORACLE_CONSENSUS_ADDRESS,
+  NEXT_PUBLIC_ORACLE_CONSENSUS: process.env.NEXT_PUBLIC_ORACLE_CONSENSUS,
+} as const;
+
+type PublicEnvKey = keyof typeof publicEnv;
+
+function readEnvAddress(...keys: PublicEnvKey[]): string {
   for (const key of keys) {
-    const value = process.env[key]?.trim();
+    const value = publicEnv[key]?.trim();
     if (value) return value;
   }
   return "";
 }
 
-function parseChainIdNumber(): number {
-  const raw = process.env.NEXT_PUBLIC_CHAIN_ID?.trim();
-  const value = Number(raw);
-  if (Number.isInteger(value) && value > 0) {
-    return value;
-  }
-  return 80002;
-}
-
-const CHAIN_DEFAULT_ADDRESSES: Record<number, AddressConfig> = {
-  80002: {
-    agentRegistry: "0x1379459f7345B10E5Ec2d25708375790DB241f4A",
-    agentStaking: "0x8E6db4E8FB0E940045261f65c52842dCF8aCE1e5",
-    oracleRegistry: "0x553a86753c4064D94C8235c62C0860323e26848c",
-    oracleStaking: "0x14ea6585d695568c6bBa26cE6515f8B9cD080317",
-    oracleConsensus: "0x82FFe8DcfAA6411F90d18d5005bB4233c4A77750",
-  },
-};
-
-const chainDefaults =
-  CHAIN_DEFAULT_ADDRESSES[parseChainIdNumber()] ?? ({} as AddressConfig);
-
 export const contractAddresses: AddressConfig = {
+  marketFactory: readEnvAddress(
+    "NEXT_PUBLIC_MARKET_FACTORY_ADDRESS",
+    "NEXT_PUBLIC_MARKET_FACTORY"
+  ),
+  collateralToken: readEnvAddress(
+    "NEXT_PUBLIC_COLLATERAL_TOKEN_ADDRESS",
+    "NEXT_PUBLIC_COLLATERAL_TOKEN"
+  ),
+  governanceDao: readEnvAddress(
+    "NEXT_PUBLIC_GOVERNANCE_DAO_ADDRESS",
+    "NEXT_PUBLIC_DAO_ADDRESS"
+  ),
   agentRegistry: readEnvAddress(
     "NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS",
     "NEXT_PUBLIC_AGENT_REGISTRY"
-  ) || chainDefaults.agentRegistry,
+  ),
   agentStaking: readEnvAddress(
     "NEXT_PUBLIC_AGENT_STAKING_ADDRESS",
     "NEXT_PUBLIC_AGENT_STAKING"
-  ) || chainDefaults.agentStaking,
+  ),
   oracleRegistry: readEnvAddress(
     "NEXT_PUBLIC_ORACLE_REGISTRY_ADDRESS",
     "NEXT_PUBLIC_ORACLE_REGISTRY"
-  ) || chainDefaults.oracleRegistry,
+  ),
   oracleStaking: readEnvAddress(
     "NEXT_PUBLIC_ORACLE_STAKING_ADDRESS",
     "NEXT_PUBLIC_ORACLE_STAKING"
-  ) || chainDefaults.oracleStaking,
+  ),
   oracleConsensus: readEnvAddress(
     "NEXT_PUBLIC_ORACLE_CONSENSUS_ADDRESS",
     "NEXT_PUBLIC_ORACLE_CONSENSUS"
-  ) || chainDefaults.oracleConsensus,
+  ),
 };
 
 type AddEthereumChainParam = {
@@ -86,21 +100,6 @@ type AddEthereumChainParam = {
 
 function chainParamsFor(chainId: bigint): AddEthereumChainParam | null {
   const id = Number(chainId);
-  if (id === 80002) {
-    const rpcUrl =
-      process.env.NEXT_PUBLIC_RPC_URL?.trim() || "https://rpc-amoy.polygon.technology";
-    return {
-      chainId: "0x13882",
-      chainName: "Polygon Amoy",
-      nativeCurrency: {
-        name: "POL",
-        symbol: "POL",
-        decimals: 18,
-      },
-      rpcUrls: [rpcUrl],
-      blockExplorerUrls: ["https://amoy.polygonscan.com"],
-    };
-  }
   if (id === 137) {
     return {
       chainId: "0x89",
@@ -119,10 +118,63 @@ function chainParamsFor(chainId: bigint): AddEthereumChainParam | null {
 
 function parseExpectedChainId(): bigint | null {
   const raw = process.env.NEXT_PUBLIC_CHAIN_ID?.trim();
-  if (!raw) return null;
+  if (!raw) return 137n;
   const value = Number(raw);
   if (!Number.isInteger(value) || value <= 0) return null;
   return BigInt(value);
+}
+
+function collateralDecimals(): number {
+  const raw = process.env.NEXT_PUBLIC_COLLATERAL_DECIMALS?.trim() || "6";
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0 || value > 36) {
+    throw new Error("Collateral decimals are invalid");
+  }
+  return value;
+}
+
+export function collateralSymbol(): string {
+  return process.env.NEXT_PUBLIC_COLLATERAL_SYMBOL?.trim() || "USDC";
+}
+
+export function marketCreationBondUnits(): bigint {
+  const raw = process.env.NEXT_PUBLIC_MARKET_CREATION_BOND_UNITS?.trim() || "0";
+  if (!/^\d+$/.test(raw)) {
+    throw new Error("Market creation bond is invalid");
+  }
+  return BigInt(raw);
+}
+
+export function toCollateralUnits(amount: number | string): bigint {
+  const raw =
+    typeof amount === "number" ? amount.toString() : String(amount ?? "").trim();
+  if (!raw) {
+    throw new Error("Amount is required");
+  }
+
+  let parsed: bigint;
+  try {
+    parsed = ethers.parseUnits(raw, collateralDecimals());
+  } catch {
+    throw new Error(`Amount must be a valid ${collateralSymbol()} value`);
+  }
+
+  if (parsed <= 0n) {
+    throw new Error("Amount must be greater than zero");
+  }
+
+  return parsed;
+}
+
+export function fromCollateralUnits(amount: number | string | bigint): number {
+  try {
+    const value = typeof amount === "bigint" ? amount : BigInt(String(amount ?? "0"));
+    const formatted = ethers.formatUnits(value, collateralDecimals());
+    const parsed = Number(formatted);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function readWalletChainId(

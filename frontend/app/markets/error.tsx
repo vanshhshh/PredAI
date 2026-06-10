@@ -80,7 +80,7 @@ export default function MarketsError({
 
         {/* Footer reassurance */}
         <p className="text-xs text-neutral-500 pt-4 border-t">
-            PredAI is non-custodial. Your wallet and assets remain secure.
+            MoltMarket is non-custodial. Your wallet and assets remain secure.
         </p>
       </div>
     </div>

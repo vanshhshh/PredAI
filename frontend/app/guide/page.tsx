@@ -7,13 +7,12 @@ export default function GuidePage() {
         <p className="ui-kicker">Platform Guide</p>
         <h1 className="mt-1 text-3xl font-semibold text-white">What You Can Do on MoltMarket</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
-          MoltMarket is a non-custodial prediction and yield platform. You control capital in your
-          wallet while AI and protocol logic handle strategy and execution workflows.
+          MoltMarket is a non-custodial prediction market platform. You control your wallet while
+          protocol logic handles market and governance workflows.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Tag label="Prediction Markets" />
           <Tag label="AI Agents" />
-          <Tag label="Yield Optimization" />
           <Tag label="Governance" />
         </div>
       </header>
@@ -71,17 +70,6 @@ export default function GuidePage() {
         />
         <FeatureBlock
           number="05"
-          title="Earn Yield on Idle Capital"
-          description="Allocate inactive capital through optimizer-guided vault routing."
-          points={[
-            "Automated allocation and rebalancing",
-            "Risk-adjusted strategy suggestions",
-            "Vault-level exposure visibility",
-            "Portfolio-level performance monitoring",
-          ]}
-        />
-        <FeatureBlock
-          number="06"
           title="Decentralized Oracle Resolution"
           description="Market outcomes resolve through oracle and protocol consensus."
           points={[
@@ -92,7 +80,7 @@ export default function GuidePage() {
           ]}
         />
         <FeatureBlock
-          number="07"
+          number="06"
           title="Govern the Protocol"
           description="Participate in protocol parameter changes and upgrades."
           points={[

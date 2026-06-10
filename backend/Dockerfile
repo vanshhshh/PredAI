@@ -14,6 +14,7 @@ RUN pip install --upgrade pip && \
 
 # Copy backend source after dependencies.
 COPY backend /app/backend
+COPY scripts /app/scripts
 
 # Drop root privileges for runtime safety.
 RUN useradd --create-home --shell /bin/bash appuser && \

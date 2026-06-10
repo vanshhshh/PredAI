@@ -29,11 +29,15 @@ from backend.api.auth import router as auth_router
 from backend.api.governance import router as governance_router
 from backend.api.markets import router as markets_router
 from backend.api.oracles import router as oracles_router
+from backend.api.paper import router as paper_router
+from backend.api.realtime import router as realtime_router
 from backend.api.rwa import router as rwa_router
+from backend.api.signals import router as signals_router
 from backend.api.social import router as social_router
 from backend.api.stats import router as stats_router
 from backend.api.users import router as users_router
 from backend.api.yield_api import router as yield_router
+from backend.core.config import settings as _settings
 from backend.persistence.db import close_db, init_db, ping_db
 from backend.security.invariants import InvariantViolation
 from backend.security.rate_limits import RateLimitMiddleware
@@ -41,6 +45,11 @@ from backend.security.rate_limits import RateLimitMiddleware
 
 APP_NAME = "AI-Crypto Prediction Platform API"
 APP_VERSION = "1.0.0"
+_ = _settings
+
+
+def _is_production() -> bool:
+    return (os.getenv("ENV") or "").strip().lower() in {"production", "prod"}
 
 
 def _normalize_origin(origin: str) -> str:
@@ -64,10 +73,9 @@ def _cors_origins() -> list[str]:
         origins.update(_normalize_origin(origin) for origin in raw.split(",") if origin.strip())
 
     # Keep a production-safe fallback for the primary deployed frontend.
-    origins.add("https://moltmarketai.vercel.app")
+    origins.update({"https://app.moltmarket.com", "https://moltmarketai.vercel.app"})
 
-    env = (os.getenv("ENV") or "").strip().lower()
-    if env not in {"production", "prod"}:
+    if not _is_production():
         origins.update({"http://localhost:3000", "http://127.0.0.1:3000"})
 
     return sorted(origins)
@@ -106,9 +114,9 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=APP_NAME,
     version=APP_VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=None if _is_production() else "/docs",
+    redoc_url=None if _is_production() else "/redoc",
+    openapi_url=None if _is_production() else "/openapi.json",
     lifespan=lifespan,
 )
 
@@ -156,7 +164,10 @@ app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(ai_router, prefix="/ai", tags=["ai"])
 app.include_router(social_router, prefix="/social", tags=["social"])
 app.include_router(rwa_router, prefix="/rwa", tags=["rwa"])
+app.include_router(signals_router, prefix="/signals", tags=["signals"])
 app.include_router(stats_router, prefix="/api", tags=["stats"])
+app.include_router(realtime_router, prefix="/realtime", tags=["realtime"])
+app.include_router(paper_router, prefix="/paper", tags=["paper"])
 
 
 @app.exception_handler(InvariantViolation)

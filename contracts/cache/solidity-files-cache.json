@@ -1,190 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleConsensus.sol": {
-      "lastModificationDate": 1770655460201,
-      "contentHash": "334fe104754ca81271368872a284c050",
-      "sourceName": "oracles/OracleConsensus.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./OracleRegistry.sol",
-        "./OracleStaking.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "OracleConsensus"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleRegistry.sol": {
-      "lastModificationDate": 1770655463544,
-      "contentHash": "eb190865085994137e5a6383188ba86a",
-      "sourceName": "oracles/OracleRegistry.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "OracleRegistry"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleStaking.sol": {
-      "lastModificationDate": 1770655473664,
-      "contentHash": "64666c2bc4a6ecd394ac9c97400d6780",
-      "sourceName": "oracles/OracleStaking.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./OracleRegistry.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "OracleStaking"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleSlashing.sol": {
-      "lastModificationDate": 1770655470163,
-      "contentHash": "4c6b0b5ed2d71d8023a6e64754e2b5dd",
-      "sourceName": "oracles/OracleSlashing.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./OracleConsensus.sol",
-        "./OracleStaking.sol",
-        "./OracleRegistry.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "OracleSlashing"
-      ]
-    },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\contracts\\ProtocolImports.sol": {
-      "lastModificationDate": 1773042569525,
-      "contentHash": "c863bb35bb87ac5880073dfcdc61a0d5",
+      "lastModificationDate": 1779884094113,
+      "contentHash": "1258ca853c4cad5c0b265a51e4e55603",
       "sourceName": "contracts/ProtocolImports.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -235,20 +54,24 @@
         "../governance/Timelock.sol",
         "../rwa/CrossChainAdapter.sol",
         "../rwa/OutcomeWrapper.sol",
+        "../rwa/RWARegistry.sol",
         "../rwa/RWAToken.sol",
         "../yield/CapitalRouter.sol",
         "../yield/RiskAllocator.sol",
-        "../yield/YieldVault.sol"
+        "../yield/YieldVault.sol",
+        "../mocks/MockCollateral.sol",
+        "../mocks/MockGovernedTarget.sol",
+        "../mocks/MockVotesToken.sol"
       ],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": []
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\PredictionMarket.sol": {
-      "lastModificationDate": 1773042569529,
-      "contentHash": "8cbf8eade61763c9a0d8c4abadb617c6",
-      "sourceName": "core/PredictionMarket.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\MarketRegistry.sol": {
+      "lastModificationDate": 1779903811861,
+      "contentHash": "dab95b3d89de688cc22c32c7b016c609",
+      "sourceName": "core/MarketRegistry.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -285,12 +108,12 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "PredictionMarket"
+        "MarketRegistry"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\SettlementEngine.sol": {
-      "lastModificationDate": 1773042569529,
-      "contentHash": "b9d218859083a0f27bddb678b0ee114d",
+      "lastModificationDate": 1779903811864,
+      "contentHash": "2191a42cb0c0c479256afe8fe9d0fa24",
       "sourceName": "core/SettlementEngine.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -334,9 +157,686 @@
         "SettlementEngine"
       ]
     },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\agents\\AgentStaking.sol": {
+      "lastModificationDate": 1779903811856,
+      "contentHash": "d9f12e82f72fd73b79db6b874ce4ed0d",
+      "sourceName": "agents/AgentStaking.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./AgentRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "AgentStaking"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleConsensus.sol": {
+      "lastModificationDate": 1779903811868,
+      "contentHash": "8c0c981694456d3099a85236684d01bb",
+      "sourceName": "oracles/OracleConsensus.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./OracleRegistry.sol",
+        "./OracleStaking.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleConsensus"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleRegistry.sol": {
+      "lastModificationDate": 1779903811870,
+      "contentHash": "73cad03b50aa910c12cf1b1a4a8f0f80",
+      "sourceName": "oracles/OracleRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleRegistry"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleSlashing.sol": {
+      "lastModificationDate": 1779903811876,
+      "contentHash": "6d2409625946f5cc38294fbbe34a1031",
+      "sourceName": "oracles/OracleSlashing.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./OracleConsensus.sol",
+        "./OracleStaking.sol",
+        "./OracleRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleSlashing"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\MarketFactory.sol": {
+      "lastModificationDate": 1779903811858,
+      "contentHash": "ff2356507a99d2fe3198f0d90e6bc5af",
+      "sourceName": "core/MarketFactory.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./PredictionMarket.sol",
+        "./MarketRegistry.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MarketFactory"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\oracles\\OracleStaking.sol": {
+      "lastModificationDate": 1779903811887,
+      "contentHash": "355fa571593979ef140336368b46c6a8",
+      "sourceName": "oracles/OracleStaking.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./OracleRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "OracleStaking"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\agents\\AgentScoring.sol": {
+      "lastModificationDate": 1779903756300,
+      "contentHash": "7855a4ac6e9c73dc5ee5d991e4af5959",
+      "sourceName": "agents/AgentScoring.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./AgentRegistry.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "AgentScoring"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\rwa\\CrossChainAdapter.sol": {
+      "lastModificationDate": 1779903666248,
+      "contentHash": "5c4b9ffb99a6e53af54e50460dfc6f70",
+      "sourceName": "rwa/CrossChainAdapter.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "CrossChainAdapter"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\PredictionMarket.sol": {
+      "lastModificationDate": 1779883185184,
+      "contentHash": "8a1acc8758cf8b01e5b873744f5b15be",
+      "sourceName": "core/PredictionMarket.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/utils/Pausable.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "PredictionMarket"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\governance\\DAO.sol": {
+      "lastModificationDate": 1779903695888,
+      "contentHash": "f4464100eb2e288af2fee319ab1a4eb8",
+      "sourceName": "governance/DAO.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "DAO",
+        "IGovernanceTimelock",
+        "IVotesToken"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\rwa\\RWARegistry.sol": {
+      "lastModificationDate": 1779883532370,
+      "contentHash": "f1f36b1cc60fdee53948261ba6a8c668",
+      "sourceName": "rwa/RWARegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "RWARegistry"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\governance\\ParameterController.sol": {
+      "lastModificationDate": 1779903811865,
+      "contentHash": "f610818126885bb5c80cdf27fa4d9538",
+      "sourceName": "governance/ParameterController.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ParameterController"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\yield\\CapitalRouter.sol": {
+      "lastModificationDate": 1779903811892,
+      "contentHash": "a4260ce5b0eae48c5ef020870eedcf55",
+      "sourceName": "yield/CapitalRouter.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./YieldVault.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "CapitalRouter"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\yield\\YieldVault.sol": {
+      "lastModificationDate": 1779903811897,
+      "contentHash": "640861eb5dccfabea184d89b15c5d166",
+      "sourceName": "yield/YieldVault.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "YieldVault"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\yield\\RiskAllocator.sol": {
+      "lastModificationDate": 1779903811895,
+      "contentHash": "a60915c3ce3e9d2570f306f1377507df",
+      "sourceName": "yield/RiskAllocator.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "RiskAllocator"
+      ]
+    },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\agents\\AgentNFT.sol": {
-      "lastModificationDate": 1773042569434,
-      "contentHash": "0d7ec280596241cd90e5355fcfb25a0d",
+      "lastModificationDate": 1779903756297,
+      "contentHash": "0b4a01234d695b18780675253f61ad1a",
       "sourceName": "agents/AgentNFT.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -380,54 +880,10 @@
         "AgentNFT"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\MarketFactory.sol": {
-      "lastModificationDate": 1773042569527,
-      "contentHash": "e2b8e01c48b4c593f1dee8bdd65254c0",
-      "sourceName": "core/MarketFactory.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./PredictionMarket.sol",
-        "./MarketRegistry.sol"
-      ],
-      "versionPragmas": [],
-      "artifacts": [
-        "MarketFactory"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\core\\MarketRegistry.sol": {
-      "lastModificationDate": 1773042569528,
-      "contentHash": "93ae34c7c397f3fb660ecf3889c75696",
-      "sourceName": "core/MarketRegistry.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\mocks\\MockGovernedTarget.sol": {
+      "lastModificationDate": 1779884088082,
+      "contentHash": "9e6ab80aea936850731e494295cefeee",
+      "sourceName": "mocks/MockGovernedTarget.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -464,57 +920,12 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "MarketRegistry"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\agents\\AgentScoring.sol": {
-      "lastModificationDate": 1773042569436,
-      "contentHash": "1c443a426f95ed33438eb8b6e94cc0cc",
-      "sourceName": "agents/AgentScoring.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./AgentRegistry.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "AgentScoring"
+        "MockGovernedTarget"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\agents\\AgentRegistry.sol": {
-      "lastModificationDate": 1773042569435,
-      "contentHash": "d4b4c150b97bd25b5a028a9cce2b7045",
+      "lastModificationDate": 1779903811854,
+      "contentHash": "76b5b3c61f3edc413b227e52c49880c9",
       "sourceName": "agents/AgentRegistry.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -555,148 +966,10 @@
         "AgentRegistry"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\rwa\\OutcomeWrapper.sol": {
-      "lastModificationDate": 1773042577860,
-      "contentHash": "ddf25b7174729d371f496801326498be",
-      "sourceName": "rwa/OutcomeWrapper.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol",
-        "../core/MarketRegistry.sol",
-        "../core/PredictionMarket.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "OutcomeToken",
-        "OutcomeWrapper"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\agents\\AgentStaking.sol": {
-      "lastModificationDate": 1773042569436,
-      "contentHash": "5f8693082c64fa16cb95dfd9dbe51504",
-      "sourceName": "agents/AgentStaking.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./AgentRegistry.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "AgentStaking"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\rwa\\CrossChainAdapter.sol": {
-      "lastModificationDate": 1773042577859,
-      "contentHash": "0a658e279a979547c1eeef240d0d1c82",
-      "sourceName": "rwa/CrossChainAdapter.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/IERC20.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "CrossChainAdapter"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\governance\\ParameterController.sol": {
-      "lastModificationDate": 1773042569539,
-      "contentHash": "89e0a554bacfa553b97532330aa7e7ef",
-      "sourceName": "governance/ParameterController.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\governance\\Timelock.sol": {
+      "lastModificationDate": 1779903666256,
+      "contentHash": "4ade599258163d7ea76be1dd0b9b2b4f",
+      "sourceName": "governance/Timelock.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -733,13 +1006,58 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "ParameterController"
+        "Timelock"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\governance\\DAO.sol": {
-      "lastModificationDate": 1773042569538,
-      "contentHash": "3c5c33e3efdd25a81269aaa3edabe17b",
-      "sourceName": "governance/DAO.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\mocks\\MockCollateral.sol": {
+      "lastModificationDate": 1779883360851,
+      "contentHash": "14813ad0c9e7fe524627aee9c90c72c6",
+      "sourceName": "mocks/MockCollateral.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MockCollateral"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\mocks\\MockVotesToken.sol": {
+      "lastModificationDate": 1779884078061,
+      "contentHash": "2792f9316544fd1a4c3a9636a603f87b",
+      "sourceName": "mocks/MockVotesToken.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -776,12 +1094,12 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "DAO"
+        "MockVotesToken"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\rwa\\RWAToken.sol": {
-      "lastModificationDate": 1773042577861,
-      "contentHash": "223028f9bc96db0ec6d38d59eb6f5820",
+      "lastModificationDate": 1779883547812,
+      "contentHash": "777344715b45b016bb516a48c583a59d",
       "sourceName": "rwa/RWAToken.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -827,53 +1145,10 @@
         "RWAToken"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\governance\\Timelock.sol": {
-      "lastModificationDate": 1773042569539,
-      "contentHash": "720ed97b9ae26770ad5bd6138b0caaa2",
-      "sourceName": "governance/Timelock.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Timelock"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\yield\\CapitalRouter.sol": {
-      "lastModificationDate": 1773042577875,
-      "contentHash": "c08cb2d8b96bbcd3e07cadcb1d88e9c6",
-      "sourceName": "yield/CapitalRouter.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\rwa\\OutcomeWrapper.sol": {
+      "lastModificationDate": 1779883475929,
+      "contentHash": "af6de47b7adf1acbae257506999ff2f5",
+      "sourceName": "rwa/OutcomeWrapper.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -906,19 +1181,110 @@
         }
       },
       "imports": [
-        "./YieldVault.sol"
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "../core/MarketRegistry.sol",
+        "../core/PredictionMarket.sol"
       ],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": [
-        "CapitalRouter"
+        "OutcomeToken",
+        "OutcomeWrapper"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\yield\\RiskAllocator.sol": {
-      "lastModificationDate": 1773042577876,
-      "contentHash": "96b97d1edda20c5fb2907973a603179c",
-      "sourceName": "yield/RiskAllocator.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Pausable.sol": {
+      "lastModificationDate": 1773042571254,
+      "contentHash": "0d47b53e10b1985efbb396f937626279",
+      "sourceName": "@openzeppelin/contracts/utils/Pausable.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Pausable"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+      "lastModificationDate": 1773042571234,
+      "contentHash": "9261adf6457863de3e9892f51317ec89",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol": {
+      "lastModificationDate": 1773042571254,
+      "contentHash": "190613e556d509d9e9a0ea43dc5d891d",
+      "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -955,13 +1321,59 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "RiskAllocator"
+        "ReentrancyGuard"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\yield\\YieldVault.sol": {
-      "lastModificationDate": 1773042577877,
-      "contentHash": "125edd149cb51205329c526f416a5009",
-      "sourceName": "yield/YieldVault.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
+      "lastModificationDate": 1773042571235,
+      "contentHash": "1fb9edee1d763745a62d0b1954998792",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../IERC20.sol",
+        "../../../interfaces/IERC1363.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SafeERC20"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+      "lastModificationDate": 1773042571244,
+      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
+      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -998,7 +1410,227 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "YieldVault"
+        "Context"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC1363.sol": {
+      "lastModificationDate": 1773042571213,
+      "contentHash": "a7fd0f05e36b0d0a21c75340c9c639ec",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC1363.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "./IERC165.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC1363"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC20.sol": {
+      "lastModificationDate": 1773042571214,
+      "contentHash": "68620db2da7583d9a4919096ac77f577",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../token/ERC20/IERC20.sol"
+      ],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": []
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC165.sol": {
+      "lastModificationDate": 1773042571213,
+      "contentHash": "947853028399b7de34bcc3704ee06e99",
+      "sourceName": "@openzeppelin/contracts/interfaces/IERC165.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../utils/introspection/IERC165.sol"
+      ],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": []
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
+      "lastModificationDate": 1773042571252,
+      "contentHash": "7074c93b1ea0a122063f26ddd1db1032",
+      "sourceName": "@openzeppelin/contracts/utils/introspection/IERC165.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.16"
+      ],
+      "artifacts": [
+        "IERC165"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1773042571129,
+      "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Ownable"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
@@ -1050,94 +1682,6 @@
       ],
       "artifacts": [
         "ERC721"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1773042571244,
-      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
-      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Context"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
-      "lastModificationDate": 1773042571212,
-      "contentHash": "5041977bbe908de2e6ed0270447f79ad",
-      "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.8.4"
-      ],
-      "artifacts": [
-        "IERC1155Errors",
-        "IERC20Errors",
-        "IERC721Errors"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
@@ -1232,10 +1776,55 @@
         "ERC165"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
-      "lastModificationDate": 1773042571242,
-      "contentHash": "4cefad279a37c895b709bce2b901816e",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/utils/ERC721Utils.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
+      "lastModificationDate": 1773042571212,
+      "contentHash": "5041977bbe908de2e6ed0270447f79ad",
+      "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.4"
+      ],
+      "artifacts": [
+        "IERC1155Errors",
+        "IERC20Errors",
+        "IERC721Errors"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
+      "lastModificationDate": 1773042571237,
+      "contentHash": "f62e11dbd302e17a5621a1438f4e054c",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -1268,14 +1857,13 @@
         }
       },
       "imports": [
-        "../IERC721Receiver.sol",
-        "../../../interfaces/draft-IERC6093.sol"
+        "../../utils/introspection/IERC165.sol"
       ],
       "versionPragmas": [
-        "^0.8.20"
+        ">=0.6.2"
       ],
       "artifacts": [
-        "ERC721Utils"
+        "IERC721"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
@@ -1323,10 +1911,10 @@
         "IERC721Metadata"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
-      "lastModificationDate": 1773042571237,
-      "contentHash": "f62e11dbd302e17a5621a1438f4e054c",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721.sol",
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
+      "lastModificationDate": 1773042571242,
+      "contentHash": "4cefad279a37c895b709bce2b901816e",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/utils/ERC721Utils.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -1359,13 +1947,59 @@
         }
       },
       "imports": [
-        "../../utils/introspection/IERC165.sol"
+        "../IERC721Receiver.sol",
+        "../../../interfaces/draft-IERC6093.sol"
       ],
       "versionPragmas": [
-        ">=0.6.2"
+        "^0.8.20"
       ],
       "artifacts": [
-        "IERC721"
+        "ERC721Utils"
+      ]
+    },
+    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
+      "lastModificationDate": 1773042571253,
+      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
+      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "./SafeCast.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SignedMath"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
@@ -1457,51 +2091,6 @@
         "SafeCast"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
-      "lastModificationDate": 1773042571253,
-      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
-      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./SafeCast.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SignedMath"
-      ]
-    },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
       "lastModificationDate": 1773042571254,
       "contentHash": "2133dc13536b4a6a98131e431fac59e1",
@@ -1543,49 +2132,6 @@
       ],
       "artifacts": [
         "Panic"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
-      "lastModificationDate": 1773042571252,
-      "contentHash": "7074c93b1ea0a122063f26ddd1db1032",
-      "sourceName": "@openzeppelin/contracts/utils/introspection/IERC165.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.4.16"
-      ],
-      "artifacts": [
-        "IERC165"
       ]
     },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
@@ -1679,49 +2225,6 @@
         "ERC20"
       ]
     },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1773042571234,
-      "contentHash": "9261adf6457863de3e9892f51317ec89",
-      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.4.16"
-      ],
-      "artifacts": [
-        "IERC20"
-      ]
-    },
     "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
       "lastModificationDate": 1773042571234,
       "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
@@ -1765,96 +2268,6 @@
       ],
       "artifacts": [
         "IERC20Metadata"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Pausable.sol": {
-      "lastModificationDate": 1773042571254,
-      "contentHash": "0d47b53e10b1985efbb396f937626279",
-      "sourceName": "@openzeppelin/contracts/utils/Pausable.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "../utils/Context.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Pausable"
-      ]
-    },
-    "C:\\Users\\VANSH\\Desktop\\moltmarket\\contracts\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1773042571129,
-      "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
-      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "../utils/Context.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Ownable"
       ]
     }
   }

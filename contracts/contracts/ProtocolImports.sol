@@ -27,6 +27,7 @@ import "../governance/Timelock.sol";
 // RWA
 import "../rwa/CrossChainAdapter.sol";
 import "../rwa/OutcomeWrapper.sol";
+import "../rwa/RWARegistry.sol";
 import "../rwa/RWAToken.sol";
 
 // Yield
@@ -34,3 +35,7 @@ import "../yield/CapitalRouter.sol";
 import "../yield/RiskAllocator.sol";
 import "../yield/YieldVault.sol";
 
+// Test support
+import "../mocks/MockCollateral.sol";
+import "../mocks/MockGovernedTarget.sol";
+import "../mocks/MockVotesToken.sol";

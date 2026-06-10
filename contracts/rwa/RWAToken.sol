@@ -23,6 +23,8 @@ contract RWAToken is ERC20, Pausable, Ownable {
         address rwaRegistry_,
         address owner_
     ) ERC20(name_, symbol_) Ownable(owner_) {
+        require(assetId_ != bytes32(0), "INVALID_ASSET");
+        require(rwaRegistry_ != address(0), "INVALID_REGISTRY");
         assetId = assetId_;
         rwaRegistry = IRWA(rwaRegistry_);
     }
@@ -59,6 +61,7 @@ contract RWAToken is ERC20, Pausable, Ownable {
     function burn(address from, uint256 amount)
         external
         onlyOwner
+        whenNotPaused
     {
         _burn(from, amount);
         emit Burned(from, amount);

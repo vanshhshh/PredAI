@@ -1,9 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ethers } from "ethers";
 
 import { createMarket, fetchMarkets, placeBet } from "@/lib/api";
+import { contractAddresses, sendContractTx, toCollateralUnits } from "@/lib/evmTx";
+import { useMarketStream } from "./useMarketStream";
 
 export interface Market {
   marketId: string;
@@ -33,10 +34,9 @@ export interface PlaceBetInput {
   amount: number;
 }
 
-const BET_IFACE = new ethers.Interface(["function betYes()", "function betNo()"]);
-
 export function useMarkets() {
   const queryClient = useQueryClient();
+  useMarketStream();
   const marketsQuery = useQuery({
     queryKey: ["markets"],
     queryFn: fetchMarkets,
@@ -61,25 +61,50 @@ export function useMarkets() {
         throw new Error("Wallet not detected");
       }
 
-      const provider = new ethers.BrowserProvider(
-        (window as Window & { ethereum?: unknown }).ethereum as any
-      );
-      const signer = await provider.getSigner();
-      const tx = await signer.sendTransaction({
-        to: market.address,
-        value: BigInt(Math.max(0, Math.floor(input.amount))),
-        data:
-          input.side === "YES"
-            ? BET_IFACE.encodeFunctionData("betYes")
-            : BET_IFACE.encodeFunctionData("betNo"),
+      const amountUnits = toCollateralUnits(input.amount);
+
+      await sendContractTx({
+        address: contractAddresses.collateralToken,
+        abi: ["function approve(address spender,uint256 amount) returns (bool)"],
+        functionName: "approve",
+        args: [market.address, amountUnits],
+        label: "CollateralToken",
       });
-      await tx.wait();
+
+      const txHash = await sendContractTx({
+        address: market.address,
+        abi: [
+          "function betYes(uint256 amount)",
+          "function betNo(uint256 amount)",
+        ],
+        functionName: input.side === "YES" ? "betYes" : "betNo",
+        args: [amountUnits],
+        label: "PredictionMarket",
+      });
 
       return placeBet({
         marketId: input.marketId,
         side: input.side,
-        amount: input.amount,
-        txHash: tx.hash,
+        amount: amountUnits.toString(),
+        txHash,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["markets"] });
+    },
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: async (marketId: string) => {
+      const market = markets.find((item) => item.marketId === marketId);
+      if (!market?.address) {
+        throw new Error("Market contract address unavailable");
+      }
+      return sendContractTx({
+        address: market.address,
+        abi: ["function claim()"],
+        functionName: "claim",
+        label: "PredictionMarket",
       });
     },
     onSuccess: async () => {
@@ -90,6 +115,7 @@ export function useMarkets() {
   const error =
     (createMarketMutation.error as Error | null) ??
     (placeBetMutation.error as Error | null) ??
+    (claimMutation.error as Error | null) ??
     (marketsQuery.error as Error | null) ??
     null;
 
@@ -98,11 +124,13 @@ export function useMarkets() {
     getMarketById: (marketId: string) => markets.find((market) => market.marketId === marketId),
     createMarket: createMarketMutation.mutateAsync,
     placeBet: placeBetMutation.mutateAsync,
+    claimWinnings: claimMutation.mutateAsync,
     fetchNext: async () => undefined,
     hasMore: false,
     isLoading: marketsQuery.isLoading,
     isCreating: createMarketMutation.isPending,
     isBetting: placeBetMutation.isPending,
+    isClaiming: claimMutation.isPending,
     error,
     refetch: marketsQuery.refetch,
   };

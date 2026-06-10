@@ -21,13 +21,11 @@
 // CHAINS
 // -------------------------------------------------------------------
 
-export const SUPPORTED_CHAIN_IDS = [80002, 137] as const;
+export const SUPPORTED_CHAIN_IDS = [137] as const;
 
-// Set NEXT_PUBLIC_CHAIN_ID=80002 and ALLOW_TESTNET=true for testnet
-// Set NEXT_PUBLIC_CHAIN_ID=137 and ALLOW_TESTNET=false for mainnet
 export const DEFAULT_CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID
   ? parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10)
-  : 80002;
+  : 137;
 
 // -------------------------------------------------------------------
 // MARKETS
